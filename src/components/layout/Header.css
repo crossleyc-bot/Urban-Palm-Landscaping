@@ -26,8 +26,9 @@
   font-weight: 700;
 }
 
-.logo-icon {
-  font-size: 1.5rem;
+.logo-img {
+  height: 40px;
+  width: auto;
 }
 
 .main-nav {

@@ -8,7 +8,8 @@ export default function Footer() {
         <div className="footer-grid">
           <div className="footer-brand">
             <div className="footer-logo">
-              <span>&#9752;</span> Urban Palm
+              <img src="/logo.png" alt="Urban Palm Landscaping" className="footer-logo-img" />
+              Urban Palm
             </div>
             <p>Professional landscaping services that bring your outdoor vision to life.</p>
           </div>

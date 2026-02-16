@@ -12,7 +12,7 @@ export default function Header() {
     <header className="header">
       <div className="header-container">
         <Link to="/" className="logo">
-          <span className="logo-icon">&#9752;</span>
+          <img src="/logo.png" alt="Urban Palm Landscaping" className="logo-img" />
           <span className="logo-text">Urban Palm</span>
         </Link>
 
