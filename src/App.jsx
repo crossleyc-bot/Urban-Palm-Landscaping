@@ -1,0 +1,117 @@
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+import Sidebar from './components/layout/Sidebar';
+
+import Home from './pages/public/Home';
+import Services from './pages/public/Services';
+import About from './pages/public/About';
+import Contact from './pages/public/Contact';
+import Login from './pages/Login';
+
+import CustomerDashboard from './pages/customer/CustomerDashboard';
+import RequestQuote from './pages/customer/RequestQuote';
+import ScheduleService from './pages/customer/ScheduleService';
+import OrderHistory from './pages/customer/OrderHistory';
+
+import AdminDashboard from './pages/admin/AdminDashboard';
+import ManageJobs from './pages/admin/ManageJobs';
+import ManageEmployees from './pages/admin/ManageEmployees';
+import AdminSchedule from './pages/admin/AdminSchedule';
+import Invoices from './pages/admin/Invoices';
+
+import './App.css';
+
+const customerNav = [
+  { path: '/portal', label: 'Dashboard', icon: '\u2630' },
+  { path: '/portal/quote', label: 'Request Quote', icon: '\u2709' },
+  { path: '/portal/schedule', label: 'Schedule Service', icon: '\uD83D\uDCC5' },
+  { path: '/portal/orders', label: 'Order History', icon: '\uD83D\uDCCB' },
+];
+
+const adminNav = [
+  { path: '/admin', label: 'Dashboard', icon: '\u2630' },
+  { path: '/admin/jobs', label: 'Manage Jobs', icon: '\uD83D\uDCBC' },
+  { path: '/admin/employees', label: 'Employees', icon: '\uD83D\uDC65' },
+  { path: '/admin/schedule', label: 'Schedule', icon: '\uD83D\uDCC5' },
+  { path: '/admin/invoices', label: 'Invoices', icon: '\uD83D\uDCB0' },
+];
+
+function ProtectedRoute({ allowedRole }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (allowedRole && user.role !== allowedRole) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
+function PortalLayout() {
+  return (
+    <div className="app-layout">
+      <Sidebar items={customerNav} title="Customer Portal" />
+      <main className="app-main">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
+function AdminLayout() {
+  return (
+    <div className="app-layout">
+      <Sidebar items={adminNav} title="Admin Panel" />
+      <main className="app-main">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+
+function PublicLayout() {
+  return (
+    <>
+      <main>
+        <Outlet />
+      </main>
+      <Footer />
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Header />
+        <Routes>
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/login" element={<Login />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRole="customer" />}>
+            <Route element={<PortalLayout />}>
+              <Route path="/portal" element={<CustomerDashboard />} />
+              <Route path="/portal/quote" element={<RequestQuote />} />
+              <Route path="/portal/schedule" element={<ScheduleService />} />
+              <Route path="/portal/orders" element={<OrderHistory />} />
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRole="admin" />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/jobs" element={<ManageJobs />} />
+              <Route path="/admin/employees" element={<ManageEmployees />} />
+              <Route path="/admin/schedule" element={<AdminSchedule />} />
+              <Route path="/admin/invoices" element={<Invoices />} />
+            </Route>
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
