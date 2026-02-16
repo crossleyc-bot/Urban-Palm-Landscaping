@@ -44,7 +44,7 @@ export const services = [
 ];
 
 export const teamMembers = [
-  { id: 1, name: 'Carlos Rivera', role: 'Founder & Lead Designer', experience: '15 years' },
+  { id: 1, name: 'Andrea Baugh', role: 'Founder & Lead Designer', experience: '15 years' },
   { id: 2, name: 'Maria Santos', role: 'Operations Manager', experience: '10 years' },
   { id: 3, name: 'James Okoro', role: 'Senior Landscaper', experience: '8 years' },
   { id: 4, name: 'Aisha Patel', role: 'Irrigation Specialist', experience: '6 years' },
@@ -87,7 +87,7 @@ export const mockJobs = [
 ];
 
 export const mockEmployees = [
-  { id: 'EMP-001', name: 'Carlos Rivera', role: 'Lead Designer', phone: '(555) 100-1001', email: 'carlos@urbanpalm.com', status: 'Active' },
+  { id: 'EMP-001', name: 'Andrea Baugh', role: 'Lead Designer', phone: '(555) 100-1001', email: 'andrea@urbanpalm.com', status: 'Active' },
   { id: 'EMP-002', name: 'Maria Santos', role: 'Operations Manager', phone: '(555) 100-1002', email: 'maria@urbanpalm.com', status: 'Active' },
   { id: 'EMP-003', name: 'James Okoro', role: 'Senior Landscaper', phone: '(555) 100-1003', email: 'james@urbanpalm.com', status: 'Active' },
   { id: 'EMP-004', name: 'Aisha Patel', role: 'Irrigation Specialist', phone: '(555) 100-1004', email: 'aisha@urbanpalm.com', status: 'Active' },
