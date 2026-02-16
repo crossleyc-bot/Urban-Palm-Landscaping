@@ -7,32 +7,32 @@ const slides = [
     title: 'Backyard Retreat',
     beforeLabel: 'Overgrown & Neglected',
     afterLabel: 'Lush Garden Oasis',
-    beforeColor: '#8B7355',
-    afterColor: '#2d7a4a',
+    beforeImg: '/images/backyard-before.svg',
+    afterImg: '/images/backyard-after.svg',
   },
   {
     id: 2,
     title: 'Front Yard Makeover',
     beforeLabel: 'Bare & Patchy Lawn',
     afterLabel: 'Manicured Curb Appeal',
-    beforeColor: '#9B8B6E',
-    afterColor: '#3a8f5c',
+    beforeImg: '/images/frontyard-before.svg',
+    afterImg: '/images/frontyard-after.svg',
   },
   {
     id: 3,
     title: 'Patio & Hardscaping',
     beforeLabel: 'Cracked Concrete',
     afterLabel: 'Elegant Stone Patio',
-    beforeColor: '#7A7A7A',
-    afterColor: '#1a472a',
+    beforeImg: '/images/patio-before.svg',
+    afterImg: '/images/patio-after.svg',
   },
   {
     id: 4,
     title: 'Commercial Property',
     beforeLabel: 'Unkempt Landscape',
     afterLabel: 'Professional Grounds',
-    beforeColor: '#A0926B',
-    afterColor: '#2E8B57',
+    beforeImg: '/images/commercial-before.svg',
+    afterImg: '/images/commercial-after.svg',
   },
 ];
 
@@ -62,27 +62,13 @@ export default function BeforeAfterCarousel() {
 
         <div className="carousel-pair">
           <div className="carousel-image-wrapper">
-            <div
-              className="carousel-placeholder"
-              style={{ background: slide.beforeColor }}
-            >
-              {/* Replace this div with: <img src="/images/before-1.jpg" alt="Before" /> */}
-              <span className="carousel-placeholder-icon">&#9744;</span>
-              <span className="carousel-placeholder-text">Before Photo</span>
-            </div>
+            <img src={slide.beforeImg} alt={`Before: ${slide.beforeLabel}`} className="carousel-img" />
             <div className="carousel-label carousel-label-before">Before</div>
             <p className="carousel-description">{slide.beforeLabel}</p>
           </div>
 
           <div className="carousel-image-wrapper">
-            <div
-              className="carousel-placeholder"
-              style={{ background: slide.afterColor }}
-            >
-              {/* Replace this div with: <img src="/images/after-1.jpg" alt="After" /> */}
-              <span className="carousel-placeholder-icon">&#9752;</span>
-              <span className="carousel-placeholder-text">After Photo</span>
-            </div>
+            <img src={slide.afterImg} alt={`After: ${slide.afterLabel}`} className="carousel-img" />
             <div className="carousel-label carousel-label-after">After</div>
             <p className="carousel-description">{slide.afterLabel}</p>
           </div>

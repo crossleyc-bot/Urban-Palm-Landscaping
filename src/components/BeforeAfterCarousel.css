@@ -29,28 +29,12 @@
   text-align: center;
 }
 
-.carousel-placeholder {
+.carousel-img {
   width: 100%;
   aspect-ratio: 4 / 3;
   border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.7);
-  transition: background 0.6s ease;
-}
-
-.carousel-placeholder-icon {
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
-}
-
-.carousel-placeholder-text {
-  font-size: 0.85rem;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  object-fit: cover;
+  display: block;
 }
 
 .carousel-label {
