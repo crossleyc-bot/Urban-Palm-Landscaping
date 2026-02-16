@@ -20,7 +20,7 @@ export default function About() {
                 Urban Palm Landscaping was founded with a simple mission: to transform
                 ordinary outdoor spaces into extraordinary living environments. What
                 started as a one-person lawn care operation has grown into a
-                full-service landscaping company serving the greater Palm City area.
+                full-service landscaping company serving the greater Central Florida area.
               </p>
               <p>
                 Today, our team of skilled designers, horticulturists, and craftsmen

@@ -81,7 +81,7 @@ export default function ScheduleService() {
             <input
               id="address"
               type="text"
-              placeholder="123 Main St, Palm City, FL"
+              placeholder="123 Main St, Central Florida, FL"
               required
             />
           </div>
