@@ -31,8 +31,8 @@ export default function Footer() {
 
           <div className="footer-links">
             <h4>Contact</h4>
-            <p>123 Garden Ave, Suite 100</p>
-            <p>Palm City, FL 34990</p>
+            <p>25546 High Hampton Circle</p>
+            <p>Sorrento, FL 32776</p>
             <p>(555) 123-4567</p>
             <p>info@urbanpalm.com</p>
           </div>

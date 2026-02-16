@@ -75,7 +75,7 @@ export default function Contact() {
                 <h3>Get In Touch</h3>
                 <div className="contact-detail">
                   <strong>Address</strong>
-                  <p>123 Garden Ave, Suite 100<br />Palm City, FL 34990</p>
+                  <p>25546 High Hampton Circle<br />Sorrento, FL 32776</p>
                 </div>
                 <div className="contact-detail">
                   <strong>Phone</strong>
