@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { services, testimonials } from '../../data/mockData';
+import BeforeAfterCarousel from '../../components/BeforeAfterCarousel';
 import './Home.css';
 
 export default function Home() {
@@ -17,6 +18,17 @@ export default function Home() {
             <Link to="/contact" className="btn btn-primary btn-lg">Get Free Quote</Link>
             <Link to="/services" className="btn btn-outline btn-lg">Our Services</Link>
           </div>
+        </div>
+      </section>
+
+      {/* Before & After Carousel */}
+      <section className="section carousel-section">
+        <div className="container">
+          <div className="section-header">
+            <h2>Our Transformations</h2>
+            <p>See the difference professional landscaping makes.</p>
+          </div>
+          <BeforeAfterCarousel />
         </div>
       </section>
 

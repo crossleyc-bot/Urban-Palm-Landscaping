@@ -1,0 +1,147 @@
+.carousel {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.carousel-slide-title {
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin-bottom: 1.25rem;
+}
+
+.carousel-viewport {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.carousel-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.carousel-image-wrapper {
+  position: relative;
+  text-align: center;
+}
+
+.carousel-placeholder {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  transition: background 0.6s ease;
+}
+
+.carousel-placeholder-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.carousel-placeholder-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.carousel-label {
+  position: absolute;
+  top: 0.75rem;
+  padding: 0.2rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.carousel-label-before {
+  left: 0.75rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+}
+
+.carousel-label-after {
+  left: 0.75rem;
+  background: rgba(26, 71, 42, 0.85);
+  color: #fff;
+}
+
+.carousel-description {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #718096;
+}
+
+/* Arrows */
+.carousel-arrow {
+  background: none;
+  border: 2px solid #e2e8f0;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #4a5568;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.carousel-arrow:hover {
+  border-color: #1a472a;
+  color: #1a472a;
+}
+
+/* Dots */
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.carousel-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.carousel-dot.active {
+  background: #1a472a;
+  border-color: #1a472a;
+}
+
+.carousel-dot:hover {
+  border-color: #1a472a;
+}
+
+@media (max-width: 768px) {
+  .carousel-pair {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .carousel-arrow {
+    width: 32px;
+    height: 32px;
+    font-size: 1.2rem;
+  }
+}
