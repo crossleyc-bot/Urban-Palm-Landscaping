@@ -64,6 +64,15 @@
   text-align: center;
 }
 
+.team-photo {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto 1rem;
+  display: block;
+}
+
 .team-avatar {
   width: 72px;
   height: 72px;

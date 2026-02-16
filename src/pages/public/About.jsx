@@ -60,9 +60,13 @@ export default function About() {
           <div className="team-grid">
             {teamMembers.map((member) => (
               <div key={member.id} className="team-card">
-                <div className="team-avatar">
-                  {member.name.split(' ').map(n => n[0]).join('')}
-                </div>
+                {member.image ? (
+                  <img src={member.image} alt={member.name} className="team-photo" />
+                ) : (
+                  <div className="team-avatar">
+                    {member.name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                )}
                 <h3>{member.name}</h3>
                 <p className="team-role">{member.role}</p>
                 <p className="team-exp">{member.experience} experience</p>
