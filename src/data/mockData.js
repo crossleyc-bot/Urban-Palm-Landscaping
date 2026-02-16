@@ -45,7 +45,7 @@ export const services = [
 
 export const teamMembers = [
   { id: 1, name: 'Andrea Rusch', role: 'Founder & Lead Designer', experience: '15 years', image: '/Andrea.png' },
-  { id: 2, name: 'Carson Crossley', role: 'Operations Manager', experience: '10 years' },
+  { id: 2, name: 'Carson Crossley', role: 'Operations Manager', experience: '10 years', image: '/Carson.png' },
   { id: 3, name: 'Chad Crossley', role: 'Senior Landscaper', experience: '8 years', image: '/Chad.png' },
   { id: 4, name: 'Griffin Baugh', role: 'Irrigation Specialist', experience: '6 years', image: '/Griffin.png' },
 ];
