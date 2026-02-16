@@ -83,7 +83,7 @@ export default function Contact() {
                 </div>
                 <div className="contact-detail">
                   <strong>Email</strong>
-                  <p>info@urbanpalm.com</p>
+                  <p>info@urbanpalmlandscaping.com</p>
                 </div>
                 <div className="contact-detail">
                   <strong>Hours</strong>

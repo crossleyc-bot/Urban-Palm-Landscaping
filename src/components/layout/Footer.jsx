@@ -35,7 +35,7 @@ export default function Footer() {
             <p>25546 High Hampton Circle</p>
             <p>Sorrento, FL 32776</p>
             <p>(321) 231-2094</p>
-            <p>info@urbanpalm.com</p>
+            <p>info@urbanpalmlandscaping.com</p>
           </div>
         </div>
 
