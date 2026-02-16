@@ -33,7 +33,7 @@ export default function Footer() {
             <h4>Contact</h4>
             <p>25546 High Hampton Circle</p>
             <p>Sorrento, FL 32776</p>
-            <p>(555) 123-4567</p>
+            <p>(321) 231-2094</p>
             <p>info@urbanpalm.com</p>
           </div>
         </div>
