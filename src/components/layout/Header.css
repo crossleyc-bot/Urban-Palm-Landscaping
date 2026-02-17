@@ -20,12 +20,21 @@
 .logo {
   display: flex;
   align-items: center;
+  gap: 0.6rem;
   text-decoration: none;
+  color: var(--color-primary);
+  font-weight: 700;
 }
 
 .logo-img {
   height: 72px;
   width: auto;
+}
+
+.logo-text {
+  font-size: 1.15rem;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .main-nav {
@@ -74,6 +83,10 @@
 
   .logo-img {
     height: 50px;
+  }
+
+  .logo-text {
+    display: none;
   }
 
   .header-actions {
