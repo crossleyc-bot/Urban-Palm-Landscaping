@@ -1,31 +1,119 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
-  <!-- Sky -->
-  <rect width="400" height="300" fill="#c9ccd0"/>
+  <defs>
+    <linearGradient id="graySkyPB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#9ea6ae"/>
+      <stop offset="100%" stop-color="#c4c8cc"/>
+    </linearGradient>
+    <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a8b0b8"/>
+      <stop offset="100%" stop-color="#B0BEC5"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Overcast sky -->
+  <rect width="400" height="300" fill="url(#graySkyPB)"/>
+  <ellipse cx="100" cy="25" rx="60" ry="18" fill="#aeb3b8" opacity="0.5"/>
+  <ellipse cx="300" cy="20" rx="55" ry="15" fill="#b0b5ba" opacity="0.45"/>
+
+  <!-- House wall -->
+  <rect x="0" y="35" width="290" height="125" fill="url(#wallGrad)"/>
+  <!-- Wall stains / water damage -->
+  <rect x="0" y="130" width="290" height="30" fill="#9aa2aa" opacity="0.35"/>
+  <ellipse cx="50" cy="90" rx="15" ry="20" fill="#9da5ad" opacity="0.25"/>
+  <ellipse cx="220" cy="100" rx="12" ry="18" fill="#9da5ad" opacity="0.2"/>
+  <!-- Fascia -->
+  <rect x="0" y="30" width="290" height="8" fill="#90A4AE"/>
+
+  <!-- Sliding door - dirty/hazy -->
+  <rect x="95" y="50" width="90" height="110" fill="#6a9aaa" opacity="0.45" stroke="#78909C" stroke-width="2.5"/>
+  <line x1="140" y1="50" x2="140" y2="160" stroke="#78909C" stroke-width="2"/>
+  <!-- Door frame -->
+  <rect x="95" y="155" width="90" height="5" fill="#78909C"/>
+  <!-- Dirty glass smudges -->
+  <ellipse cx="115" cy="90" rx="8" ry="12" fill="#5a8a9a" opacity="0.2"/>
+  <ellipse cx="160" cy="100" rx="6" ry="10" fill="#5a8a9a" opacity="0.15"/>
+  <!-- Door handle -->
+  <rect x="137" y="100" width="6" height="2" fill="#78909C"/>
+
   <!-- Ground -->
   <rect y="160" width="400" height="140" fill="#8B7355"/>
-  <!-- Cracked concrete patio -->
-  <rect x="30" y="160" width="250" height="130" fill="#9E9E9E"/>
-  <!-- Cracks -->
-  <path d="M80 160 L95 200 L85 240 L90 290" stroke="#757575" stroke-width="2" fill="none"/>
-  <path d="M180 160 L175 190 L190 230 L185 260 L195 290" stroke="#757575" stroke-width="2" fill="none"/>
-  <path d="M30 210 L100 215 L180 205 L280 212" stroke="#757575" stroke-width="2" fill="none"/>
-  <path d="M120 160 L125 180 L115 200" stroke="#757575" stroke-width="1.5" fill="none"/>
-  <!-- Stains -->
-  <ellipse cx="130" cy="230" rx="25" ry="15" fill="#8a8a8a" opacity="0.5"/>
-  <ellipse cx="220" cy="200" rx="20" ry="12" fill="#8a8a8a" opacity="0.4"/>
-  <!-- Old furniture -->
-  <rect x="50" y="175" width="40" height="40" fill="#6D4C41" rx="2"/>
-  <rect x="46" y="172" width="48" height="5" fill="#795548" rx="1"/>
-  <!-- Weedy edge -->
-  <line x1="290" y1="160" x2="285" y2="140" stroke="#6b7c3f" stroke-width="2"/>
-  <line x1="300" y1="160" x2="305" y2="138" stroke="#6b7c3f" stroke-width="2"/>
-  <line x1="310" y1="160" x2="308" y2="142" stroke="#6b7c3f" stroke-width="2"/>
-  <line x1="330" y1="160" x2="325" y2="140" stroke="#6b7c3f" stroke-width="2"/>
-  <line x1="350" y1="160" x2="355" y2="135" stroke="#6b7c3f" stroke-width="2"/>
-  <!-- House wall -->
-  <rect x="0" y="40" width="280" height="120" fill="#B0BEC5"/>
-  <rect x="0" y="35" width="280" height="10" fill="#90A4AE"/>
-  <!-- Sliding door -->
-  <rect x="100" y="55" width="80" height="105" fill="#80DEEA" opacity="0.5" stroke="#78909C" stroke-width="2"/>
-  <line x1="140" y1="55" x2="140" y2="160" stroke="#78909C" stroke-width="2"/>
+
+  <!-- Cracked concrete patio with detailed damage -->
+  <rect x="20" y="160" width="265" height="135" fill="#949494"/>
+  <!-- Surface stains and discoloration -->
+  <ellipse cx="100" cy="220" rx="30" ry="18" fill="#868686" opacity="0.5"/>
+  <ellipse cx="200" cy="200" rx="25" ry="14" fill="#7e7e7e" opacity="0.4"/>
+  <ellipse cx="60" cy="260" rx="22" ry="12" fill="#868686" opacity="0.35"/>
+  <ellipse cx="230" cy="260" rx="28" ry="15" fill="#7e7e7e" opacity="0.3"/>
+
+  <!-- Major cracks -->
+  <path d="M70 160 L78 190 L72 220 L80 250 L75 290" stroke="#707070" stroke-width="2.5" fill="none"/>
+  <path d="M170 160 L165 185 L175 215 L168 245 L178 275 L172 295" stroke="#707070" stroke-width="2.5" fill="none"/>
+  <path d="M20 205 L80 210 L140 203 L200 208 L260 200 L285 205" stroke="#707070" stroke-width="2" fill="none"/>
+  <!-- Minor cracks -->
+  <path d="M120 160 L125 178 L118 200" stroke="#787878" stroke-width="1.5" fill="none"/>
+  <path d="M230 160 L226 180 L232 200 L228 215" stroke="#787878" stroke-width="1.5" fill="none"/>
+  <path d="M50 250 L75 255 L100 248" stroke="#787878" stroke-width="1.2" fill="none"/>
+  <!-- Chip/pothole -->
+  <ellipse cx="145" cy="240" rx="10" ry="6" fill="#7a7a7a"/>
+  <ellipse cx="145" cy="240" rx="7" ry="4" fill="#6e6e6e"/>
+
+  <!-- Old weathered furniture -->
+  <!-- Rickety table -->
+  <rect x="42" y="175" width="45" height="4" fill="#6a5540" rx="1"/>
+  <rect x="46" y="179" width="4" height="22" fill="#6a5540"/>
+  <rect x="80" y="179" width="4" height="22" fill="#6a5540"/>
+  <!-- Wobbly leg -->
+  <rect x="46" y="179" width="4" height="22" fill="#5a4530" transform="rotate(2 48 190)"/>
+  <!-- Old stained chair -->
+  <rect x="105" y="185" width="30" height="4" fill="#5a4530" rx="1"/>
+  <rect x="108" y="189" width="4" height="15" fill="#5a4530"/>
+  <rect x="128" y="189" width="4" height="15" fill="#5a4530"/>
+  <rect x="105" y="175" width="4" height="14" fill="#5a4530"/>
+  <rect x="131" y="175" width="4" height="14" fill="#5a4530"/>
+  <rect x="105" y="175" width="30" height="4" fill="#5a4530" rx="1"/>
+
+  <!-- Weedy/dirt edge beyond patio -->
+  <g stroke="#6b7c3f" stroke-width="2" stroke-linecap="round">
+    <line x1="295" y1="160" x2="290" y2="138"/>
+    <line x1="300" y1="160" x2="305" y2="136"/>
+    <line x1="310" y1="160" x2="307" y2="140"/>
+    <line x1="320" y1="160" x2="318" y2="138"/>
+    <line x1="335" y1="160" x2="330" y2="138"/>
+    <line x1="345" y1="160" x2="350" y2="135"/>
+    <line x1="360" y1="160" x2="357" y2="140"/>
+    <line x1="375" y1="160" x2="378" y2="136"/>
+    <line x1="390" y1="160" x2="387" y2="142"/>
+  </g>
+  <!-- Dead brown tufts -->
+  <g stroke="#8a7a55" stroke-width="1.5" stroke-linecap="round">
+    <line x1="305" y1="160" x2="308" y2="145"/>
+    <line x1="340" y1="160" x2="342" y2="142"/>
+    <line x1="370" y1="160" x2="368" y2="145"/>
+  </g>
+
+  <!-- Muddy/bare dirt area -->
+  <ellipse cx="340" cy="200" rx="45" ry="20" fill="#7a6545" opacity="0.6"/>
+  <ellipse cx="360" cy="240" rx="35" ry="15" fill="#6d5a3c" opacity="0.5"/>
+
+  <!-- Moss on patio edge -->
+  <ellipse cx="25" cy="175" rx="12" ry="5" fill="#5a7a3a" opacity="0.4"/>
+  <ellipse cx="275" cy="180" rx="10" ry="4" fill="#5a7a3a" opacity="0.35"/>
+
+  <!-- Old cracked pot -->
+  <path d="M225 170 L220 192 L245 192 L240 170 Z" fill="#8a5a3a"/>
+  <path d="M225 170 L220 192 L222 192 L227 170 Z" fill="#7a4a2a" opacity="0.3"/>
+  <!-- Crack in pot -->
+  <line x1="232" y1="172" x2="230" y2="188" stroke="#6a4a2a" stroke-width="1"/>
+  <!-- Dead plant -->
+  <line x1="232" y1="170" x2="230" y2="158" stroke="#7a6a3a" stroke-width="2" stroke-linecap="round"/>
+  <line x1="232" y1="170" x2="236" y2="155" stroke="#7a6a3a" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Cobwebs in corner -->
+  <path d="M0 35 Q15 45 0 55" stroke="#ccc" stroke-width="0.5" fill="none" opacity="0.4"/>
+  <path d="M0 35 Q20 40 5 55" stroke="#ccc" stroke-width="0.5" fill="none" opacity="0.3"/>
+
+  <!-- Gutter with leaves -->
+  <rect x="286" y="30" width="4" height="132" fill="#78909C" opacity="0.4"/>
+  <ellipse cx="288" cy="160" rx="6" ry="3" fill="#6a7a4a" opacity="0.5"/>
 </svg>
