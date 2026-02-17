@@ -11,7 +11,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 1.5rem;
-  height: 80px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -20,21 +20,12 @@
 .logo {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
   text-decoration: none;
-  color: var(--color-primary);
-  font-weight: 700;
 }
 
 .logo-img {
-  height: 72px;
+  height: 44px;
   width: auto;
-}
-
-.logo-text {
-  font-size: 1.15rem;
-  line-height: 1.2;
-  white-space: nowrap;
 }
 
 .main-nav {
@@ -78,15 +69,11 @@
 
 @media (max-width: 768px) {
   .header-container {
-    height: 60px;
+    height: 56px;
   }
 
   .logo-img {
-    height: 50px;
-  }
-
-  .logo-text {
-    display: none;
+    height: 36px;
   }
 
   .header-actions {
@@ -101,7 +88,7 @@
   .main-nav {
     display: none;
     position: fixed;
-    top: 60px;
+    top: 56px;
     left: 0;
     right: 0;
     background: var(--color-surface);
@@ -131,7 +118,7 @@
     display: block;
     position: fixed;
     inset: 0;
-    top: 60px;
+    top: 56px;
     background: rgba(0, 0, 0, 0.3);
     z-index: 99;
   }
