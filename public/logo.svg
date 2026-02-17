@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 50" fill="none">
+  <!-- Palm leaf icon -->
+  <g transform="translate(2, 0) scale(0.8)">
+    <!-- Trunk -->
+    <path d="M26 58 C26 58 27 38 28 30 C29 22 28 18 28 18" stroke="#1a472a" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+    <!-- Left fronds -->
+    <path d="M28 20 C20 14 8 14 2 18 C8 12 18 8 28 16" fill="#1a472a"/>
+    <path d="M28 18 C22 10 12 4 4 4 C12 2 22 6 28 14" fill="#22693d"/>
+    <path d="M28 16 C24 6 18 0 10 0 C18 -1 26 4 28 12" fill="#2d8a4e"/>
+    <!-- Right fronds -->
+    <path d="M28 20 C36 14 48 14 54 18 C48 12 38 8 28 16" fill="#1a472a"/>
+    <path d="M28 18 C34 10 44 4 52 4 C44 2 34 6 28 14" fill="#22693d"/>
+    <path d="M28 16 C32 6 38 0 46 0 C38 -1 30 4 28 12" fill="#2d8a4e"/>
+  </g>
+  <!-- Company name -->
+  <text x="50" y="23" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="21" font-weight="700" fill="#1a472a" letter-spacing="-0.3">Urban Palm</text>
+  <text x="50" y="42" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="500" fill="#4a5568" letter-spacing="2">LANDSCAPING</text>
+</svg>
