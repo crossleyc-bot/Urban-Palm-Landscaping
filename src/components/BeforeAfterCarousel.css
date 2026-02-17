@@ -17,11 +17,10 @@
   gap: 0.5rem;
 }
 
-.carousel-pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+.carousel-single {
   flex: 1;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .carousel-image-wrapper {
@@ -118,11 +117,6 @@
 }
 
 @media (max-width: 768px) {
-  .carousel-pair {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
   .carousel-arrow {
     width: 32px;
     height: 32px;

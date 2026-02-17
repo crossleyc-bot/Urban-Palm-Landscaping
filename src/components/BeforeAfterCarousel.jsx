@@ -1,40 +1,49 @@
 import { useState, useEffect } from 'react';
 import './BeforeAfterCarousel.css';
 
-const slides = [
-  {
-    id: 1,
-    title: 'Backyard Retreat',
-    beforeLabel: 'Overgrown & Neglected',
-    afterLabel: 'Lush Garden Oasis',
-    beforeImg: '/images/carousel/backyard-before.svg',
-    afterImg: '/images/carousel/backyard-after.svg',
-  },
-  {
-    id: 2,
-    title: 'Commercial Property',
-    beforeLabel: 'Unkempt Landscape',
-    afterLabel: 'Professional Grounds',
-    beforeImg: '/images/carousel/commercial-before.svg',
-    afterImg: '/images/carousel/commercial-after.svg',
-  },
-  {
-    id: 3,
-    title: 'Front Yard Makeover',
-    beforeLabel: 'Bare & Patchy Lawn',
-    afterLabel: 'Manicured Curb Appeal',
-    beforeImg: '/images/carousel/frontyard-before.svg',
-    afterImg: '/images/carousel/frontyard-after.svg',
-  },
-  {
-    id: 4,
-    title: 'Patio & Hardscaping',
-    beforeLabel: 'Cracked Concrete',
-    afterLabel: 'Elegant Stone Patio',
-    beforeImg: '/images/carousel/patio-before.svg',
-    afterImg: '/images/carousel/patio-after.svg',
-  },
-];
+const imageFiles = [
+  'backyard-after.svg',
+  'backyard-before.svg',
+  'commercial-after.svg',
+  'commercial-before.svg',
+  'frontyard-after.svg',
+  'frontyard-before.svg',
+  'patio-after.svg',
+  'patio-before.svg',
+].sort();
+
+const titles = {
+  backyard: 'Backyard Retreat',
+  commercial: 'Commercial Property',
+  frontyard: 'Front Yard Makeover',
+  patio: 'Patio & Hardscaping',
+};
+
+const beforeLabels = {
+  backyard: 'Overgrown & Neglected',
+  commercial: 'Unkempt Landscape',
+  frontyard: 'Bare & Patchy Lawn',
+  patio: 'Cracked Concrete',
+};
+
+const afterLabels = {
+  backyard: 'Lush Garden Oasis',
+  commercial: 'Professional Grounds',
+  frontyard: 'Manicured Curb Appeal',
+  patio: 'Elegant Stone Patio',
+};
+
+const slides = imageFiles.map((file, index) => {
+  const [property, variant] = file.replace('.svg', '').split('-');
+  return {
+    id: index + 1,
+    property,
+    variant,
+    title: titles[property] || property,
+    label: variant === 'before' ? beforeLabels[property] : afterLabels[property],
+    img: `/images/carousel/${file}`,
+  };
+});
 
 export default function BeforeAfterCarousel() {
   const [current, setCurrent] = useState(0);
@@ -60,17 +69,13 @@ export default function BeforeAfterCarousel() {
           &#8249;
         </button>
 
-        <div className="carousel-pair">
+        <div className="carousel-single">
           <div className="carousel-image-wrapper">
-            <img src={slide.beforeImg} alt={`Before: ${slide.beforeLabel}`} className="carousel-img" />
-            <div className="carousel-label carousel-label-before">Before</div>
-            <p className="carousel-description">{slide.beforeLabel}</p>
-          </div>
-
-          <div className="carousel-image-wrapper">
-            <img src={slide.afterImg} alt={`After: ${slide.afterLabel}`} className="carousel-img" />
-            <div className="carousel-label carousel-label-after">After</div>
-            <p className="carousel-description">{slide.afterLabel}</p>
+            <img src={slide.img} alt={`${slide.variant === 'before' ? 'Before' : 'After'}: ${slide.label}`} className="carousel-img" />
+            <div className={`carousel-label carousel-label-${slide.variant}`}>
+              {slide.variant === 'before' ? 'Before' : 'After'}
+            </div>
+            <p className="carousel-description">{slide.label}</p>
           </div>
         </div>
 
