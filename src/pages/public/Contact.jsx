@@ -1,11 +1,20 @@
 import { useState } from 'react';
+import { apiPost } from '../../api';
 import './Contact.css';
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    const form = e.target;
+    await apiPost('/contact', {
+      name: form.name.value,
+      email: form.email.value,
+      phone: form.phone.value,
+      service: form.service.value,
+      message: form.message.value,
+    });
     setSubmitted(true);
   };
 
@@ -37,20 +46,20 @@ export default function Contact() {
                   <div className="form-row">
                     <div className="form-group">
                       <label htmlFor="name">Full Name</label>
-                      <input id="name" type="text" placeholder="John Smith" required />
+                      <input id="name" name="name" type="text" placeholder="John Smith" required />
                     </div>
                     <div className="form-group">
                       <label htmlFor="email">Email</label>
-                      <input id="email" type="email" placeholder="john@example.com" required />
+                      <input id="email" name="email" type="email" placeholder="john@example.com" required />
                     </div>
                   </div>
                   <div className="form-group">
                     <label htmlFor="phone">Phone Number</label>
-                    <input id="phone" type="tel" placeholder="(555) 123-4567" />
+                    <input id="phone" name="phone" type="tel" placeholder="(555) 123-4567" />
                   </div>
                   <div className="form-group">
                     <label htmlFor="service">Service Interested In</label>
-                    <select id="service" defaultValue="">
+                    <select id="service" name="service" defaultValue="">
                       <option value="" disabled>Select a service</option>
                       <option>Lawn Maintenance</option>
                       <option>Landscape Design</option>
@@ -63,7 +72,7 @@ export default function Contact() {
                   </div>
                   <div className="form-group">
                     <label htmlFor="message">Message</label>
-                    <textarea id="message" placeholder="Tell us about your project..." required />
+                    <textarea id="message" name="message" placeholder="Tell us about your project..." required />
                   </div>
                   <button type="submit" className="btn btn-primary btn-lg">Send Message</button>
                 </form>

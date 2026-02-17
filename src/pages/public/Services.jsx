@@ -1,8 +1,15 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { services } from '../../data/mockData';
+import { apiGet } from '../../api';
 import './Services.css';
 
 export default function Services() {
+  const [services, setServices] = useState([]);
+
+  useEffect(() => {
+    apiGet('/services').then(setServices);
+  }, []);
+
   return (
     <div className="services-page">
       <section className="page-hero">

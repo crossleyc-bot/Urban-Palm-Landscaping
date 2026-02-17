@@ -1,6 +1,13 @@
-import { mockEmployees } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { apiGet } from '../../api';
 
 export default function ManageEmployees() {
+  const [employees, setEmployees] = useState([]);
+
+  useEffect(() => {
+    apiGet('/employees').then(setEmployees);
+  }, []);
+
   return (
     <div>
       <div className="page-header">
@@ -11,15 +18,15 @@ export default function ManageEmployees() {
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-label">Total Staff</div>
-          <div className="stat-value">{mockEmployees.length}</div>
+          <div className="stat-value">{employees.length}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Active</div>
-          <div className="stat-value">{mockEmployees.filter(e => e.status === 'Active').length}</div>
+          <div className="stat-value">{employees.filter(e => e.status === 'Active').length}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">On Leave</div>
-          <div className="stat-value">{mockEmployees.filter(e => e.status === 'On Leave').length}</div>
+          <div className="stat-value">{employees.filter(e => e.status === 'On Leave').length}</div>
         </div>
       </div>
 
@@ -37,7 +44,7 @@ export default function ManageEmployees() {
               </tr>
             </thead>
             <tbody>
-              {mockEmployees.map((emp) => (
+              {employees.map((emp) => (
                 <tr key={emp.id}>
                   <td style={{ fontWeight: 500 }}>{emp.id}</td>
                   <td>{emp.name}</td>

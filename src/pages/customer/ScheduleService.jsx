@@ -1,11 +1,28 @@
-import { useState } from 'react';
-import { services } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { apiGet, apiPost } from '../../api';
 
 export default function ScheduleService() {
+  const { user } = useAuth();
+  const [services, setServices] = useState([]);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    apiGet('/services').then(setServices);
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    const form = e.target;
+    await apiPost('/schedule', {
+      user_id: user.id,
+      service: form.service.value,
+      date: form.date.value,
+      time: form.time.value,
+      frequency: form.frequency.value,
+      address: form.address.value,
+      notes: form.notes.value,
+    });
     setSubmitted(true);
   };
 
@@ -40,7 +57,7 @@ export default function ScheduleService() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '600px' }}>
           <div className="form-group">
             <label htmlFor="service">Service</label>
-            <select id="service" required defaultValue="">
+            <select id="service" name="service" required defaultValue="">
               <option value="" disabled>Select a service</option>
               {services.map(s => (
                 <option key={s.id} value={s.name}>{s.name}</option>
@@ -51,12 +68,12 @@ export default function ScheduleService() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="form-group">
               <label htmlFor="date">Preferred Date</label>
-              <input id="date" type="date" required />
+              <input id="date" name="date" type="date" required />
             </div>
 
             <div className="form-group">
               <label htmlFor="time">Preferred Time</label>
-              <select id="time" defaultValue="">
+              <select id="time" name="time" defaultValue="">
                 <option value="" disabled>Select time</option>
                 <option>Morning (8am - 12pm)</option>
                 <option>Afternoon (12pm - 4pm)</option>
@@ -67,7 +84,7 @@ export default function ScheduleService() {
 
           <div className="form-group">
             <label htmlFor="frequency">Frequency</label>
-            <select id="frequency" defaultValue="">
+            <select id="frequency" name="frequency" defaultValue="">
               <option value="" disabled>Select frequency</option>
               <option>One-time</option>
               <option>Weekly</option>
@@ -80,6 +97,7 @@ export default function ScheduleService() {
             <label htmlFor="address">Service Address</label>
             <input
               id="address"
+              name="address"
               type="text"
               placeholder="123 Main St, Central Florida, FL"
               required
@@ -90,6 +108,7 @@ export default function ScheduleService() {
             <label htmlFor="notes">Special Instructions</label>
             <textarea
               id="notes"
+              name="notes"
               placeholder="Gate code, pet considerations, areas to focus on, etc."
             />
           </div>

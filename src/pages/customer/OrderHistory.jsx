@@ -1,4 +1,6 @@
-import { mockOrders } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { apiGet } from '../../api';
 
 const statusBadge = (status) => {
   const map = {
@@ -11,6 +13,15 @@ const statusBadge = (status) => {
 };
 
 export default function OrderHistory() {
+  const { user } = useAuth();
+  const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    if (user) {
+      apiGet(`/orders?user_id=${user.id}`).then(setOrders);
+    }
+  }, [user]);
+
   return (
     <div>
       <div className="page-header">
@@ -31,7 +42,7 @@ export default function OrderHistory() {
               </tr>
             </thead>
             <tbody>
-              {mockOrders.map((order) => (
+              {orders.map((order) => (
                 <tr key={order.id}>
                   <td style={{ fontWeight: 500 }}>{order.id}</td>
                   <td>{order.service}</td>

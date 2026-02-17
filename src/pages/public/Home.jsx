@@ -1,9 +1,18 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { services, testimonials } from '../../data/mockData';
+import { apiGet } from '../../api';
 import BeforeAfterCarousel from '../../components/BeforeAfterCarousel';
 import './Home.css';
 
 export default function Home() {
+  const [services, setServices] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
+
+  useEffect(() => {
+    apiGet('/services').then(setServices);
+    apiGet('/testimonials').then(setTestimonials);
+  }, []);
+
   return (
     <div className="home">
       {/* Hero */}
