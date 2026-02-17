@@ -4,6 +4,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  overflow: hidden;
   transition: background-color 0.3s, border-color 0.3s;
 }
 
@@ -11,7 +12,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 1.5rem;
-  height: 80px;
+  height: 130px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -25,7 +26,9 @@
 
 .logo-img {
   height: 120px;
+  max-height: 100%;
   width: auto;
+  object-fit: contain;
 }
 
 .main-nav {
@@ -69,7 +72,7 @@
 
 @media (max-width: 768px) {
   .header-container {
-    height: 64px;
+    height: 106px;
   }
 
   .logo-img {
@@ -88,7 +91,7 @@
   .main-nav {
     display: none;
     position: fixed;
-    top: 64px;
+    top: 106px;
     left: 0;
     right: 0;
     background: var(--color-surface);
@@ -118,7 +121,7 @@
     display: block;
     position: fixed;
     inset: 0;
-    top: 64px;
+    top: 106px;
     background: rgba(0, 0, 0, 0.3);
     z-index: 99;
   }
