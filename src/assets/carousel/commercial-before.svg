@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <!-- Sky -->
+  <rect width="400" height="300" fill="#c9ccd0"/>
+  <!-- Ground -->
+  <rect y="200" width="400" height="100" fill="#a89a6e"/>
+  <!-- Bare dirt patches -->
+  <ellipse cx="80" cy="240" rx="50" ry="18" fill="#8B7355"/>
+  <ellipse cx="250" cy="250" rx="60" ry="15" fill="#8B7355"/>
+  <ellipse cx="370" cy="230" rx="35" ry="12" fill="#8B7355"/>
+  <!-- Commercial building -->
+  <rect x="50" y="50" width="300" height="150" fill="#B0BEC5"/>
+  <!-- Windows row 1 -->
+  <rect x="75" y="70" width="35" height="30" fill="#80DEEA" opacity="0.5" stroke="#78909C" stroke-width="1.5"/>
+  <rect x="130" y="70" width="35" height="30" fill="#80DEEA" opacity="0.5" stroke="#78909C" stroke-width="1.5"/>
+  <rect x="185" y="70" width="35" height="30" fill="#80DEEA" opacity="0.5" stroke="#78909C" stroke-width="1.5"/>
+  <rect x="240" y="70" width="35" height="30" fill="#80DEEA" opacity="0.5" stroke="#78909C" stroke-width="1.5"/>
+  <rect x="295" y="70" width="35" height="30" fill="#80DEEA" opacity="0.5" stroke="#78909C" stroke-width="1.5"/>
+  <!-- Windows row 2 -->
+  <rect x="75" y="120" width="35" height="30" fill="#80DEEA" opacity="0.5" stroke="#78909C" stroke-width="1.5"/>
+  <rect x="130" y="120" width="35" height="30" fill="#80DEEA" opacity="0.5" stroke="#78909C" stroke-width="1.5"/>
+  <rect x="185" y="120" width="35" height="30" fill="#80DEEA" opacity="0.5" stroke="#78909C" stroke-width="1.5"/>
+  <rect x="240" y="120" width="35" height="30" fill="#80DEEA" opacity="0.5" stroke="#78909C" stroke-width="1.5"/>
+  <rect x="295" y="120" width="35" height="30" fill="#80DEEA" opacity="0.5" stroke="#78909C" stroke-width="1.5"/>
+  <!-- Door -->
+  <rect x="180" y="160" width="40" height="40" fill="#546E7A"/>
+  <!-- Overgrown weeds -->
+  <line x1="50" y1="200" x2="42" y2="175" stroke="#6b7c3f" stroke-width="2.5"/>
+  <line x1="55" y1="200" x2="60" y2="170" stroke="#6b7c3f" stroke-width="2.5"/>
+  <line x1="350" y1="200" x2="345" y2="172" stroke="#6b7c3f" stroke-width="2.5"/>
+  <line x1="355" y1="200" x2="362" y2="175" stroke="#6b7c3f" stroke-width="2.5"/>
+  <line x1="340" y1="200" x2="335" y2="178" stroke="#6b7c3f" stroke-width="2"/>
+  <!-- Neglected sign -->
+  <rect x="15" y="140" width="25" height="60" fill="#795548"/>
+  <rect x="5" y="130" width="45" height="25" fill="#A1887F" rx="2"/>
+  <!-- Parking lot lines (faded) -->
+  <line x1="140" y1="260" x2="140" y2="300" stroke="#9e9e7e" stroke-width="2" opacity="0.4"/>
+  <line x1="200" y1="260" x2="200" y2="300" stroke="#9e9e7e" stroke-width="2" opacity="0.4"/>
+  <line x1="260" y1="260" x2="260" y2="300" stroke="#9e9e7e" stroke-width="2" opacity="0.4"/>
+</svg>

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <!-- Sky -->
+  <rect width="400" height="300" fill="#87CEEB"/>
+  <!-- Sun -->
+  <circle cx="50" cy="40" r="25" fill="#FFD700"/>
+  <!-- Green lawn -->
+  <rect y="180" width="400" height="120" fill="#4CAF50"/>
+  <!-- Lawn stripes -->
+  <rect y="195" width="400" height="15" fill="#43A047" opacity="0.4"/>
+  <rect y="225" width="400" height="15" fill="#43A047" opacity="0.4"/>
+  <rect y="255" width="400" height="15" fill="#43A047" opacity="0.4"/>
+  <!-- House -->
+  <rect x="120" y="60" width="160" height="120" fill="#ECEFF1"/>
+  <rect x="110" y="50" width="180" height="15" fill="#B0BEC5"/>
+  <!-- Roof -->
+  <polygon points="100,50 200,10 300,50" fill="#607D8B"/>
+  <!-- Door -->
+  <rect x="180" y="110" width="40" height="70" fill="#5D4037"/>
+  <circle cx="212" cy="148" r="3" fill="#FFC107"/>
+  <!-- Windows with shutters -->
+  <rect x="130" y="83" width="5" height="34" fill="#1a472a"/>
+  <rect x="135" y="85" width="30" height="30" fill="#80DEEA" stroke="#546E7A" stroke-width="2"/>
+  <rect x="165" y="83" width="5" height="34" fill="#1a472a"/>
+  <line x1="150" y1="85" x2="150" y2="115" stroke="#546E7A" stroke-width="1"/>
+  <line x1="135" y1="100" x2="165" y2="100" stroke="#546E7A" stroke-width="1"/>
+  <rect x="230" y="83" width="5" height="34" fill="#1a472a"/>
+  <rect x="235" y="85" width="30" height="30" fill="#80DEEA" stroke="#546E7A" stroke-width="2"/>
+  <rect x="265" y="83" width="5" height="34" fill="#1a472a"/>
+  <line x1="250" y1="85" x2="250" y2="115" stroke="#546E7A" stroke-width="1"/>
+  <line x1="235" y1="100" x2="265" y2="100" stroke="#546E7A" stroke-width="1"/>
+  <!-- Stone walkway -->
+  <ellipse cx="200" cy="195" rx="20" ry="8" fill="#B0BEC5"/>
+  <ellipse cx="198" cy="218" rx="20" ry="8" fill="#90A4AE"/>
+  <ellipse cx="201" cy="241" rx="20" ry="8" fill="#B0BEC5"/>
+  <ellipse cx="199" cy="264" rx="20" ry="8" fill="#90A4AE"/>
+  <ellipse cx="200" cy="287" rx="20" ry="8" fill="#B0BEC5"/>
+  <!-- Shrubs along house -->
+  <circle cx="135" cy="175" r="12" fill="#2E7D32"/>
+  <circle cx="160" cy="175" r="14" fill="#388E3C"/>
+  <circle cx="245" cy="175" r="14" fill="#388E3C"/>
+  <circle cx="270" cy="175" r="12" fill="#2E7D32"/>
+  <!-- Flower beds along walkway -->
+  <circle cx="170" cy="200" r="5" fill="#E91E63"/>
+  <circle cx="170" cy="215" r="5" fill="#FF5722"/>
+  <circle cx="170" cy="230" r="5" fill="#E91E63"/>
+  <circle cx="230" cy="205" r="5" fill="#9C27B0"/>
+  <circle cx="230" cy="220" r="5" fill="#FF5722"/>
+  <circle cx="230" cy="235" r="5" fill="#9C27B0"/>
+  <!-- Small tree -->
+  <rect x="55" y="130" width="8" height="50" fill="#5D4037"/>
+  <circle cx="59" cy="110" r="25" fill="#2E7D32"/>
+  <circle cx="59" cy="100" r="18" fill="#43A047"/>
+  <!-- Clouds -->
+  <ellipse cx="250" cy="35" rx="45" ry="15" fill="#fff" opacity="0.7"/>
+</svg>

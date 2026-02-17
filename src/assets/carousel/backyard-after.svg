@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <!-- Sky -->
+  <rect width="400" height="300" fill="#87CEEB"/>
+  <!-- Sun -->
+  <circle cx="340" cy="50" r="30" fill="#FFD700"/>
+  <!-- Grass -->
+  <rect y="180" width="400" height="120" fill="#4CAF50"/>
+  <rect y="180" width="400" height="5" fill="#66BB6A"/>
+  <!-- Garden bed -->
+  <rect x="20" y="170" width="120" height="30" rx="5" fill="#3E2723"/>
+  <!-- Flowers -->
+  <circle cx="40" cy="165" r="8" fill="#E91E63"/>
+  <circle cx="40" cy="165" r="4" fill="#FFC107"/>
+  <circle cx="65" cy="162" r="8" fill="#FF5722"/>
+  <circle cx="65" cy="162" r="4" fill="#FFC107"/>
+  <circle cx="90" cy="165" r="8" fill="#E91E63"/>
+  <circle cx="90" cy="165" r="4" fill="#FFC107"/>
+  <circle cx="115" cy="163" r="8" fill="#9C27B0"/>
+  <circle cx="115" cy="163" r="4" fill="#FFC107"/>
+  <!-- Flower stems -->
+  <line x1="40" y1="170" x2="40" y2="185" stroke="#2E7D32" stroke-width="2"/>
+  <line x1="65" y1="170" x2="65" y2="185" stroke="#2E7D32" stroke-width="2"/>
+  <line x1="90" y1="170" x2="90" y2="185" stroke="#2E7D32" stroke-width="2"/>
+  <line x1="115" y1="170" x2="115" y2="185" stroke="#2E7D32" stroke-width="2"/>
+  <!-- Healthy tree -->
+  <rect x="195" y="100" width="12" height="80" fill="#5D4037"/>
+  <circle cx="201" cy="75" r="40" fill="#2E7D32"/>
+  <circle cx="175" cy="90" r="25" fill="#388E3C"/>
+  <circle cx="230" cy="85" r="28" fill="#388E3C"/>
+  <circle cx="201" cy="60" r="25" fill="#43A047"/>
+  <!-- Stone path -->
+  <ellipse cx="300" cy="200" rx="18" ry="10" fill="#B0BEC5"/>
+  <ellipse cx="320" cy="225" rx="18" ry="10" fill="#90A4AE"/>
+  <ellipse cx="295" cy="250" rx="18" ry="10" fill="#B0BEC5"/>
+  <ellipse cx="315" cy="275" rx="18" ry="10" fill="#90A4AE"/>
+  <!-- New fence -->
+  <rect x="10" y="135" width="6" height="50" fill="#8D6E63" rx="1"/>
+  <rect x="60" y="135" width="6" height="50" fill="#8D6E63" rx="1"/>
+  <rect x="110" y="135" width="6" height="50" fill="#8D6E63" rx="1"/>
+  <rect x="10" y="145" width="106" height="5" fill="#8D6E63" rx="1"/>
+  <rect x="10" y="165" width="106" height="5" fill="#8D6E63" rx="1"/>
+  <!-- Clouds -->
+  <ellipse cx="80" cy="40" rx="40" ry="15" fill="#fff" opacity="0.8"/>
+  <ellipse cx="200" cy="30" rx="50" ry="18" fill="#fff" opacity="0.7"/>
+</svg>
