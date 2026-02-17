@@ -12,6 +12,7 @@ import Home from './pages/public/Home';
 import Services from './pages/public/Services';
 import About from './pages/public/About';
 import Contact from './pages/public/Contact';
+import Portfolio from './pages/public/Portfolio';
 import Login from './pages/Login';
 
 import CustomerDashboard from './pages/customer/CustomerDashboard';
@@ -110,6 +111,7 @@ export default function App() {
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<Home />} />
                 <Route path="/services" element={<Services />} />
+                <Route path="/portfolio" element={<Portfolio />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/login" element={<Login />} />

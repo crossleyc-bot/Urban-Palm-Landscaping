@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
 import HeroCarousel from '../../components/HeroCarousel';
-import BeforeAfterCarousel from '../../components/BeforeAfterCarousel';
 import './Home.css';
 
 function AnimatedCounter({ end, suffix = '', duration = 2000 }) {
@@ -117,18 +116,6 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Before & After Carousel */}
-      <section className="section carousel-section">
-        <div className="container">
-          <div className="section-header">
-            <span className="section-tag">Portfolio</span>
-            <h2>Our Transformations</h2>
-            <p>See the difference professional landscaping makes.</p>
-          </div>
-          <BeforeAfterCarousel />
         </div>
       </section>
 
