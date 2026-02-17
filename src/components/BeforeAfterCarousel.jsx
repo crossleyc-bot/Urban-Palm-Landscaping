@@ -12,38 +12,11 @@ const imageFiles = [
   'patio-before.svg',
 ].sort();
 
-const titles = {
-  backyard: 'Backyard Retreat',
-  commercial: 'Commercial Property',
-  frontyard: 'Front Yard Makeover',
-  patio: 'Patio & Hardscaping',
-};
-
-const beforeLabels = {
-  backyard: 'Overgrown & Neglected',
-  commercial: 'Unkempt Landscape',
-  frontyard: 'Bare & Patchy Lawn',
-  patio: 'Cracked Concrete',
-};
-
-const afterLabels = {
-  backyard: 'Lush Garden Oasis',
-  commercial: 'Professional Grounds',
-  frontyard: 'Manicured Curb Appeal',
-  patio: 'Elegant Stone Patio',
-};
-
-const slides = imageFiles.map((file, index) => {
-  const [property, variant] = file.replace('.svg', '').split('-');
-  return {
-    id: index + 1,
-    property,
-    variant,
-    title: titles[property] || property,
-    label: variant === 'before' ? beforeLabels[property] : afterLabels[property],
-    img: `/images/carousel/${file}`,
-  };
-});
+const slides = imageFiles.map((file, index) => ({
+  id: index + 1,
+  img: `/images/carousel/${file}`,
+  name: file.replace(/\.[^.]+$/, ''),
+}));
 
 export default function BeforeAfterCarousel() {
   const [current, setCurrent] = useState(0);
@@ -63,7 +36,6 @@ export default function BeforeAfterCarousel() {
 
   return (
     <div className="carousel">
-      <h3 className="carousel-slide-title">{slide.title}</h3>
       <div className="carousel-viewport">
         <button className="carousel-arrow carousel-arrow-left" onClick={prev} aria-label="Previous slide">
           &#8249;
@@ -71,11 +43,7 @@ export default function BeforeAfterCarousel() {
 
         <div className="carousel-single">
           <div className="carousel-image-wrapper">
-            <img src={slide.img} alt={`${slide.variant === 'before' ? 'Before' : 'After'}: ${slide.label}`} className="carousel-img" />
-            <div className={`carousel-label carousel-label-${slide.variant}`}>
-              {slide.variant === 'before' ? 'Before' : 'After'}
-            </div>
-            <p className="carousel-description">{slide.label}</p>
+            <img src={slide.img} alt={slide.name} className="carousel-img" />
           </div>
         </div>
 

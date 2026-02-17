@@ -3,14 +3,6 @@
   margin: 0 auto;
 }
 
-.carousel-slide-title {
-  text-align: center;
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #1a202c;
-  margin-bottom: 1.25rem;
-}
-
 .carousel-viewport {
   display: flex;
   align-items: center;
@@ -34,35 +26,6 @@
   border-radius: 10px;
   object-fit: cover;
   display: block;
-}
-
-.carousel-label {
-  position: absolute;
-  top: 0.75rem;
-  padding: 0.2rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.carousel-label-before {
-  left: 0.75rem;
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-}
-
-.carousel-label-after {
-  left: 0.75rem;
-  background: rgba(26, 71, 42, 0.85);
-  color: #fff;
-}
-
-.carousel-description {
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-  color: #718096;
 }
 
 /* Arrows */
