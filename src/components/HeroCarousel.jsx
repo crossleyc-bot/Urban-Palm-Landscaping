@@ -124,23 +124,6 @@ export default function HeroCarousel() {
         </div>
       )}
 
-      {/* Trust Strip */}
-      <div className="hero-trust-strip">
-        <div className="hero-trust-item">
-          <strong>500+</strong>
-          <span>Projects Completed</span>
-        </div>
-        <div className="hero-trust-divider" />
-        <div className="hero-trust-item">
-          <strong>15+ Years</strong>
-          <span>of Experience</span>
-        </div>
-        <div className="hero-trust-divider" />
-        <div className="hero-trust-item">
-          <strong>98%</strong>
-          <span>Client Satisfaction</span>
-        </div>
-      </div>
     </section>
   );
 }
