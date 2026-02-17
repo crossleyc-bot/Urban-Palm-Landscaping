@@ -1,8 +1,20 @@
 .page-hero {
   background: linear-gradient(135deg, #1a472a 0%, #2d7a4a 100%);
   color: #fff;
-  padding: 3rem 1.5rem;
+  padding: 3.5rem 1.5rem;
   text-align: center;
+}
+
+.page-hero .hero-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.3rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .page-hero h1 {
@@ -23,17 +35,18 @@
 }
 
 .service-full-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 2rem;
   display: flex;
   gap: 1.5rem;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
 .service-full-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .service-full-icon {
@@ -45,11 +58,11 @@
   font-size: 1.15rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #1a202c;
+  color: var(--color-text);
 }
 
 .service-full-content p {
-  color: #718096;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
   line-height: 1.6;
   margin-bottom: 1rem;
@@ -63,23 +76,34 @@
 
 .service-full-footer .service-price {
   font-weight: 600;
-  color: #1a472a;
+  color: var(--color-primary);
   font-size: 0.9rem;
 }
 
 /* Process section */
 .process-section {
-  background: #f8fafc;
+  background: var(--color-bg-secondary);
 }
 
 .process-steps {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
 }
 
 .process-step {
   text-align: center;
+  flex: 1;
+  max-width: 220px;
+}
+
+.process-connector {
+  width: 40px;
+  height: 2px;
+  background: var(--color-border);
+  margin-top: 24px;
+  flex-shrink: 0;
 }
 
 .step-number {
@@ -96,17 +120,115 @@
   margin: 0 auto 1rem;
 }
 
+[data-theme="dark"] .step-number {
+  background: #4ade80;
+  color: #052e16;
+}
+
 .process-step h3 {
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #1a202c;
+  color: var(--color-text);
 }
 
 .process-step p {
   font-size: 0.85rem;
-  color: #718096;
+  color: var(--color-text-muted);
   line-height: 1.6;
+}
+
+/* What to Expect */
+.expect-section {
+  background: var(--color-bg);
+}
+
+.expect-content h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.75rem;
+}
+
+.expect-content > p {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin-bottom: 2rem;
+  max-width: 600px;
+}
+
+.expect-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.expect-item {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.expect-item-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dcfce7;
+  border-radius: 10px;
+}
+
+[data-theme="dark"] .expect-item-icon {
+  background: #14532d;
+}
+
+.expect-item h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.25rem;
+}
+
+.expect-item p {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* Service Area */
+.service-area-section {
+  background: var(--color-bg-secondary);
+}
+
+.service-area-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.service-area-tag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 9999px;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.area-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
 }
 
 @media (max-width: 768px) {
@@ -115,6 +237,17 @@
   }
 
   .process-steps {
-    grid-template-columns: repeat(2, 1fr);
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .process-connector {
+    width: 2px;
+    height: 24px;
+    margin: 0;
+  }
+
+  .expect-items {
+    grid-template-columns: 1fr;
   }
 }
