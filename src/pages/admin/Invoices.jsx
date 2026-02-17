@@ -1,5 +1,5 @@
-import { mockInvoices } from '../../data/mockData';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { apiGet } from '../../api';
 
 const statusBadge = (status) => {
   const map = {
@@ -11,14 +11,19 @@ const statusBadge = (status) => {
 };
 
 export default function Invoices() {
+  const [invoices, setInvoices] = useState([]);
   const [filter, setFilter] = useState('All');
 
-  const filtered = filter === 'All' ? mockInvoices : mockInvoices.filter(i => i.status === filter);
+  useEffect(() => {
+    apiGet('/invoices').then(setInvoices);
+  }, []);
 
-  const totalRevenue = mockInvoices.reduce((sum, i) => sum + i.amount, 0);
-  const paidAmount = mockInvoices.filter(i => i.status === 'Paid').reduce((sum, i) => sum + i.amount, 0);
-  const pendingAmount = mockInvoices.filter(i => i.status === 'Pending').reduce((sum, i) => sum + i.amount, 0);
-  const overdueAmount = mockInvoices.filter(i => i.status === 'Overdue').reduce((sum, i) => sum + i.amount, 0);
+  const filtered = filter === 'All' ? invoices : invoices.filter(i => i.status === filter);
+
+  const totalRevenue = invoices.reduce((sum, i) => sum + i.amount, 0);
+  const paidAmount = invoices.filter(i => i.status === 'Paid').reduce((sum, i) => sum + i.amount, 0);
+  const pendingAmount = invoices.filter(i => i.status === 'Pending').reduce((sum, i) => sum + i.amount, 0);
+  const overdueAmount = invoices.filter(i => i.status === 'Overdue').reduce((sum, i) => sum + i.amount, 0);
 
   return (
     <div>

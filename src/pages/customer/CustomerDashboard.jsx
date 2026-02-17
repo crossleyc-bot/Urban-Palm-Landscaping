@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { mockOrders } from '../../data/mockData';
+import { apiGet } from '../../api';
 
 const statusBadge = (status) => {
   const map = {
@@ -14,9 +15,16 @@ const statusBadge = (status) => {
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
+  const [orders, setOrders] = useState([]);
 
-  const active = mockOrders.filter(o => o.status !== 'Completed').length;
-  const completed = mockOrders.filter(o => o.status === 'Completed').length;
+  useEffect(() => {
+    if (user) {
+      apiGet(`/orders?user_id=${user.id}`).then(setOrders);
+    }
+  }, [user]);
+
+  const active = orders.filter(o => o.status !== 'Completed').length;
+  const completed = orders.filter(o => o.status === 'Completed').length;
 
   return (
     <div>
@@ -37,7 +45,7 @@ export default function CustomerDashboard() {
         <div className="stat-card">
           <div className="stat-label">Total Spent</div>
           <div className="stat-value">
-            ${mockOrders.reduce((sum, o) => sum + (o.amount || 0), 0)}
+            ${orders.reduce((sum, o) => sum + (o.amount || 0), 0)}
           </div>
         </div>
       </div>
@@ -59,7 +67,7 @@ export default function CustomerDashboard() {
               </tr>
             </thead>
             <tbody>
-              {mockOrders.map((order) => (
+              {orders.map((order) => (
                 <tr key={order.id}>
                   <td style={{ fontWeight: 500 }}>{order.id}</td>
                   <td>{order.service}</td>

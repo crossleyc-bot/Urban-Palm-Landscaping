@@ -1,7 +1,14 @@
-import { teamMembers } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { apiGet } from '../../api';
 import './About.css';
 
 export default function About() {
+  const [teamMembers, setTeamMembers] = useState([]);
+
+  useEffect(() => {
+    apiGet('/team').then(setTeamMembers);
+  }, []);
+
   return (
     <div className="about-page">
       <section className="page-hero">

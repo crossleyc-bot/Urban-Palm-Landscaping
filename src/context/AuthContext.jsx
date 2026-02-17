@@ -1,22 +1,24 @@
 import { createContext, useContext, useState } from 'react';
+import { apiPost } from '../api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
 
-  const login = (email, password, role = 'customer') => {
-    // Mock authentication
-    if (role === 'admin') {
-      setUser({ email, name: 'Admin User', role: 'admin' });
-    } else {
-      setUser({ email, name: 'Customer', role: 'customer' });
-    }
-    return true;
+  const login = async (email, password) => {
+    const data = await apiPost('/auth/login', { email, password });
+    setUser(data);
+    localStorage.setItem('user', JSON.stringify(data));
+    return data;
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('user');
   };
 
   return (

@@ -1,4 +1,5 @@
-import { mockJobs } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { apiGet } from '../../api';
 
 const days = ['Mon 2/16', 'Tue 2/17', 'Wed 2/18', 'Thu 2/19', 'Fri 2/20'];
 const dateMap = {
@@ -16,7 +17,13 @@ const statusColor = {
 };
 
 export default function AdminSchedule() {
-  const scheduledJobs = mockJobs.filter(j => dateMap[j.date]);
+  const [jobs, setJobs] = useState([]);
+
+  useEffect(() => {
+    apiGet('/jobs').then(setJobs);
+  }, []);
+
+  const scheduledJobs = jobs.filter(j => dateMap[j.date]);
 
   return (
     <div>
@@ -91,7 +98,7 @@ export default function AdminSchedule() {
               </tr>
             </thead>
             <tbody>
-              {mockJobs.map((job) => (
+              {jobs.map((job) => (
                 <tr key={job.id}>
                   <td style={{ fontWeight: 500 }}>{job.id}</td>
                   <td>{job.client}</td>

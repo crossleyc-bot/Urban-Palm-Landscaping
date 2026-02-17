@@ -6,14 +6,23 @@ import './Login.css';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('customer');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    login(email, password, role);
-    navigate(role === 'admin' ? '/admin' : '/portal');
+    setError('');
+    setLoading(true);
+    try {
+      const user = await login(email, password);
+      navigate(user.role === 'admin' ? '/admin' : '/portal');
+    } catch (err) {
+      setError(err.message || 'Invalid email or password');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -24,6 +33,12 @@ export default function Login() {
           <h1>Welcome Back</h1>
           <p>Sign in to your Urban Palm account</p>
         </div>
+
+        {error && (
+          <div style={{ background: '#fef2f2', color: '#dc2626', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '0.9rem', marginBottom: '1rem' }}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
@@ -50,31 +65,13 @@ export default function Login() {
             />
           </div>
 
-          <div className="form-group">
-            <label>Sign in as</label>
-            <div className="role-toggle">
-              <button
-                type="button"
-                className={`role-btn ${role === 'customer' ? 'active' : ''}`}
-                onClick={() => setRole('customer')}
-              >
-                Customer
-              </button>
-              <button
-                type="button"
-                className={`role-btn ${role === 'admin' ? 'active' : ''}`}
-                onClick={() => setRole('admin')}
-              >
-                Admin
-              </button>
-            </div>
-          </div>
-
-          <button type="submit" className="btn btn-primary btn-full">Sign In</button>
+          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
         </form>
 
         <p className="login-hint">
-          Demo: Enter any email/password to sign in.
+          Demo accounts: admin@urbanpalmlandscaping.com / customer@example.com (password: password123)
         </p>
       </div>
     </div>

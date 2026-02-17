@@ -1,11 +1,22 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { mockJobs, mockEmployees, mockInvoices } from '../../data/mockData';
+import { apiGet } from '../../api';
 
 export default function AdminDashboard() {
-  const activeJobs = mockJobs.filter(j => j.status !== 'Completed').length;
-  const activeEmployees = mockEmployees.filter(e => e.status === 'Active').length;
-  const pendingInvoices = mockInvoices.filter(i => i.status === 'Pending').length;
-  const revenue = mockInvoices
+  const [jobs, setJobs] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+
+  useEffect(() => {
+    apiGet('/jobs').then(setJobs);
+    apiGet('/employees').then(setEmployees);
+    apiGet('/invoices').then(setInvoices);
+  }, []);
+
+  const activeJobs = jobs.filter(j => j.status !== 'Completed').length;
+  const activeEmployees = employees.filter(e => e.status === 'Active').length;
+  const pendingInvoices = invoices.filter(i => i.status === 'Pending').length;
+  const revenue = invoices
     .filter(i => i.status === 'Paid')
     .reduce((sum, i) => sum + i.amount, 0);
 
@@ -25,7 +36,7 @@ export default function AdminDashboard() {
         <div className="stat-card">
           <div className="stat-label">Active Crew</div>
           <div className="stat-value">{activeEmployees}</div>
-          <div className="stat-sub">{mockEmployees.length} total</div>
+          <div className="stat-sub">{employees.length} total</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Pending Invoices</div>
@@ -54,7 +65,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {mockJobs.filter(j => j.status !== 'Completed').slice(0, 3).map(job => (
+                {jobs.filter(j => j.status !== 'Completed').slice(0, 3).map(job => (
                   <tr key={job.id}>
                     <td>{job.client}</td>
                     <td>{job.service}</td>
@@ -81,7 +92,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {mockInvoices.slice(0, 3).map(inv => (
+                {invoices.slice(0, 3).map(inv => (
                   <tr key={inv.id}>
                     <td>{inv.client}</td>
                     <td>${inv.amount}</td>

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { mockJobs } from '../../data/mockData';
+import { useState, useEffect } from 'react';
+import { apiGet, apiPut } from '../../api';
 
 const statusBadge = (status) => {
   const map = {
@@ -11,12 +11,17 @@ const statusBadge = (status) => {
 };
 
 export default function ManageJobs() {
-  const [jobs, setJobs] = useState(mockJobs);
+  const [jobs, setJobs] = useState([]);
   const [filter, setFilter] = useState('All');
+
+  useEffect(() => {
+    apiGet('/jobs').then(setJobs);
+  }, []);
 
   const filtered = filter === 'All' ? jobs : jobs.filter(j => j.status === filter);
 
-  const updateStatus = (id, newStatus) => {
+  const updateStatus = async (id, newStatus) => {
+    await apiPut(`/jobs/${id}/status`, { status: newStatus });
     setJobs(jobs.map(j => j.id === id ? { ...j, status: newStatus } : j));
   };
 
