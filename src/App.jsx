@@ -20,6 +20,9 @@ import ManageJobs from './pages/admin/ManageJobs';
 import ManageEmployees from './pages/admin/ManageEmployees';
 import AdminSchedule from './pages/admin/AdminSchedule';
 import Invoices from './pages/admin/Invoices';
+import QuoteRequests from './pages/admin/QuoteRequests';
+import ScheduleRequests from './pages/admin/ScheduleRequests';
+import ContactMessages from './pages/admin/ContactMessages';
 
 import './App.css';
 
@@ -36,6 +39,9 @@ const adminNav = [
   { path: '/admin/employees', label: 'Employees', icon: '\uD83D\uDC65' },
   { path: '/admin/schedule', label: 'Schedule', icon: '\uD83D\uDCC5' },
   { path: '/admin/invoices', label: 'Invoices', icon: '\uD83D\uDCB0' },
+  { path: '/admin/quotes', label: 'Quote Requests', icon: '\u2709' },
+  { path: '/admin/schedule-requests', label: 'Schedule Requests', icon: '\uD83D\uDCC6' },
+  { path: '/admin/messages', label: 'Messages', icon: '\uD83D\uDCAC' },
 ];
 
 function ProtectedRoute({ allowedRole }) {
@@ -108,6 +114,9 @@ export default function App() {
               <Route path="/admin/employees" element={<ManageEmployees />} />
               <Route path="/admin/schedule" element={<AdminSchedule />} />
               <Route path="/admin/invoices" element={<Invoices />} />
+              <Route path="/admin/quotes" element={<QuoteRequests />} />
+              <Route path="/admin/schedule-requests" element={<ScheduleRequests />} />
+              <Route path="/admin/messages" element={<ContactMessages />} />
             </Route>
           </Route>
         </Routes>
