@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import './Header.css';
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const { dark, toggle } = useTheme();
   const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path ? 'nav-link active' : 'nav-link';
 
@@ -16,14 +20,45 @@ export default function Header() {
           <span className="logo-text">Urban Palm Landscaping</span>
         </Link>
 
-        <nav className="main-nav">
-          <Link to="/" className={isActive('/')}>Home</Link>
-          <Link to="/services" className={isActive('/services')}>Services</Link>
-          <Link to="/about" className={isActive('/about')}>About</Link>
-          <Link to="/contact" className={isActive('/contact')}>Contact</Link>
+        <button
+          className="hamburger"
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle navigation"
+        >
+          {menuOpen ? '\u2715' : '\u2630'}
+        </button>
+
+        <nav className={`main-nav ${menuOpen ? 'main-nav-open' : ''}`}>
+          <Link to="/" className={isActive('/')} onClick={() => setMenuOpen(false)}>Home</Link>
+          <Link to="/services" className={isActive('/services')} onClick={() => setMenuOpen(false)}>Services</Link>
+          <Link to="/about" className={isActive('/about')} onClick={() => setMenuOpen(false)}>About</Link>
+          <Link to="/contact" className={isActive('/contact')} onClick={() => setMenuOpen(false)}>Contact</Link>
+
+          <div className="nav-actions-mobile">
+            {user ? (
+              <>
+                <Link
+                  to={user.role === 'admin' ? '/admin' : '/portal'}
+                  className="btn btn-secondary"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {user.role === 'admin' ? 'Admin Panel' : 'My Portal'}
+                </Link>
+                <button onClick={() => { logout(); setMenuOpen(false); }} className="btn btn-outline">Logout</button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="btn btn-outline" onClick={() => setMenuOpen(false)}>Log In</Link>
+                <Link to="/portal" className="btn btn-primary" onClick={() => setMenuOpen(false)}>Customer Portal</Link>
+              </>
+            )}
+          </div>
         </nav>
 
         <div className="header-actions">
+          <button className="theme-toggle" onClick={toggle} aria-label="Toggle dark mode">
+            {dark ? '\u2600' : '\u263E'}
+          </button>
           {user ? (
             <>
               <Link
@@ -42,6 +77,7 @@ export default function Header() {
           )}
         </div>
       </div>
+      {menuOpen && <div className="header-overlay" onClick={() => setMenuOpen(false)} />}
     </header>
   );
 }

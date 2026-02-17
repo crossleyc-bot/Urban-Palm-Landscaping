@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
+import { SkeletonCards, SkeletonTable } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
 
 export default function AdminDashboard() {
   const [jobs, setJobs] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiGet('/jobs').then(setJobs);
-    apiGet('/employees').then(setEmployees);
-    apiGet('/invoices').then(setInvoices);
+    Promise.all([
+      apiGet('/jobs').then(setJobs),
+      apiGet('/employees').then(setEmployees),
+      apiGet('/invoices').then(setInvoices),
+    ]).finally(() => setLoading(false));
   }, []);
 
   const activeJobs = jobs.filter(j => j.status !== 'Completed').length;
@@ -27,27 +32,31 @@ export default function AdminDashboard() {
         <p>Overview of your landscaping business operations.</p>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-label">Active Jobs</div>
-          <div className="stat-value">{activeJobs}</div>
-          <div className="stat-sub">This week</div>
+      {loading ? (
+        <SkeletonCards count={4} />
+      ) : (
+        <div className="stats-grid stagger-list">
+          <div className="stat-card">
+            <div className="stat-label">Active Jobs</div>
+            <div className="stat-value">{activeJobs}</div>
+            <div className="stat-sub">This week</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Active Crew</div>
+            <div className="stat-value">{activeEmployees}</div>
+            <div className="stat-sub">{employees.length} total</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Pending Invoices</div>
+            <div className="stat-value">{pendingInvoices}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Revenue (Paid)</div>
+            <div className="stat-value">${revenue.toLocaleString()}</div>
+            <div className="stat-sub">This month</div>
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-label">Active Crew</div>
-          <div className="stat-value">{activeEmployees}</div>
-          <div className="stat-sub">{employees.length} total</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Pending Invoices</div>
-          <div className="stat-value">{pendingInvoices}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Revenue (Paid)</div>
-          <div className="stat-value">${revenue.toLocaleString()}</div>
-          <div className="stat-sub">This month</div>
-        </div>
-      </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
         <div className="card">
@@ -65,13 +74,23 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {jobs.filter(j => j.status !== 'Completed').slice(0, 3).map(job => (
-                  <tr key={job.id}>
-                    <td>{job.client}</td>
-                    <td>{job.service}</td>
-                    <td>{job.date}</td>
+                {loading ? (
+                  <SkeletonTable rows={3} cols={3} />
+                ) : jobs.filter(j => j.status !== 'Completed').length === 0 ? (
+                  <tr>
+                    <td colSpan="3">
+                      <EmptyState icon="&#128188;" title="No upcoming jobs" />
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  jobs.filter(j => j.status !== 'Completed').slice(0, 3).map(job => (
+                    <tr key={job.id}>
+                      <td>{job.client}</td>
+                      <td>{job.service}</td>
+                      <td>{job.date}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -92,17 +111,27 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {invoices.slice(0, 3).map(inv => (
-                  <tr key={inv.id}>
-                    <td>{inv.client}</td>
-                    <td>${inv.amount}</td>
-                    <td>
-                      <span className={`badge ${inv.status === 'Paid' ? 'badge-green' : inv.status === 'Overdue' ? 'badge-red' : 'badge-yellow'}`}>
-                        {inv.status}
-                      </span>
+                {loading ? (
+                  <SkeletonTable rows={3} cols={3} />
+                ) : invoices.length === 0 ? (
+                  <tr>
+                    <td colSpan="3">
+                      <EmptyState icon="&#128176;" title="No invoices yet" />
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  invoices.slice(0, 3).map(inv => (
+                    <tr key={inv.id}>
+                      <td>{inv.client}</td>
+                      <td>${inv.amount}</td>
+                      <td>
+                        <span className={`badge ${inv.status === 'Paid' ? 'badge-green' : inv.status === 'Overdue' ? 'badge-red' : 'badge-yellow'}`}>
+                          {inv.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

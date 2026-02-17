@@ -1,8 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './components/ui/Toast';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import Sidebar from './components/layout/Sidebar';
+import Breadcrumbs from './components/ui/Breadcrumbs';
+import NotFound from './pages/NotFound';
 
 import Home from './pages/public/Home';
 import Services from './pages/public/Services';
@@ -51,12 +55,22 @@ function ProtectedRoute({ allowedRole }) {
   return <Outlet />;
 }
 
+function AnimatedOutlet() {
+  const location = useLocation();
+  return (
+    <div className="page-animate" key={location.pathname}>
+      <Outlet />
+    </div>
+  );
+}
+
 function PortalLayout() {
   return (
     <div className="app-layout">
       <Sidebar items={customerNav} title="Customer Portal" />
       <main className="app-main">
-        <Outlet />
+        <Breadcrumbs />
+        <AnimatedOutlet />
       </main>
     </div>
   );
@@ -67,7 +81,8 @@ function AdminLayout() {
     <div className="app-layout">
       <Sidebar items={adminNav} title="Admin Panel" />
       <main className="app-main">
-        <Outlet />
+        <Breadcrumbs />
+        <AnimatedOutlet />
       </main>
     </div>
   );
@@ -77,7 +92,7 @@ function PublicLayout() {
   return (
     <>
       <main>
-        <Outlet />
+        <AnimatedOutlet />
       </main>
       <Footer />
     </>
@@ -87,40 +102,46 @@ function PublicLayout() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Header />
-        <Routes>
-          <Route element={<PublicLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/login" element={<Login />} />
-          </Route>
+      <ThemeProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <Header />
+            <Routes>
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/services" element={<Services />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/login" element={<Login />} />
+              </Route>
 
-          <Route element={<ProtectedRoute allowedRole="customer" />}>
-            <Route element={<PortalLayout />}>
-              <Route path="/portal" element={<CustomerDashboard />} />
-              <Route path="/portal/quote" element={<RequestQuote />} />
-              <Route path="/portal/schedule" element={<ScheduleService />} />
-              <Route path="/portal/orders" element={<OrderHistory />} />
-            </Route>
-          </Route>
+              <Route element={<ProtectedRoute allowedRole="customer" />}>
+                <Route element={<PortalLayout />}>
+                  <Route path="/portal" element={<CustomerDashboard />} />
+                  <Route path="/portal/quote" element={<RequestQuote />} />
+                  <Route path="/portal/schedule" element={<ScheduleService />} />
+                  <Route path="/portal/orders" element={<OrderHistory />} />
+                </Route>
+              </Route>
 
-          <Route element={<ProtectedRoute allowedRole="admin" />}>
-            <Route element={<AdminLayout />}>
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/jobs" element={<ManageJobs />} />
-              <Route path="/admin/employees" element={<ManageEmployees />} />
-              <Route path="/admin/schedule" element={<AdminSchedule />} />
-              <Route path="/admin/invoices" element={<Invoices />} />
-              <Route path="/admin/quotes" element={<QuoteRequests />} />
-              <Route path="/admin/schedule-requests" element={<ScheduleRequests />} />
-              <Route path="/admin/messages" element={<ContactMessages />} />
-            </Route>
-          </Route>
-        </Routes>
-      </AuthProvider>
+              <Route element={<ProtectedRoute allowedRole="admin" />}>
+                <Route element={<AdminLayout />}>
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin/jobs" element={<ManageJobs />} />
+                  <Route path="/admin/employees" element={<ManageEmployees />} />
+                  <Route path="/admin/schedule" element={<AdminSchedule />} />
+                  <Route path="/admin/invoices" element={<Invoices />} />
+                  <Route path="/admin/quotes" element={<QuoteRequests />} />
+                  <Route path="/admin/schedule-requests" element={<ScheduleRequests />} />
+                  <Route path="/admin/messages" element={<ContactMessages />} />
+                </Route>
+              </Route>
+
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ToastProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

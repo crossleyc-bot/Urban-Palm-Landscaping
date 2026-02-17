@@ -1,19 +1,21 @@
 .login-page {
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 80px);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f1f5f9;
+  background: var(--color-bg-secondary);
   padding: 2rem;
 }
 
 .login-card {
-  background: #fff;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 2.5rem;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-lg);
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
 .login-header {
@@ -29,12 +31,12 @@
 
 .login-header h1 {
   font-size: 1.5rem;
-  color: #1a202c;
+  color: var(--color-text);
   margin: 0 0 0.5rem;
 }
 
 .login-header p {
-  color: #718096;
+  color: var(--color-text-muted);
   margin: 0;
   font-size: 0.9rem;
 }
@@ -45,32 +47,18 @@
   gap: 1.25rem;
 }
 
-.role-toggle {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.role-btn {
-  flex: 1;
-  padding: 0.5rem;
-  border: 2px solid #e2e8f0;
-  background: #fff;
+.login-error {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 0.75rem 1rem;
   border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
   font-size: 0.9rem;
-  transition: all 0.2s;
-  color: #4a5568;
+  margin-bottom: 1rem;
 }
 
-.role-btn.active {
-  border-color: #1a472a;
-  background: #f0fdf4;
-  color: #1a472a;
-}
-
-.role-btn:hover:not(.active) {
-  border-color: #cbd5e0;
+[data-theme="dark"] .login-error {
+  background: #450a0a;
+  color: #fca5a5;
 }
 
 .btn-full {
@@ -81,6 +69,6 @@
 .login-hint {
   text-align: center;
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--color-text-faint);
   margin-top: 1.5rem;
 }

@@ -8,7 +8,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
-  color: #1a202c;
+  color: var(--color-text);
 }
 
 .contact-form {
@@ -41,30 +41,36 @@
   margin: 0 auto 1rem;
 }
 
+[data-theme="dark"] .success-icon {
+  background: #14532d;
+  color: #86efac;
+}
+
 .success-message h3 {
   font-size: 1.25rem;
   margin-bottom: 0.5rem;
-  color: #1a202c;
+  color: var(--color-text);
 }
 
 .success-message p {
-  color: #718096;
+  color: var(--color-text-muted);
   margin-bottom: 1.5rem;
 }
 
 /* Contact info */
 .contact-info-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 2rem;
+  transition: background-color 0.3s, border-color 0.3s;
 }
 
 .contact-info-card h3 {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 1.5rem;
-  color: #1a202c;
+  color: var(--color-text);
 }
 
 .contact-detail {
@@ -76,12 +82,12 @@
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
+  color: var(--color-text-faint);
   margin-bottom: 0.25rem;
 }
 
 .contact-detail p {
-  color: #374151;
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   line-height: 1.6;
   margin: 0;
