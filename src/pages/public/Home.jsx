@@ -1,40 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
 import HeroCarousel from '../../components/HeroCarousel';
 import BeforeAfterCarousel from '../../components/BeforeAfterCarousel';
 import './Home.css';
-
-function AnimatedCounter({ end, suffix = '', duration = 2000 }) {
-  const [count, setCount] = useState(0);
-  const ref = useRef(null);
-  const started = useRef(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !started.current) {
-          started.current = true;
-          const startTime = Date.now();
-          const numEnd = parseInt(end, 10);
-          const tick = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setCount(Math.round(eased * numEnd));
-            if (progress < 1) requestAnimationFrame(tick);
-          };
-          requestAnimationFrame(tick);
-        }
-      },
-      { threshold: 0.3 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [end, duration]);
-
-  return <span ref={ref}>{count}{suffix}</span>;
-}
 
 export default function Home() {
   const [services, setServices] = useState([]);
@@ -49,30 +18,6 @@ export default function Home() {
     <div className="home">
       {/* Hero Carousel */}
       <HeroCarousel />
-
-      {/* Stats Bar */}
-      <section className="stats-bar">
-        <div className="container">
-          <div className="stats-bar-grid">
-            <div className="stats-bar-item">
-              <div className="stats-bar-value"><AnimatedCounter end={500} suffix="+" /></div>
-              <div className="stats-bar-label">Projects Delivered</div>
-            </div>
-            <div className="stats-bar-item">
-              <div className="stats-bar-value"><AnimatedCounter end={15} suffix="+" /></div>
-              <div className="stats-bar-label">Years in Business</div>
-            </div>
-            <div className="stats-bar-item">
-              <div className="stats-bar-value"><AnimatedCounter end={50} suffix="+" /></div>
-              <div className="stats-bar-label">Active Clients</div>
-            </div>
-            <div className="stats-bar-item">
-              <div className="stats-bar-value"><AnimatedCounter end={98} suffix="%" /></div>
-              <div className="stats-bar-label">Satisfaction Rate</div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Single Provider Value Prop */}
       <section className="section value-prop-section">
