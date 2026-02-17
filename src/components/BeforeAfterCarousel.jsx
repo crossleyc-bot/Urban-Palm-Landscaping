@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import './BeforeAfterCarousel.css';
 
 const imageFiles = [
-  'backyard-after.svg',
-  'backyard-before.svg',
-  'commercial-after.svg',
-  'commercial-before.svg',
-  'frontyard-after.svg',
-  'frontyard-before.svg',
-  'patio-after.svg',
-  'patio-before.svg',
+  'backyard-after.png',
+  'backyard-before.png',
+  'commercial-after.png',
+  'commercial-before.png',
+  'frontyard-after.png',
+  'frontyard-before.png',
+  'patio-after.png',
+  'patio-before.png',
 ].sort();
 
 const slides = imageFiles.map((file, index) => ({
