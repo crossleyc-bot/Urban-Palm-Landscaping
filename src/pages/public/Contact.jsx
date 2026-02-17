@@ -1,21 +1,47 @@
 import { useState } from 'react';
 import { apiPost } from '../../api';
+import { useToast } from '../../components/ui/Toast';
+import Spinner from '../../components/ui/Spinner';
+import useFormValidation from '../../hooks/useFormValidation';
 import './Contact.css';
 
 export default function Contact() {
+  const { addToast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const { getFieldProps, FieldError, validateAll } = useFormValidation({
+    name: ['required'],
+    email: ['required', 'email'],
+    message: ['required'],
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const form = e.target;
-    await apiPost('/contact', {
+    const values = {
       name: form.name.value,
       email: form.email.value,
-      phone: form.phone.value,
-      service: form.service.value,
       message: form.message.value,
-    });
-    setSubmitted(true);
+    };
+    if (!validateAll(values)) return;
+
+    setSubmitting(true);
+    try {
+      await apiPost('/contact', {
+        name: form.name.value,
+        email: form.email.value,
+        phone: form.phone.value,
+        service: form.service.value,
+        message: form.message.value,
+      });
+      setSubmitted(true);
+      addToast('Message sent successfully!', 'success');
+    } catch {
+      addToast('Failed to send message. Please try again.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -46,11 +72,13 @@ export default function Contact() {
                   <div className="form-row">
                     <div className="form-group">
                       <label htmlFor="name">Full Name</label>
-                      <input id="name" name="name" type="text" placeholder="John Smith" required />
+                      <input id="name" name="name" type="text" placeholder="John Smith" required {...getFieldProps('name')} />
+                      <FieldError field="name" />
                     </div>
                     <div className="form-group">
                       <label htmlFor="email">Email</label>
-                      <input id="email" name="email" type="email" placeholder="john@example.com" required />
+                      <input id="email" name="email" type="email" placeholder="john@example.com" required {...getFieldProps('email')} />
+                      <FieldError field="email" />
                     </div>
                   </div>
                   <div className="form-group">
@@ -72,9 +100,12 @@ export default function Contact() {
                   </div>
                   <div className="form-group">
                     <label htmlFor="message">Message</label>
-                    <textarea id="message" name="message" placeholder="Tell us about your project..." required />
+                    <textarea id="message" name="message" placeholder="Tell us about your project..." required {...getFieldProps('message')} />
+                    <FieldError field="message" />
                   </div>
-                  <button type="submit" className="btn btn-primary btn-lg">Send Message</button>
+                  <button type="submit" className="btn btn-primary btn-lg" disabled={submitting}>
+                    {submitting ? <><Spinner size={16} /> Sending...</> : 'Send Message'}
+                  </button>
                 </form>
               )}
             </div>
@@ -96,7 +127,7 @@ export default function Contact() {
                 </div>
                 <div className="contact-detail">
                   <strong>Hours</strong>
-                  <p>Mon–Fri: 8am – 6pm<br />Sat: 9am – 2pm<br />Sun: Closed</p>
+                  <p>Mon-Fri: 8am - 6pm<br />Sat: 9am - 2pm<br />Sun: Closed</p>
                 </div>
               </div>
             </div>

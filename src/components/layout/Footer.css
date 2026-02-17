@@ -4,6 +4,10 @@
   padding: 3rem 0 0;
 }
 
+[data-theme="dark"] .footer {
+  background: #0c1e14;
+}
+
 .footer-container {
   max-width: 1200px;
   margin: 0 auto;
