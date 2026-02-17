@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
+import HeroCarousel from '../../components/HeroCarousel';
 import BeforeAfterCarousel from '../../components/BeforeAfterCarousel';
 import './Home.css';
 
@@ -46,37 +47,8 @@ export default function Home() {
 
   return (
     <div className="home">
-      {/* Hero */}
-      <section className="hero">
-        <div className="hero-content">
-          <span className="hero-badge">Central Florida's Trusted Landscaping Partner</span>
-          <h1>Transform Your Outdoor Space Into a Living Masterpiece</h1>
-          <p>
-            Professional landscaping design, installation, and maintenance
-            services for residential and commercial properties throughout greater Orlando.
-          </p>
-          <div className="hero-actions">
-            <Link to="/contact" className="btn btn-primary btn-lg">Get Free Consultation</Link>
-            <Link to="/services" className="btn btn-outline btn-lg">Explore Our Services</Link>
-          </div>
-          <div className="hero-trust">
-            <div className="hero-trust-item">
-              <strong>500+</strong>
-              <span>Projects Completed</span>
-            </div>
-            <div className="hero-trust-divider" />
-            <div className="hero-trust-item">
-              <strong>15+ Years</strong>
-              <span>of Experience</span>
-            </div>
-            <div className="hero-trust-divider" />
-            <div className="hero-trust-item">
-              <strong>98%</strong>
-              <span>Client Satisfaction</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Hero Carousel */}
+      <HeroCarousel />
 
       {/* Stats Bar */}
       <section className="stats-bar">
