@@ -1,32 +1,37 @@
 import { useState, useEffect } from 'react';
 import './BeforeAfterCarousel.css';
 
-const imageFiles = [
-  'backyard-after.png',
-  'backyard-before.png',
-  'commercial-after.png',
-  'commercial-before.png',
-  'frontyard-after.png',
-  'frontyard-before.png',
-  'patio-after.png',
-  'patio-before.png',
-].sort();
+const imageModules = import.meta.glob('../assets/carousel/*.{png,jpg,jpeg,svg,webp}', {
+  eager: true,
+  import: 'default',
+});
 
-const slides = imageFiles.map((file, index) => ({
-  id: index + 1,
-  img: `/images/carousel/${file}`,
-  name: file.replace(/\.[^.]+$/, ''),
-}));
+const slides = Object.entries(imageModules)
+  .map(([path, url]) => {
+    const filename = path.split('/').pop();
+    return { filename, url };
+  })
+  .sort((a, b) => a.filename.localeCompare(b.filename))
+  .map((entry, index) => ({
+    id: index + 1,
+    img: entry.url,
+    name: entry.filename.replace(/\.[^.]+$/, ''),
+  }));
 
 export default function BeforeAfterCarousel() {
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
+    if (slides.length <= 1) return;
     const timer = setInterval(() => {
       setCurrent((prev) => (prev + 1) % slides.length);
     }, 5000);
     return () => clearInterval(timer);
   }, []);
+
+  if (slides.length === 0) {
+    return null;
+  }
 
   const goTo = (index) => setCurrent(index);
   const prev = () => setCurrent((current - 1 + slides.length) % slides.length);
