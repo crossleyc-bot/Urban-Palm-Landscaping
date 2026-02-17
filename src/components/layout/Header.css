@@ -11,7 +11,7 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 1.5rem;
-  height: 80px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -24,7 +24,7 @@
 }
 
 .logo-img {
-  height: 72px;
+  height: 44px;
   width: auto;
 }
 
@@ -69,11 +69,11 @@
 
 @media (max-width: 768px) {
   .header-container {
-    height: 60px;
+    height: 56px;
   }
 
   .logo-img {
-    height: 50px;
+    height: 36px;
   }
 
   .header-actions {
@@ -88,7 +88,7 @@
   .main-nav {
     display: none;
     position: fixed;
-    top: 60px;
+    top: 56px;
     left: 0;
     right: 0;
     background: var(--color-surface);
@@ -118,7 +118,7 @@
     display: block;
     position: fixed;
     inset: 0;
-    top: 60px;
+    top: 56px;
     background: rgba(0, 0, 0, 0.3);
     z-index: 99;
   }
