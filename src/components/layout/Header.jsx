@@ -16,7 +16,7 @@ export default function Header() {
     <header className="header">
       <div className="header-container">
         <Link to="/" className="logo">
-          <img src="/logo.svg" alt="Urban Palm Landscaping" className="logo-img" />
+          <img src="/logo.png" alt="Urban Palm Landscaping" className="logo-img" />
         </Link>
 
         <button
