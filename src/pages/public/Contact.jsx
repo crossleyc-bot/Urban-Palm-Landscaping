@@ -48,6 +48,7 @@ export default function Contact() {
     <div className="contact-page">
       <section className="page-hero">
         <div className="container">
+          <span className="hero-badge">Free Estimates &bull; No Obligation</span>
           <h1>Contact Us</h1>
           <p>Get in touch for a free consultation and quote.</p>
         </div>

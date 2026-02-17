@@ -1,3 +1,4 @@
+/* Heritage / Story */
 .about-story {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
@@ -9,16 +10,56 @@
   font-size: 1.75rem;
   font-weight: 700;
   margin-bottom: 1rem;
-  color: #1a202c;
+  color: var(--color-text);
 }
 
 .about-story-content p {
-  color: #4a5568;
+  color: var(--color-text-secondary);
   line-height: 1.7;
   margin-bottom: 1rem;
   font-size: 0.95rem;
 }
 
+/* Milestones */
+.about-milestones {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.milestone {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.milestone-year {
+  flex-shrink: 0;
+  width: 56px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 9999px;
+}
+
+[data-theme="dark"] .milestone-year {
+  background: #14532d;
+  color: #86efac;
+}
+
+.milestone-text {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* Stats */
 .about-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -30,6 +71,18 @@
   border-radius: 12px;
   padding: 1.5rem;
   text-align: center;
+  border: 1px solid #dcfce7;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.about-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="dark"] .about-stat {
+  background: #0c1e14;
+  border-color: #1a3a25;
 }
 
 .about-stat-value {
@@ -38,16 +91,20 @@
   color: #1a472a;
 }
 
+[data-theme="dark"] .about-stat-value {
+  color: #4ade80;
+}
+
 .about-stat-label {
   font-size: 0.8rem;
-  color: #4a5568;
+  color: var(--color-text-muted);
   font-weight: 500;
   margin-top: 0.25rem;
 }
 
 /* Team section */
 .team-section {
-  background: #f8fafc;
+  background: var(--color-bg-secondary);
 }
 
 .team-grid {
@@ -57,11 +114,17 @@
 }
 
 .team-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 2rem;
   text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.team-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
 }
 
 .team-photo {
@@ -91,22 +154,26 @@
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.25rem;
-  color: #1a202c;
+  color: var(--color-text);
 }
 
 .team-role {
   font-size: 0.85rem;
-  color: #1a472a;
+  color: var(--color-primary);
   font-weight: 500;
   margin-bottom: 0.25rem;
 }
 
 .team-exp {
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
 }
 
 /* Values */
+.values-section {
+  background: var(--color-bg);
+}
+
 .values-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -114,32 +181,95 @@
 }
 
 .value-card {
-  padding: 1.5rem;
-  border: 1px solid #e2e8f0;
+  padding: 2rem 1.5rem;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--color-surface);
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.value-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.value-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
 }
 
 .value-card h3 {
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
-  color: #1a472a;
+  color: var(--color-text);
 }
 
 .value-card p {
   font-size: 0.85rem;
-  color: #718096;
+  color: var(--color-text-muted);
   line-height: 1.6;
 }
 
+/* Credentials */
+.credentials-section {
+  background: var(--color-bg-secondary);
+}
+
+.credentials-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.credential-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 2rem 1.25rem;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.credential-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.credential-icon {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.credential-card h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.35rem;
+}
+
+.credential-card p {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .about-story {
     grid-template-columns: 1fr;
   }
 
   .team-grid,
-  .values-grid {
+  .values-grid,
+  .credentials-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .credentials-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
