@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useTheme } from '../../context/ThemeContext';
 import './Header.css';
 
 export default function Header() {
   const { user, logout } = useAuth();
-  const { dark, toggle } = useTheme();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -56,9 +54,6 @@ export default function Header() {
         </nav>
 
         <div className="header-actions">
-          <button className="theme-toggle" onClick={toggle} aria-label="Toggle dark mode">
-            {dark ? '\u2600' : '\u263E'}
-          </button>
           {user ? (
             <>
               <Link
