@@ -38,9 +38,7 @@ for (const s of services) insertService.run(...s);
 const insertTeam = db.prepare('INSERT INTO team_members (name, role, experience, image) VALUES (?, ?, ?, ?)');
 const team = [
   ['Andrea Rusch', 'Founder & Lead Designer', '15 years', '/Andrea.png'],
-  ['Carson Crossley', 'Operations Manager', '10 years', '/Carson.png'],
   ['Chad Crossley', 'Senior Landscaper', '8 years', '/Chad.png'],
-  ['Griffin Baugh', 'Irrigation Specialist', '6 years', '/Griffin.png'],
 ];
 for (const t of team) insertTeam.run(...t);
 
@@ -78,9 +76,7 @@ for (const j of jobs) insertJob.run(...j);
 const insertEmployee = db.prepare('INSERT INTO employees (emp_id, name, role, phone, email, status) VALUES (?, ?, ?, ?, ?, ?)');
 const employees = [
   ['EMP-001', 'Andrea Rusch', 'Lead Designer', '(555) 100-1001', 'andrea@urbanpalmlandscaping.com', 'Active'],
-  ['EMP-002', 'Carson Crossley', 'Operations Manager', '(555) 100-1002', 'carson@urbanpalmlandscaping.com', 'Active'],
   ['EMP-003', 'Chad Crossley', 'Senior Landscaper', '(555) 100-1003', 'chad@urbanpalmlandscaping.com', 'Active'],
-  ['EMP-004', 'Griffin Baugh', 'Irrigation Specialist', '(555) 100-1004', 'griffin@urbanpalmlandscaping.com', 'Active'],
   ['EMP-005', 'Tom Bradley', 'Junior Landscaper', '(555) 100-1005', 'tom@urbanpalmlandscaping.com', 'On Leave'],
 ];
 for (const e of employees) insertEmployee.run(...e);
