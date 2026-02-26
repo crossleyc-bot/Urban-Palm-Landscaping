@@ -14,9 +14,9 @@ export default function Portfolio() {
 
   return (
     <div className="portfolio-page">
-      <section className="portfolio-hero">
+      <section className="page-hero">
         <div className="container">
-          <span className="section-tag">Portfolio</span>
+          <span className="hero-badge">Portfolio</span>
           <h1>Our Transformations</h1>
           <p>See the difference professional landscaping makes. Browse our before-and-after gallery showcasing real projects across Central Florida.</p>
         </div>
