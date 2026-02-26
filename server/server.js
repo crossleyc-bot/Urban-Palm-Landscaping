@@ -49,6 +49,38 @@ app.get('/api/services', (req, res) => {
   res.json(services);
 });
 
+app.post('/api/services', (req, res) => {
+  const { name, description, price, icon } = req.body;
+  if (!name) return res.status(400).json({ error: 'Service name is required' });
+
+  const result = db.prepare(
+    'INSERT INTO services (name, description, price, icon) VALUES (?, ?, ?, ?)'
+  ).run(name, description || null, price || null, icon || null);
+
+  res.status(201).json({ id: result.lastInsertRowid, name, description, price, icon });
+});
+
+app.put('/api/services/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, description, price, icon } = req.body;
+  if (!name) return res.status(400).json({ error: 'Service name is required' });
+
+  const result = db.prepare(
+    'UPDATE services SET name = ?, description = ?, price = ?, icon = ? WHERE id = ?'
+  ).run(name, description || null, price || null, icon || null, id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Service not found' });
+
+  res.json({ success: true });
+});
+
+app.delete('/api/services/:id', (req, res) => {
+  const { id } = req.params;
+  const result = db.prepare('DELETE FROM services WHERE id = ?').run(id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Service not found' });
+
+  res.json({ success: true });
+});
+
 // ─── Team Members ────────────────────────────────────────────────────────────
 
 app.get('/api/team', (req, res) => {

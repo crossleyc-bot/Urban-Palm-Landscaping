@@ -28,6 +28,7 @@ import Invoices from './pages/admin/Invoices';
 import QuoteRequests from './pages/admin/QuoteRequests';
 import ScheduleRequests from './pages/admin/ScheduleRequests';
 import ContactMessages from './pages/admin/ContactMessages';
+import ManageServices from './pages/admin/ManageServices';
 
 import './App.css';
 
@@ -40,6 +41,7 @@ const customerNav = [
 
 const adminNav = [
   { path: '/admin', label: 'Dashboard', icon: '\u2630' },
+  { path: '/admin/services', label: 'Services', icon: '\uD83C\uDF3F' },
   { path: '/admin/jobs', label: 'Manage Jobs', icon: '\uD83D\uDCBC' },
   { path: '/admin/employees', label: 'Employees', icon: '\uD83D\uDC65' },
   { path: '/admin/schedule', label: 'Schedule', icon: '\uD83D\uDCC5' },
@@ -129,6 +131,7 @@ export default function App() {
               <Route element={<ProtectedRoute allowedRole="admin" />}>
                 <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin/services" element={<ManageServices />} />
                   <Route path="/admin/jobs" element={<ManageJobs />} />
                   <Route path="/admin/employees" element={<ManageEmployees />} />
                   <Route path="/admin/schedule" element={<AdminSchedule />} />
