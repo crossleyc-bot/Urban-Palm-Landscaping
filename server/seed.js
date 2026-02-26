@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 db.pragma('foreign_keys = OFF');
 
 db.exec(`
+  DELETE FROM job_openings;
   DELETE FROM supplier_inventory;
   DELETE FROM suppliers;
   DELETE FROM schedule_requests;
@@ -72,18 +73,18 @@ const testimonials = [
 for (const t of testimonials) insertTestimonial.run(...t);
 
 // ─── Employees ──────────────────────────────────────────────────────────────
-const insertEmployee = db.prepare('INSERT INTO employees (emp_id, name, role, phone, email, status) VALUES (?, ?, ?, ?, ?, ?)');
+const insertEmployee = db.prepare('INSERT INTO employees (emp_id, name, role, phone, email, status, show_on_website) VALUES (?, ?, ?, ?, ?, ?, ?)');
 const employees = [
-  ['EMP-001', 'Andrea Rusch', 'Lead Designer', '(321) 231-2094', 'andrea@urbanpalmlandscaping.com', 'Active'],
-  ['EMP-002', 'Chad Crossley', 'Senior Landscaper', '(321) 231-2095', 'chad@urbanpalmlandscaping.com', 'Active'],
-  ['EMP-003', 'James Okoro', 'Crew Lead - Installation', '(321) 231-2096', 'james@urbanpalmlandscaping.com', 'Active'],
-  ['EMP-004', 'Carlos Rivera', 'Crew Lead - Hardscaping', '(321) 231-2097', 'carlos@urbanpalmlandscaping.com', 'Active'],
-  ['EMP-005', 'Aisha Patel', 'Irrigation Specialist', '(321) 231-2098', 'aisha@urbanpalmlandscaping.com', 'Active'],
-  ['EMP-006', 'Tom Bradley', 'Junior Landscaper', '(321) 231-2099', 'tom@urbanpalmlandscaping.com', 'On Leave'],
-  ['EMP-007', 'Maria Santos', 'Landscape Technician', '(321) 231-2100', 'maria@urbanpalmlandscaping.com', 'Active'],
-  ['EMP-008', 'Derek Hall', 'Equipment Operator', '(321) 231-2101', 'derek@urbanpalmlandscaping.com', 'Active'],
-  ['EMP-009', 'Samantha Lee', 'Office Manager', '(321) 231-2102', 'samantha@urbanpalmlandscaping.com', 'Active'],
-  ['EMP-010', 'Kevin Williams', 'Seasonal Technician', '(321) 231-2103', 'kevin@urbanpalmlandscaping.com', 'Active'],
+  ['EMP-001', 'Andrea Rusch', 'Lead Designer', '(321) 231-2094', 'andrea@urbanpalmlandscaping.com', 'Active', 1],
+  ['EMP-002', 'Chad Crossley', 'Senior Landscaper', '(321) 231-2095', 'chad@urbanpalmlandscaping.com', 'Active', 1],
+  ['EMP-003', 'James Okoro', 'Crew Lead - Installation', '(321) 231-2096', 'james@urbanpalmlandscaping.com', 'Active', 1],
+  ['EMP-004', 'Carlos Rivera', 'Crew Lead - Hardscaping', '(321) 231-2097', 'carlos@urbanpalmlandscaping.com', 'Active', 1],
+  ['EMP-005', 'Aisha Patel', 'Irrigation Specialist', '(321) 231-2098', 'aisha@urbanpalmlandscaping.com', 'Active', 1],
+  ['EMP-006', 'Tom Bradley', 'Junior Landscaper', '(321) 231-2099', 'tom@urbanpalmlandscaping.com', 'On Leave', 0],
+  ['EMP-007', 'Maria Santos', 'Landscape Technician', '(321) 231-2100', 'maria@urbanpalmlandscaping.com', 'Active', 0],
+  ['EMP-008', 'Derek Hall', 'Equipment Operator', '(321) 231-2101', 'derek@urbanpalmlandscaping.com', 'Active', 0],
+  ['EMP-009', 'Samantha Lee', 'Office Manager', '(321) 231-2102', 'samantha@urbanpalmlandscaping.com', 'Active', 1],
+  ['EMP-010', 'Kevin Williams', 'Seasonal Technician', '(321) 231-2103', 'kevin@urbanpalmlandscaping.com', 'Active', 0],
 ];
 for (const e of employees) insertEmployee.run(...e);
 
@@ -226,5 +227,26 @@ const inventory = [
   [5, 'Valve Box - Standard', 'CF-VBS', 'Irrigation', 'each', 12.00, 40, 10, 'Green lid, fits 2-4 valves'],
 ];
 for (const i of inventory) insertInventory.run(...i);
+
+// ─── Job Openings ─────────────────────────────────────────────────────────
+const insertJobOpening = db.prepare('INSERT INTO job_openings (title, department, type, location, description, requirements, status) VALUES (?, ?, ?, ?, ?, ?, ?)');
+const jobOpenings = [
+  ['Landscape Technician', 'Installation', 'Full-time', 'Orlando, FL',
+    'Join our installation crew to help deliver and install sod, plants, trees, mulch, and other landscape materials. You will work on residential and commercial properties across Central Florida.',
+    'Valid driver\'s license\nAbility to lift 50+ lbs\nExperience with landscaping preferred\nReliable transportation', 'Open'],
+  ['Irrigation Specialist', 'Irrigation', 'Full-time', 'Orlando, FL',
+    'Design, install, and repair irrigation systems for residential and commercial clients. Work with Rain Bird and Hunter systems including smart controllers and drip irrigation.',
+    'Experience with irrigation system installation\nKnowledge of Rain Bird and Hunter products\nAbility to read blueprints\nFlorida irrigation license preferred', 'Open'],
+  ['Hardscape Crew Member', 'Hardscaping', 'Full-time', 'Orlando, FL',
+    'Help build patios, walkways, retaining walls, fire pits, and outdoor kitchens. Work under an experienced crew lead on projects across the region.',
+    'Experience with paver installation preferred\nAbility to operate basic power tools\nPhysical fitness — heavy lifting required\nTeam player with strong work ethic', 'Open'],
+  ['Seasonal Maintenance Technician', 'Maintenance', 'Seasonal', 'Orlando, FL',
+    'Seasonal position for spring and fall cleanup services. Duties include mowing, edging, mulching, leaf removal, and general property maintenance.',
+    'Some landscaping experience preferred\nOwn transportation to job sites\nAvailable for early morning start times\nAble to work in Florida heat', 'Open'],
+  ['Landscape Designer (Junior)', 'Design', 'Full-time', 'Orlando, FL',
+    'Assist our lead designer in creating landscape plans for residential clients. Responsibilities include site assessments, plant selection, and drafting designs using landscape CAD software.',
+    'Degree in landscape architecture or horticulture\nFamiliarity with Florida-native plants\nProficiency in CAD or landscape design software\nStrong communication skills', 'Draft'],
+];
+for (const jo of jobOpenings) insertJobOpening.run(...jo);
 
 console.log('Database seeded successfully.');

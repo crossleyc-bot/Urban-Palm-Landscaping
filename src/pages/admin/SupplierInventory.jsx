@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { apiGet, apiPost, apiPut, apiDelete } from '../../api';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { apiGet, apiPostForm, apiPutForm, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
@@ -24,6 +24,8 @@ export default function SupplierInventory() {
   const [sortDir, setSortDir] = useState('asc');
   const [filterSupplier, setFilterSupplier] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const fileRef = useRef();
 
   useEffect(() => {
     Promise.all([apiGet('/inventory'), apiGet('/suppliers')])
@@ -75,23 +77,39 @@ export default function SupplierInventory() {
     setForm({ ...emptyForm, supplier_id: filterSupplier || '' });
   };
 
-  const cancel = () => { setEditing(null); setAdding(false); setForm(emptyForm); };
+  const cancel = () => { setEditing(null); setAdding(false); setForm(emptyForm); setImageFile(null); };
 
-  const payload = () => ({
-    ...form,
-    supplier_id: Number(form.supplier_id),
-    unit_cost: form.unit_cost !== '' ? Number(form.unit_cost) : null,
-    qty_available: form.qty_available !== '' ? Number(form.qty_available) : 0,
-    reorder_point: form.reorder_point !== '' ? Number(form.reorder_point) : 0,
-  });
+  const buildFormData = () => {
+    const fd = new FormData();
+    fd.append('supplier_id', form.supplier_id);
+    fd.append('item_name', form.item_name);
+    fd.append('sku', form.sku);
+    fd.append('category', form.category);
+    fd.append('unit', form.unit);
+    fd.append('unit_cost', form.unit_cost);
+    fd.append('qty_available', form.qty_available);
+    fd.append('reorder_point', form.reorder_point);
+    fd.append('notes', form.notes);
+    if (imageFile) fd.append('image', imageFile);
+    return fd;
+  };
 
   const saveEdit = async (id) => {
     if (!form.supplier_id || !form.item_name.trim()) return;
     setSaving(true);
     try {
-      await apiPut(`/inventory/${id}`, payload());
-      setItems(prev => prev.map(i => i.id === id ? { ...i, ...payload(), supplier_name: supplierName(Number(form.supplier_id)) } : i));
+      const result = await apiPutForm(`/inventory/${id}`, buildFormData());
+      setItems(prev => prev.map(i => i.id === id ? {
+        ...i, ...form,
+        supplier_id: Number(form.supplier_id),
+        unit_cost: form.unit_cost !== '' ? Number(form.unit_cost) : null,
+        qty_available: form.qty_available !== '' ? Number(form.qty_available) : 0,
+        reorder_point: form.reorder_point !== '' ? Number(form.reorder_point) : 0,
+        supplier_name: supplierName(Number(form.supplier_id)),
+        image: result.image ?? i.image,
+      } : i));
       setEditing(null);
+      setImageFile(null);
       addToast('Item updated', 'success');
     } catch { addToast('Failed to update item', 'error'); }
     finally { setSaving(false); }
@@ -101,10 +119,11 @@ export default function SupplierInventory() {
     if (!form.supplier_id || !form.item_name.trim()) return;
     setSaving(true);
     try {
-      const created = await apiPost('/inventory', payload());
+      const created = await apiPostForm('/inventory', buildFormData());
       setItems(prev => [...prev, { ...created, supplier_name: supplierName(Number(form.supplier_id)) }]);
       setAdding(false);
       setForm(emptyForm);
+      setImageFile(null);
       addToast('Item added', 'success');
     } catch { addToast('Failed to add item', 'error'); }
     finally { setSaving(false); }
@@ -149,6 +168,12 @@ export default function SupplierInventory() {
       <td><input className="table-input" type="number" min="0" step="0.01" value={form.unit_cost} onChange={e => setForm(f => ({ ...f, unit_cost: e.target.value }))} placeholder="0.00" style={{ width: 80 }} /></td>
       <td><input className="table-input" type="number" min="0" value={form.qty_available} onChange={e => setForm(f => ({ ...f, qty_available: e.target.value }))} placeholder="0" style={{ width: 65 }} /></td>
       <td><input className="table-input" type="number" min="0" value={form.reorder_point} onChange={e => setForm(f => ({ ...f, reorder_point: e.target.value }))} placeholder="0" style={{ width: 65 }} /></td>
+      <td>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          <button type="button" className="btn btn-outline btn-sm" onClick={() => fileRef.current?.click()} style={{ fontSize: '0.7rem' }}>{imageFile ? '1 file' : 'Photo'}</button>
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setImageFile(e.target.files[0] || null)} />
+        </div>
+      </td>
       <td>
         <div style={{ display: 'flex', gap: '0.25rem' }}>
           <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving || !form.supplier_id || !form.item_name.trim()}>{saveLabel}</button>
@@ -214,13 +239,14 @@ export default function SupplierInventory() {
                 <SortableHeader label="Cost" field="unit_cost" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <SortableHeader label="Qty" field="qty_available" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th>Reorder</th>
+                <th>Image</th>
                 <th style={{ width: '140px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginated.length === 0 && !adding ? (
                 <tr>
-                  <td colSpan="9">
+                  <td colSpan="10">
                     <EmptyState icon="&#128230;" title="No inventory items" message={suppliers.length === 0 ? 'Add a supplier first, then add inventory items.' : 'Add your first inventory item to get started.'} />
                   </td>
                 </tr>
@@ -242,6 +268,13 @@ export default function SupplierInventory() {
                             {item.qty_available ?? 0}
                           </td>
                           <td style={{ color: 'var(--color-text-muted)' }}>{item.reorder_point ?? 0}</td>
+                          <td>
+                            {item.image ? (
+                              <img src={item.image} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--color-border)' }} />
+                            ) : (
+                              <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{'\u2014'}</span>
+                            )}
+                          </td>
                           <td>
                             <div style={{ display: 'flex', gap: '0.25rem' }}>
                               <button className="btn btn-outline btn-sm" onClick={() => startEdit(item)}>Edit</button>

@@ -19,7 +19,9 @@ export default function Footer() {
             <Link to="/">Home</Link>
             <Link to="/services">Services</Link>
             <Link to="/portfolio">Portfolio</Link>
+            <Link to="/products">Products</Link>
             <Link to="/about">About Us</Link>
+            <Link to="/careers">Careers</Link>
             <Link to="/contact">Contact</Link>
           </div>
 

@@ -7,7 +7,7 @@ import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
 
 const PAGE_SIZE = 10;
-const emptyForm = { name: '', role: '', phone: '', email: '', status: 'Active' };
+const emptyForm = { name: '', role: '', phone: '', email: '', status: 'Active', show_on_website: false };
 
 const avatarStyle = {
   width: 40, height: 40, borderRadius: '50%', objectFit: 'cover',
@@ -99,7 +99,7 @@ export default function ManageEmployees() {
   const startEdit = (emp) => {
     setAdding(false);
     setEditing(emp.id);
-    setForm({ name: emp.name, role: emp.role, phone: emp.phone || '', email: emp.email || '', status: emp.status });
+    setForm({ name: emp.name, role: emp.role, phone: emp.phone || '', email: emp.email || '', status: emp.status, show_on_website: !!emp.show_on_website });
     setImageFile(null);
     setImagePreview(emp.image || null);
   };
@@ -125,6 +125,7 @@ export default function ManageEmployees() {
     fd.append('phone', form.phone);
     fd.append('email', form.email);
     fd.append('status', form.status);
+    fd.append('show_on_website', form.show_on_website ? '1' : '0');
     if (imageFile) fd.append('image', imageFile);
     return fd;
   };
@@ -135,7 +136,7 @@ export default function ManageEmployees() {
     try {
       const result = await apiPutForm(`/employees/${empId}`, buildFormData());
       setEmployees(prev => prev.map(e =>
-        e.id === empId ? { ...e, ...form, image: result.image ?? e.image } : e
+        e.id === empId ? { ...e, ...form, image: result.image ?? e.image, show_on_website: result.show_on_website ?? e.show_on_website } : e
       ));
       setEditing(null);
       clearImage();
@@ -217,6 +218,7 @@ export default function ManageEmployees() {
                 <th>Phone</th>
                 <th>Email</th>
                 <th>Status</th>
+                <th style={{ textAlign: 'center' }}>Website</th>
                 <th style={{ width: '160px' }}>Actions</th>
               </tr>
             </thead>
@@ -225,7 +227,7 @@ export default function ManageEmployees() {
                 <SkeletonTable rows={5} cols={8} />
               ) : paginated.length === 0 && !adding ? (
                 <tr>
-                  <td colSpan="8">
+                  <td colSpan="9">
                     <EmptyState icon="&#128101;" title="No employees found" message="Add your first employee to get started." />
                   </td>
                 </tr>
@@ -247,6 +249,9 @@ export default function ManageEmployees() {
                               <option>On Leave</option>
                             </select>
                           </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <input type="checkbox" checked={form.show_on_website} onChange={e => setForm(f => ({ ...f, show_on_website: e.target.checked }))} />
+                          </td>
                           <td>
                             <div style={{ display: 'flex', gap: '0.25rem' }}>
                               <button className="btn btn-primary btn-sm" onClick={() => saveEdit(emp.id)} disabled={saving || !form.name.trim() || !form.role.trim()}>Save</button>
@@ -266,6 +271,9 @@ export default function ManageEmployees() {
                             <span className={`badge ${emp.status === 'Active' ? 'badge-green' : 'badge-yellow'}`}>
                               {emp.status}
                             </span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            {emp.show_on_website ? <span style={{ color: '#16a34a', fontWeight: 600 }}>Yes</span> : <span style={{ color: 'var(--color-text-muted)' }}>No</span>}
                           </td>
                           <td>
                             <div style={{ display: 'flex', gap: '0.25rem' }}>
@@ -291,6 +299,9 @@ export default function ManageEmployees() {
                           <option>Active</option>
                           <option>On Leave</option>
                         </select>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <input type="checkbox" checked={form.show_on_website} onChange={e => setForm(f => ({ ...f, show_on_website: e.target.checked }))} />
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.25rem' }}>

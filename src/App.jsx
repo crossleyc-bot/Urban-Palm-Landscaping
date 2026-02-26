@@ -13,6 +13,8 @@ import Services from './pages/public/Services';
 import About from './pages/public/About';
 import Contact from './pages/public/Contact';
 import Portfolio from './pages/public/Portfolio';
+import Careers from './pages/public/Careers';
+import Products from './pages/public/Products';
 import Login from './pages/Login';
 
 import CustomerDashboard from './pages/customer/CustomerDashboard';
@@ -31,6 +33,7 @@ import ContactMessages from './pages/admin/ContactMessages';
 import ManageServices from './pages/admin/ManageServices';
 import ManageSuppliers from './pages/admin/ManageSuppliers';
 import SupplierInventory from './pages/admin/SupplierInventory';
+import ManageJobOpenings from './pages/admin/ManageJobOpenings';
 
 import './App.css';
 
@@ -53,6 +56,7 @@ const adminNav = [
   { path: '/admin/quotes', label: 'Quote Requests', icon: '\u2709' },
   { path: '/admin/schedule-requests', label: 'Schedule Requests', icon: '\uD83D\uDCC6' },
   { path: '/admin/messages', label: 'Messages', icon: '\uD83D\uDCAC' },
+  { path: '/admin/job-openings', label: 'Job Openings', icon: '\uD83D\uDCCB' },
 ];
 
 function ProtectedRoute({ allowedRole }) {
@@ -120,6 +124,8 @@ export default function App() {
                 <Route path="/portfolio" element={<Portfolio />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/careers" element={<Careers />} />
+                <Route path="/products" element={<Products />} />
                 <Route path="/login" element={<Login />} />
               </Route>
 
@@ -145,6 +151,7 @@ export default function App() {
                   <Route path="/admin/quotes" element={<QuoteRequests />} />
                   <Route path="/admin/schedule-requests" element={<ScheduleRequests />} />
                   <Route path="/admin/messages" element={<ContactMessages />} />
+                  <Route path="/admin/job-openings" element={<ManageJobOpenings />} />
                 </Route>
               </Route>
 
