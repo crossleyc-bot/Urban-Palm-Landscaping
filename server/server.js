@@ -1,11 +1,34 @@
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
+import multer from 'multer';
+import { fileURLToPath } from 'url';
+import { dirname, join, extname } from 'path';
+import { existsSync, mkdirSync, unlinkSync } from 'fs';
 import db from './db.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const uploadsDir = join(__dirname, 'uploads', 'employees');
+if (!existsSync(uploadsDir)) mkdirSync(uploadsDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => cb(null, `${Date.now()}${extname(file.originalname)}`),
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+    cb(null, allowed.includes(extname(file.originalname).toLowerCase()));
+  },
+});
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(join(__dirname, 'uploads')));
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
@@ -165,19 +188,63 @@ app.get('/api/employees', (req, res) => {
     role: e.role,
     phone: e.phone,
     email: e.email,
+    image: e.image,
     status: e.status,
   })));
 });
 
-app.put('/api/employees/:empId', (req, res) => {
+app.post('/api/employees', upload.single('image'), (req, res) => {
+  const { name, role, phone, email, status } = req.body;
+  if (!name || !role) return res.status(400).json({ error: 'Name and role are required' });
+
+  const last = db.prepare("SELECT emp_id FROM employees ORDER BY id DESC LIMIT 1").get();
+  const nextNum = last ? parseInt(last.emp_id.replace('EMP-', ''), 10) + 1 : 1;
+  const empId = `EMP-${String(nextNum).padStart(3, '0')}`;
+  const image = req.file ? `/uploads/employees/${req.file.filename}` : null;
+
+  db.prepare(
+    'INSERT INTO employees (emp_id, name, role, phone, email, image, status) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(empId, name, role, phone || null, email || null, image, status || 'Active');
+
+  res.status(201).json({ id: empId, name, role, phone, email, image, status: status || 'Active' });
+});
+
+app.put('/api/employees/:empId', upload.single('image'), (req, res) => {
   const { empId } = req.params;
   const { name, role, phone, email, status } = req.body;
   if (!name || !role) return res.status(400).json({ error: 'Name and role are required' });
 
-  const result = db.prepare(
-    'UPDATE employees SET name = ?, role = ?, phone = ?, email = ?, status = ? WHERE emp_id = ?'
-  ).run(name, role, phone || null, email || null, status || 'Active', empId);
+  const existing = db.prepare('SELECT image FROM employees WHERE emp_id = ?').get(empId);
+  if (!existing) return res.status(404).json({ error: 'Employee not found' });
+
+  let image = existing.image;
+  if (req.file) {
+    // Remove old photo if it exists
+    if (existing.image) {
+      const oldPath = join(__dirname, existing.image.replace(/^\//, ''));
+      try { unlinkSync(oldPath); } catch { /* ignore */ }
+    }
+    image = `/uploads/employees/${req.file.filename}`;
+  }
+
+  db.prepare(
+    'UPDATE employees SET name = ?, role = ?, phone = ?, email = ?, image = ?, status = ? WHERE emp_id = ?'
+  ).run(name, role, phone || null, email || null, image, status || 'Active', empId);
+
+  res.json({ success: true, image });
+});
+
+app.delete('/api/employees/:empId', (req, res) => {
+  const { empId } = req.params;
+  const existing = db.prepare('SELECT image FROM employees WHERE emp_id = ?').get(empId);
+  const result = db.prepare('DELETE FROM employees WHERE emp_id = ?').run(empId);
   if (result.changes === 0) return res.status(404).json({ error: 'Employee not found' });
+
+  // Remove photo file on delete
+  if (existing && existing.image) {
+    const oldPath = join(__dirname, existing.image.replace(/^\//, ''));
+    try { unlinkSync(oldPath); } catch { /* ignore */ }
+  }
 
   res.json({ success: true });
 });

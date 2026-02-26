@@ -32,6 +32,30 @@ export async function apiPut(path, data) {
   return res.json();
 }
 
+export async function apiPostForm(path, formData) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(err.error || `API error: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function apiPutForm(path, formData) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'PUT',
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(err.error || `API error: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function apiDelete(path) {
   const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE' });
   if (!res.ok) {

@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { apiGet, apiPut } from '../../api';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { apiGet, apiPostForm, apiPutForm, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonCards, SkeletonTable } from '../../components/ui/Skeleton';
@@ -7,6 +7,43 @@ import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
 
 const PAGE_SIZE = 10;
+const emptyForm = { name: '', role: '', phone: '', email: '', status: 'Active' };
+
+const avatarStyle = {
+  width: 40, height: 40, borderRadius: '50%', objectFit: 'cover',
+  border: '2px solid var(--color-border)',
+};
+const avatarPlaceholder = {
+  ...avatarStyle,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  background: 'var(--color-bg-secondary)', color: 'var(--color-text-muted)',
+  fontSize: '1rem', fontWeight: 600,
+};
+
+function Avatar({ src, name }) {
+  if (src) return <img src={src} alt={name} style={avatarStyle} />;
+  return <div style={avatarPlaceholder}>{(name || '?').charAt(0).toUpperCase()}</div>;
+}
+
+function PhotoPicker({ file, preview, onPick }) {
+  const ref = useRef();
+  const handleChange = (e) => {
+    const f = e.target.files[0];
+    if (f) onPick(f);
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      {preview
+        ? <img src={preview} alt="preview" style={avatarStyle} />
+        : <div style={avatarPlaceholder}>?</div>
+      }
+      <button type="button" className="btn btn-outline btn-sm" onClick={() => ref.current.click()}>
+        {file ? 'Change' : 'Upload'}
+      </button>
+      <input ref={ref} type="file" accept="image/*" onChange={handleChange} style={{ display: 'none' }} />
+    </div>
+  );
+}
 
 export default function ManageEmployees() {
   const { addToast } = useToast();
@@ -17,7 +54,10 @@ export default function ManageEmployees() {
   const [sortDir, setSortDir] = useState('asc');
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     apiGet('/employees').then(setEmployees).finally(() => setLoading(false));
@@ -45,22 +85,60 @@ export default function ManageEmployees() {
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const startEdit = (emp) => {
-    setEditing(emp.id);
-    setForm({ name: emp.name, role: emp.role, phone: emp.phone || '', email: emp.email || '', status: emp.status });
+  const pickImage = (file) => {
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
-  const cancelEdit = () => {
+  const clearImage = () => {
+    setImageFile(null);
+    if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+  };
+
+  const startEdit = (emp) => {
+    setAdding(false);
+    setEditing(emp.id);
+    setForm({ name: emp.name, role: emp.role, phone: emp.phone || '', email: emp.email || '', status: emp.status });
+    setImageFile(null);
+    setImagePreview(emp.image || null);
+  };
+
+  const startAdd = () => {
     setEditing(null);
+    setAdding(true);
+    setForm(emptyForm);
+    clearImage();
+  };
+
+  const cancel = () => {
+    setEditing(null);
+    setAdding(false);
     setForm({});
+    clearImage();
+  };
+
+  const buildFormData = () => {
+    const fd = new FormData();
+    fd.append('name', form.name);
+    fd.append('role', form.role);
+    fd.append('phone', form.phone);
+    fd.append('email', form.email);
+    fd.append('status', form.status);
+    if (imageFile) fd.append('image', imageFile);
+    return fd;
   };
 
   const saveEdit = async (empId) => {
+    if (!form.name.trim() || !form.role.trim()) return;
     setSaving(true);
     try {
-      await apiPut(`/employees/${empId}`, form);
-      setEmployees(prev => prev.map(e => e.id === empId ? { ...e, ...form } : e));
+      const result = await apiPutForm(`/employees/${empId}`, buildFormData());
+      setEmployees(prev => prev.map(e =>
+        e.id === empId ? { ...e, ...form, image: result.image ?? e.image } : e
+      ));
       setEditing(null);
+      clearImage();
       addToast('Employee updated successfully', 'success');
     } catch {
       addToast('Failed to update employee', 'error');
@@ -69,11 +147,43 @@ export default function ManageEmployees() {
     }
   };
 
+  const saveNew = async () => {
+    if (!form.name.trim() || !form.role.trim()) return;
+    setSaving(true);
+    try {
+      const created = await apiPostForm('/employees', buildFormData());
+      setEmployees(prev => [...prev, { id: created.id, image: created.image, ...form }]);
+      setAdding(false);
+      setForm({});
+      clearImage();
+      addToast('Employee added successfully', 'success');
+    } catch {
+      addToast('Failed to add employee', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteEmployee = async (empId) => {
+    try {
+      await apiDelete(`/employees/${empId}`);
+      setEmployees(prev => prev.filter(e => e.id !== empId));
+      addToast('Employee deleted', 'success');
+    } catch {
+      addToast('Failed to delete employee', 'error');
+    }
+  };
+
   return (
     <div>
-      <div className="page-header">
-        <h1>Employees</h1>
-        <p>Manage your team members and their information.</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1>Employees</h1>
+          <p>Manage your team members and their information.</p>
+        </div>
+        {!adding && (
+          <button className="btn btn-primary" onClick={startAdd}>+ Add Employee</button>
+        )}
       </div>
 
       {loading ? (
@@ -100,65 +210,97 @@ export default function ManageEmployees() {
           <table>
             <thead>
               <tr>
+                <th style={{ width: '60px' }}>Photo</th>
                 <SortableHeader label="ID" field="id" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <SortableHeader label="Name" field="name" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <SortableHeader label="Role" field="role" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th>Phone</th>
                 <th>Email</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th style={{ width: '160px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <SkeletonTable rows={5} cols={7} />
-              ) : paginated.length === 0 ? (
+                <SkeletonTable rows={5} cols={8} />
+              ) : paginated.length === 0 && !adding ? (
                 <tr>
-                  <td colSpan="7">
-                    <EmptyState icon="&#128101;" title="No employees found" />
+                  <td colSpan="8">
+                    <EmptyState icon="&#128101;" title="No employees found" message="Add your first employee to get started." />
                   </td>
                 </tr>
               ) : (
-                paginated.map((emp) => (
-                  <tr key={emp.id}>
-                    <td style={{ fontWeight: 500 }}>{emp.id}</td>
-                    {editing === emp.id ? (
-                      <>
-                        <td><input className="table-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></td>
-                        <td><input className="table-input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} /></td>
-                        <td><input className="table-input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></td>
-                        <td><input className="table-input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></td>
-                        <td>
-                          <select className="table-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-                            <option>Active</option>
-                            <option>On Leave</option>
-                          </select>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '0.25rem' }}>
-                            <button className="btn btn-primary btn-sm" onClick={() => saveEdit(emp.id)} disabled={saving}>Save</button>
-                            <button className="btn btn-outline btn-sm" onClick={cancelEdit}>Cancel</button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td>{emp.name}</td>
-                        <td>{emp.role}</td>
-                        <td>{emp.phone}</td>
-                        <td>{emp.email}</td>
-                        <td>
-                          <span className={`badge ${emp.status === 'Active' ? 'badge-green' : 'badge-yellow'}`}>
-                            {emp.status}
-                          </span>
-                        </td>
-                        <td>
-                          <button className="btn btn-outline btn-sm" onClick={() => startEdit(emp)}>Edit</button>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))
+                <>
+                  {paginated.map((emp) => (
+                    <tr key={emp.id}>
+                      {editing === emp.id ? (
+                        <>
+                          <td><PhotoPicker file={imageFile} preview={imagePreview} onPick={pickImage} /></td>
+                          <td style={{ fontWeight: 500 }}>{emp.id}</td>
+                          <td><input className="table-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" /></td>
+                          <td><input className="table-input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="Job title" /></td>
+                          <td><input className="table-input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 000-0000" /></td>
+                          <td><input className="table-input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" /></td>
+                          <td>
+                            <select className="table-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                              <option>Active</option>
+                              <option>On Leave</option>
+                            </select>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              <button className="btn btn-primary btn-sm" onClick={() => saveEdit(emp.id)} disabled={saving || !form.name.trim() || !form.role.trim()}>Save</button>
+                              <button className="btn btn-outline btn-sm" onClick={cancel}>Cancel</button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td><Avatar src={emp.image} name={emp.name} /></td>
+                          <td style={{ fontWeight: 500 }}>{emp.id}</td>
+                          <td>{emp.name}</td>
+                          <td>{emp.role}</td>
+                          <td>{emp.phone}</td>
+                          <td>{emp.email}</td>
+                          <td>
+                            <span className={`badge ${emp.status === 'Active' ? 'badge-green' : 'badge-yellow'}`}>
+                              {emp.status}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              <button className="btn btn-outline btn-sm" onClick={() => startEdit(emp)}>Edit</button>
+                              <button className="btn btn-outline btn-sm" style={{ color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => deleteEmployee(emp.id)}>Delete</button>
+                            </div>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+
+                  {adding && (
+                    <tr>
+                      <td><PhotoPicker file={imageFile} preview={imagePreview} onPick={pickImage} /></td>
+                      <td style={{ fontWeight: 500, color: 'var(--color-text-muted)' }}>Auto</td>
+                      <td><input className="table-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" /></td>
+                      <td><input className="table-input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="Job title" /></td>
+                      <td><input className="table-input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 000-0000" /></td>
+                      <td><input className="table-input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" /></td>
+                      <td>
+                        <select className="table-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                          <option>Active</option>
+                          <option>On Leave</option>
+                        </select>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                          <button className="btn btn-primary btn-sm" onClick={saveNew} disabled={saving || !form.name.trim() || !form.role.trim()}>Add</button>
+                          <button className="btn btn-outline btn-sm" onClick={cancel}>Cancel</button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               )}
             </tbody>
           </table>
