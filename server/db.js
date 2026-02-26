@@ -152,6 +152,13 @@ db.exec(`
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS product_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    image TEXT
+  );
+
   CREATE TABLE IF NOT EXISTS job_openings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
@@ -199,6 +206,11 @@ if (!invColumns.includes('image')) {
 }
 if (!invColumns.includes('retail_cost')) {
   db.exec("ALTER TABLE supplier_inventory ADD COLUMN retail_cost REAL");
+}
+
+// Migration: add category_id to supplier_inventory if missing
+if (!invColumns.includes('category_id')) {
+  db.exec("ALTER TABLE supplier_inventory ADD COLUMN category_id INTEGER REFERENCES product_categories(id)");
 }
 
 // Migration: add status and admin_reply columns to contact_messages if missing
