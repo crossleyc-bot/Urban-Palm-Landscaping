@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { apiGet } from '../../api';
-import { SkeletonTable } from '../../components/ui/Skeleton';
+import { apiGet, apiPut } from '../../api';
+import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
 
@@ -19,15 +19,55 @@ const statusColor = {
   'Scheduled': '#fef3c7',
 };
 
+const JOB_STATUSES = ['Scheduled', 'In Progress', 'Completed'];
+
 export default function AdminSchedule() {
+  const { addToast } = useToast();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     apiGet('/jobs').then(setJobs).finally(() => setLoading(false));
   }, []);
 
   const scheduledJobs = jobs.filter(j => dateMap[j.date]);
+
+  const startEdit = (job) => {
+    setEditing(job.id);
+    setForm({ client: job.client, service: job.service, assignee: job.assignee, date: job.date, status: job.status });
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setForm({});
+  };
+
+  const saveEdit = async (jobId) => {
+    setSaving(true);
+    try {
+      await apiPut(`/jobs/${jobId}`, form);
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, ...form } : j));
+      setEditing(null);
+      addToast('Job updated successfully', 'success');
+    } catch {
+      addToast('Failed to update job', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const quickStatusChange = async (jobId, newStatus) => {
+    try {
+      await apiPut(`/jobs/${jobId}/status`, { status: newStatus });
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: newStatus } : j));
+      addToast(`Job marked as ${newStatus}`, 'success');
+    } catch {
+      addToast('Failed to update status', 'error');
+    }
+  };
 
   if (loading) {
     return (
@@ -84,6 +124,22 @@ export default function AdminSchedule() {
                       <div style={{ color: 'var(--color-text-faint)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                         {job.assignee}
                       </div>
+                      <select
+                        style={{
+                          marginTop: '0.5rem',
+                          fontSize: '0.7rem',
+                          padding: '0.2rem 0.4rem',
+                          borderRadius: '4px',
+                          border: '1px solid var(--color-border)',
+                          background: 'rgba(255,255,255,0.7)',
+                          width: '100%',
+                          cursor: 'pointer',
+                        }}
+                        value={job.status}
+                        onChange={(e) => quickStatusChange(job.id, e.target.value)}
+                      >
+                        {JOB_STATUSES.map(s => <option key={s}>{s}</option>)}
+                      </select>
                     </div>
                   )) : (
                     <div style={{
@@ -114,12 +170,13 @@ export default function AdminSchedule() {
                 <th>Assignee</th>
                 <th>Date</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {jobs.length === 0 ? (
                 <tr>
-                  <td colSpan="6">
+                  <td colSpan="7">
                     <EmptyState icon="&#128197;" title="No jobs scheduled" />
                   </td>
                 </tr>
@@ -127,15 +184,40 @@ export default function AdminSchedule() {
                 jobs.map((job) => (
                   <tr key={job.id}>
                     <td style={{ fontWeight: 500 }}>{job.id}</td>
-                    <td>{job.client}</td>
-                    <td>{job.service}</td>
-                    <td>{job.assignee}</td>
-                    <td>{job.date}</td>
-                    <td>
-                      <span className={`badge ${job.status === 'Completed' ? 'badge-green' : job.status === 'In Progress' ? 'badge-blue' : 'badge-yellow'}`}>
-                        {job.status}
-                      </span>
-                    </td>
+                    {editing === job.id ? (
+                      <>
+                        <td><input className="table-input" value={form.client} onChange={e => setForm(f => ({ ...f, client: e.target.value }))} /></td>
+                        <td><input className="table-input" value={form.service} onChange={e => setForm(f => ({ ...f, service: e.target.value }))} /></td>
+                        <td><input className="table-input" value={form.assignee} onChange={e => setForm(f => ({ ...f, assignee: e.target.value }))} /></td>
+                        <td><input className="table-input" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></td>
+                        <td>
+                          <select className="table-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                            {JOB_STATUSES.map(s => <option key={s}>{s}</option>)}
+                          </select>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button className="btn btn-primary btn-sm" onClick={() => saveEdit(job.id)} disabled={saving}>Save</button>
+                            <button className="btn btn-outline btn-sm" onClick={cancelEdit}>Cancel</button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td>{job.client}</td>
+                        <td>{job.service}</td>
+                        <td>{job.assignee}</td>
+                        <td>{job.date}</td>
+                        <td>
+                          <span className={`badge ${job.status === 'Completed' ? 'badge-green' : job.status === 'In Progress' ? 'badge-blue' : 'badge-yellow'}`}>
+                            {job.status}
+                          </span>
+                        </td>
+                        <td>
+                          <button className="btn btn-outline btn-sm" onClick={() => startEdit(job)}>Edit</button>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))
               )}

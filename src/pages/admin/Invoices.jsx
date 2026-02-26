@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { apiGet } from '../../api';
+import { apiGet, apiPut } from '../../api';
+import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonCards, SkeletonTable } from '../../components/ui/Skeleton';
 import Pagination from '../../components/ui/Pagination';
@@ -14,15 +15,20 @@ const statusBadge = (status) => {
   return map[status] || 'badge badge-gray';
 };
 
+const INVOICE_STATUSES = ['Pending', 'Paid', 'Overdue'];
 const PAGE_SIZE = 10;
 
 export default function Invoices() {
+  const { addToast } = useToast();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState('id');
   const [sortDir, setSortDir] = useState('desc');
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     apiGet('/invoices').then(setInvoices).finally(() => setLoading(false));
@@ -56,6 +62,30 @@ export default function Invoices() {
   const paidAmount = invoices.filter(i => i.status === 'Paid').reduce((sum, i) => sum + i.amount, 0);
   const pendingAmount = invoices.filter(i => i.status === 'Pending').reduce((sum, i) => sum + i.amount, 0);
   const overdueAmount = invoices.filter(i => i.status === 'Overdue').reduce((sum, i) => sum + i.amount, 0);
+
+  const startEdit = (inv) => {
+    setEditing(inv.id);
+    setForm({ client: inv.client, amount: inv.amount, date: inv.date, due_date: inv.dueDate, status: inv.status });
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setForm({});
+  };
+
+  const saveEdit = async (invId) => {
+    setSaving(true);
+    try {
+      await apiPut(`/invoices/${invId}`, { ...form, amount: Number(form.amount) });
+      setInvoices(prev => prev.map(i => i.id === invId ? { ...i, client: form.client, amount: Number(form.amount), date: form.date, dueDate: form.due_date, status: form.status } : i));
+      setEditing(null);
+      addToast('Invoice updated successfully', 'success');
+    } catch {
+      addToast('Failed to update invoice', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div>
@@ -110,14 +140,15 @@ export default function Invoices() {
                 <SortableHeader label="Date" field="date" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <SortableHeader label="Due Date" field="dueDate" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <SkeletonTable rows={5} cols={6} />
+                <SkeletonTable rows={5} cols={7} />
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan="6">
+                  <td colSpan="7">
                     <EmptyState icon="&#128176;" title="No invoices found" message={filter !== 'All' ? `No ${filter.toLowerCase()} invoices.` : 'Invoices will appear here.'} />
                   </td>
                 </tr>
@@ -125,11 +156,36 @@ export default function Invoices() {
                 paginated.map((inv) => (
                   <tr key={inv.id}>
                     <td style={{ fontWeight: 500 }}>{inv.id}</td>
-                    <td>{inv.client}</td>
-                    <td style={{ fontWeight: 500 }}>${inv.amount.toLocaleString()}</td>
-                    <td>{inv.date}</td>
-                    <td>{inv.dueDate}</td>
-                    <td><span className={statusBadge(inv.status)}>{inv.status}</span></td>
+                    {editing === inv.id ? (
+                      <>
+                        <td><input className="table-input" value={form.client} onChange={e => setForm(f => ({ ...f, client: e.target.value }))} /></td>
+                        <td><input className="table-input" type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} style={{ width: '80px' }} /></td>
+                        <td><input className="table-input" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></td>
+                        <td><input className="table-input" type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} /></td>
+                        <td>
+                          <select className="table-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                            {INVOICE_STATUSES.map(s => <option key={s}>{s}</option>)}
+                          </select>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button className="btn btn-primary btn-sm" onClick={() => saveEdit(inv.id)} disabled={saving}>Save</button>
+                            <button className="btn btn-outline btn-sm" onClick={cancelEdit}>Cancel</button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td>{inv.client}</td>
+                        <td style={{ fontWeight: 500 }}>${inv.amount.toLocaleString()}</td>
+                        <td>{inv.date}</td>
+                        <td>{inv.dueDate}</td>
+                        <td><span className={statusBadge(inv.status)}>{inv.status}</span></td>
+                        <td>
+                          <button className="btn btn-outline btn-sm" onClick={() => startEdit(inv)}>Edit</button>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))
               )}
