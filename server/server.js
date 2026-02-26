@@ -9,11 +9,18 @@ import db from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const uploadsDir = join(__dirname, 'uploads', 'employees');
-if (!existsSync(uploadsDir)) mkdirSync(uploadsDir, { recursive: true });
+
+// Ensure upload directories exist
+const uploadDirs = ['employees', 'services'];
+for (const dir of uploadDirs) {
+  const p = join(__dirname, 'uploads', dir);
+  if (!existsSync(p)) mkdirSync(p, { recursive: true });
+}
 
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  destination: (req, _file, cb) => {
+    cb(null, join(__dirname, 'uploads', req.uploadDir || 'employees'));
+  },
   filename: (_req, file, cb) => cb(null, `${Date.now()}${extname(file.originalname)}`),
 });
 const upload = multer({
@@ -67,39 +74,69 @@ app.post('/api/auth/register', (req, res) => {
 
 // ─── Services ────────────────────────────────────────────────────────────────
 
+const serviceUpload = (req, _res, next) => { req.uploadDir = 'services'; next(); };
+
 app.get('/api/services', (req, res) => {
   const services = db.prepare('SELECT * FROM services').all();
   res.json(services);
 });
 
-app.post('/api/services', (req, res) => {
+app.post('/api/services', serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
   const { name, description, price, icon } = req.body;
   if (!name) return res.status(400).json({ error: 'Service name is required' });
 
-  const result = db.prepare(
-    'INSERT INTO services (name, description, price, icon) VALUES (?, ?, ?, ?)'
-  ).run(name, description || null, price || null, icon || null);
+  const imageBefore = req.files?.image_before?.[0] ? `/uploads/services/${req.files.image_before[0].filename}` : null;
+  const imageAfter = req.files?.image_after?.[0] ? `/uploads/services/${req.files.image_after[0].filename}` : null;
 
-  res.status(201).json({ id: result.lastInsertRowid, name, description, price, icon });
+  const result = db.prepare(
+    'INSERT INTO services (name, description, price, icon, image_before, image_after) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(name, description || null, price || null, icon || null, imageBefore, imageAfter);
+
+  res.status(201).json({ id: result.lastInsertRowid, name, description, price, icon, image_before: imageBefore, image_after: imageAfter });
 });
 
-app.put('/api/services/:id', (req, res) => {
+app.put('/api/services/:id', serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
   const { id } = req.params;
   const { name, description, price, icon } = req.body;
   if (!name) return res.status(400).json({ error: 'Service name is required' });
 
-  const result = db.prepare(
-    'UPDATE services SET name = ?, description = ?, price = ?, icon = ? WHERE id = ?'
-  ).run(name, description || null, price || null, icon || null, id);
-  if (result.changes === 0) return res.status(404).json({ error: 'Service not found' });
+  const existing = db.prepare('SELECT image_before, image_after FROM services WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'Service not found' });
 
-  res.json({ success: true });
+  let imageBefore = existing.image_before;
+  let imageAfter = existing.image_after;
+
+  if (req.files?.image_before?.[0]) {
+    if (existing.image_before) {
+      try { unlinkSync(join(__dirname, existing.image_before.replace(/^\//, ''))); } catch { /* ignore */ }
+    }
+    imageBefore = `/uploads/services/${req.files.image_before[0].filename}`;
+  }
+  if (req.files?.image_after?.[0]) {
+    if (existing.image_after) {
+      try { unlinkSync(join(__dirname, existing.image_after.replace(/^\//, ''))); } catch { /* ignore */ }
+    }
+    imageAfter = `/uploads/services/${req.files.image_after[0].filename}`;
+  }
+
+  db.prepare(
+    'UPDATE services SET name = ?, description = ?, price = ?, icon = ?, image_before = ?, image_after = ? WHERE id = ?'
+  ).run(name, description || null, price || null, icon || null, imageBefore, imageAfter, id);
+
+  res.json({ success: true, image_before: imageBefore, image_after: imageAfter });
 });
 
 app.delete('/api/services/:id', (req, res) => {
   const { id } = req.params;
+  const existing = db.prepare('SELECT image_before, image_after FROM services WHERE id = ?').get(id);
   const result = db.prepare('DELETE FROM services WHERE id = ?').run(id);
   if (result.changes === 0) return res.status(404).json({ error: 'Service not found' });
+
+  if (existing) {
+    for (const img of [existing.image_before, existing.image_after]) {
+      if (img) { try { unlinkSync(join(__dirname, img.replace(/^\//, ''))); } catch { /* ignore */ } }
+    }
+  }
 
   res.json({ success: true });
 });
@@ -180,6 +217,8 @@ app.put('/api/jobs/:jobId', (req, res) => {
 
 // ─── Employees ───────────────────────────────────────────────────────────────
 
+const employeeUpload = (req, _res, next) => { req.uploadDir = 'employees'; next(); };
+
 app.get('/api/employees', (req, res) => {
   const employees = db.prepare('SELECT * FROM employees').all();
   res.json(employees.map(e => ({
@@ -193,7 +232,7 @@ app.get('/api/employees', (req, res) => {
   })));
 });
 
-app.post('/api/employees', upload.single('image'), (req, res) => {
+app.post('/api/employees', employeeUpload, upload.single('image'), (req, res) => {
   const { name, role, phone, email, status } = req.body;
   if (!name || !role) return res.status(400).json({ error: 'Name and role are required' });
 
@@ -209,7 +248,7 @@ app.post('/api/employees', upload.single('image'), (req, res) => {
   res.status(201).json({ id: empId, name, role, phone, email, image, status: status || 'Active' });
 });
 
-app.put('/api/employees/:empId', upload.single('image'), (req, res) => {
+app.put('/api/employees/:empId', employeeUpload, upload.single('image'), (req, res) => {
   const { empId } = req.params;
   const { name, role, phone, email, status } = req.body;
   if (!name || !role) return res.status(400).json({ error: 'Name and role are required' });
