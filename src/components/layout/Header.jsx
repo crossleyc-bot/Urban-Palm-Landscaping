@@ -29,7 +29,9 @@ export default function Header() {
           <Link to="/" className={isActive('/')} onClick={() => setMenuOpen(false)}>Home</Link>
           <Link to="/services" className={isActive('/services')} onClick={() => setMenuOpen(false)}>Services</Link>
           <Link to="/portfolio" className={isActive('/portfolio')} onClick={() => setMenuOpen(false)}>Portfolio</Link>
+          <Link to="/products" className={isActive('/products')} onClick={() => setMenuOpen(false)}>Products</Link>
           <Link to="/about" className={isActive('/about')} onClick={() => setMenuOpen(false)}>About</Link>
+          <Link to="/careers" className={isActive('/careers')} onClick={() => setMenuOpen(false)}>Careers</Link>
           <Link to="/contact" className={isActive('/contact')} onClick={() => setMenuOpen(false)}>Contact</Link>
 
           <div className="nav-actions-mobile">

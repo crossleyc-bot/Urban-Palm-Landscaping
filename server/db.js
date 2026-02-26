@@ -147,7 +147,20 @@ db.exec(`
     qty_available INTEGER DEFAULT 0,
     reorder_point INTEGER DEFAULT 0,
     notes TEXT,
+    image TEXT,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS job_openings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    department TEXT,
+    type TEXT NOT NULL DEFAULT 'Full-time',
+    location TEXT NOT NULL DEFAULT 'Orlando, FL',
+    description TEXT,
+    requirements TEXT,
+    status TEXT NOT NULL DEFAULT 'Open',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
 
@@ -176,6 +189,12 @@ if (!empColumns.includes('image')) {
 }
 if (!empColumns.includes('show_on_website')) {
   db.exec("ALTER TABLE employees ADD COLUMN show_on_website INTEGER NOT NULL DEFAULT 0");
+}
+
+// Migration: add image column to supplier_inventory if missing
+const invColumns = db.prepare("PRAGMA table_info(supplier_inventory)").all().map(c => c.name);
+if (!invColumns.includes('image')) {
+  db.exec("ALTER TABLE supplier_inventory ADD COLUMN image TEXT");
 }
 
 // Migration: add status and admin_reply columns to contact_messages if missing

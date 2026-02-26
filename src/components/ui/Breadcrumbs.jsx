@@ -12,6 +12,7 @@ const labelMap = {
   quotes: 'Quote Requests',
   'schedule-requests': 'Schedule Requests',
   messages: 'Messages',
+  'job-openings': 'Job Openings',
 };
 
 export default function Breadcrumbs() {

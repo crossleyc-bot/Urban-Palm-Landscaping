@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Ensure upload directories exist
-const uploadDirs = ['employees', 'services'];
+const uploadDirs = ['employees', 'services', 'inventory'];
 for (const dir of uploadDirs) {
   const p = join(__dirname, 'uploads', dir);
   if (!existsSync(p)) mkdirSync(p, { recursive: true });
@@ -472,36 +472,122 @@ app.get('/api/inventory', (req, res) => {
   res.json(items);
 });
 
-app.post('/api/inventory', (req, res) => {
+const inventoryUpload = (req, _res, next) => { req.uploadDir = 'inventory'; next(); };
+
+app.post('/api/inventory', inventoryUpload, upload.single('image'), (req, res) => {
   const { supplier_id, item_name, sku, category, unit, unit_cost, qty_available, reorder_point, notes } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
+  const image = req.file ? `/uploads/inventory/${req.file.filename}` : null;
   const result = db.prepare(
-    'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, unit, unit_cost, qty_available, reorder_point, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(supplier_id, item_name, sku || null, category || null, unit || null, unit_cost ?? null, qty_available ?? 0, reorder_point ?? 0, notes || null);
+    'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, unit, unit_cost, qty_available, reorder_point, notes, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(Number(supplier_id), item_name, sku || null, category || null, unit || null, unit_cost != null ? Number(unit_cost) : null, qty_available != null ? Number(qty_available) : 0, reorder_point != null ? Number(reorder_point) : 0, notes || null, image);
 
-  res.status(201).json({ id: result.lastInsertRowid, supplier_id, item_name, sku, category, unit, unit_cost, qty_available: qty_available ?? 0, reorder_point: reorder_point ?? 0, notes });
+  res.status(201).json({ id: result.lastInsertRowid, supplier_id: Number(supplier_id), item_name, sku, category, unit, unit_cost, qty_available: qty_available ?? 0, reorder_point: reorder_point ?? 0, notes, image });
 });
 
-app.put('/api/inventory/:id', (req, res) => {
+app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res) => {
   const { id } = req.params;
   const { supplier_id, item_name, sku, category, unit, unit_cost, qty_available, reorder_point, notes } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
+  const existing = db.prepare('SELECT image FROM supplier_inventory WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'Inventory item not found' });
+
+  let image = existing.image;
+  if (req.file) {
+    if (existing.image) {
+      try { unlinkSync(join(__dirname, existing.image.replace(/^\//, ''))); } catch { /* ignore */ }
+    }
+    image = `/uploads/inventory/${req.file.filename}`;
+  }
+
   const result = db.prepare(
-    'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, unit = ?, unit_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, updated_at = datetime(\'now\') WHERE id = ?'
-  ).run(supplier_id, item_name, sku || null, category || null, unit || null, unit_cost ?? null, qty_available ?? 0, reorder_point ?? 0, notes || null, id);
+    'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, unit = ?, unit_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, image = ?, updated_at = datetime(\'now\') WHERE id = ?'
+  ).run(Number(supplier_id), item_name, sku || null, category || null, unit || null, unit_cost != null ? Number(unit_cost) : null, qty_available != null ? Number(qty_available) : 0, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, id);
   if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
 
-  res.json({ success: true });
+  res.json({ success: true, image });
 });
 
 app.delete('/api/inventory/:id', (req, res) => {
   const { id } = req.params;
+  const existing = db.prepare('SELECT image FROM supplier_inventory WHERE id = ?').get(id);
   const result = db.prepare('DELETE FROM supplier_inventory WHERE id = ?').run(id);
   if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
 
+  if (existing && existing.image) {
+    try { unlinkSync(join(__dirname, existing.image.replace(/^\//, ''))); } catch { /* ignore */ }
+  }
+
   res.json({ success: true });
+});
+
+// ─── Job Openings ───────────────────────────────────────────────────────────
+
+app.get('/api/job-openings', (req, res) => {
+  const openings = db.prepare('SELECT * FROM job_openings ORDER BY created_at DESC').all();
+  res.json(openings);
+});
+
+app.get('/api/job-openings/public', (req, res) => {
+  const openings = db.prepare("SELECT * FROM job_openings WHERE status = 'Open' ORDER BY created_at DESC").all();
+  res.json(openings);
+});
+
+app.post('/api/job-openings', (req, res) => {
+  const { title, department, type, location, description, requirements, status } = req.body;
+  if (!title) return res.status(400).json({ error: 'Title is required' });
+
+  const result = db.prepare(
+    'INSERT INTO job_openings (title, department, type, location, description, requirements, status) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(title, department || null, type || 'Full-time', location || 'Orlando, FL', description || null, requirements || null, status || 'Open');
+
+  res.status(201).json({ id: result.lastInsertRowid, title, department, type: type || 'Full-time', location: location || 'Orlando, FL', description, requirements, status: status || 'Open' });
+});
+
+app.put('/api/job-openings/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, department, type, location, description, requirements, status } = req.body;
+  if (!title) return res.status(400).json({ error: 'Title is required' });
+
+  const result = db.prepare(
+    'UPDATE job_openings SET title = ?, department = ?, type = ?, location = ?, description = ?, requirements = ?, status = ? WHERE id = ?'
+  ).run(title, department || null, type || 'Full-time', location || 'Orlando, FL', description || null, requirements || null, status || 'Open', id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Job opening not found' });
+
+  res.json({ success: true });
+});
+
+app.delete('/api/job-openings/:id', (req, res) => {
+  const { id } = req.params;
+  const result = db.prepare('DELETE FROM job_openings WHERE id = ?').run(id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Job opening not found' });
+
+  res.json({ success: true });
+});
+
+// ─── Public Products ────────────────────────────────────────────────────────
+
+app.get('/api/products', (req, res) => {
+  const items = db.prepare(`
+    SELECT si.item_name, si.category, si.unit_cost, si.image, si.unit,
+           s.name AS supplier_name
+    FROM supplier_inventory si
+    JOIN suppliers s ON s.id = si.supplier_id
+    WHERE si.qty_available > 0
+    ORDER BY si.category, si.item_name
+  `).all();
+
+  // Deduplicate by item_name — pick the first (cheapest or first found) for each unique name
+  const seen = new Map();
+  for (const item of items) {
+    if (!seen.has(item.item_name)) {
+      seen.set(item.item_name, item);
+    }
+  }
+
+  res.json(Array.from(seen.values()));
 });
 
 // ─── Start ───────────────────────────────────────────────────────────────────
