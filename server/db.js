@@ -89,6 +89,8 @@ db.exec(`
     phone TEXT,
     service TEXT,
     message TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'New',
+    admin_reply TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -126,6 +128,15 @@ if (!quoteColumns.includes('status')) {
 }
 if (!quoteColumns.includes('admin_reply')) {
   db.exec("ALTER TABLE quote_requests ADD COLUMN admin_reply TEXT");
+}
+
+// Migration: add status and admin_reply columns to contact_messages if missing
+const contactColumns = db.prepare("PRAGMA table_info(contact_messages)").all().map(c => c.name);
+if (!contactColumns.includes('status')) {
+  db.exec("ALTER TABLE contact_messages ADD COLUMN status TEXT NOT NULL DEFAULT 'New'");
+}
+if (!contactColumns.includes('admin_reply')) {
+  db.exec("ALTER TABLE contact_messages ADD COLUMN admin_reply TEXT");
 }
 
 export default db;
