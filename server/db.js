@@ -144,6 +144,7 @@ db.exec(`
     category TEXT,
     unit TEXT,
     unit_cost REAL,
+    retail_cost REAL,
     qty_available INTEGER DEFAULT 0,
     reorder_point INTEGER DEFAULT 0,
     notes TEXT,
@@ -195,6 +196,9 @@ if (!empColumns.includes('show_on_website')) {
 const invColumns = db.prepare("PRAGMA table_info(supplier_inventory)").all().map(c => c.name);
 if (!invColumns.includes('image')) {
   db.exec("ALTER TABLE supplier_inventory ADD COLUMN image TEXT");
+}
+if (!invColumns.includes('retail_cost')) {
+  db.exec("ALTER TABLE supplier_inventory ADD COLUMN retail_cost REAL");
 }
 
 // Migration: add status and admin_reply columns to contact_messages if missing

@@ -77,8 +77,8 @@ export default function Products() {
                       {p.unit && <span className="product-unit">{p.unit}</span>}
                       {p.supplier_name && <span className="product-supplier">by {p.supplier_name}</span>}
                     </div>
-                    {p.unit_cost != null && (
-                      <div className="product-price">${Number(p.unit_cost).toFixed(2)}{p.unit ? ` / ${p.unit}` : ''}</div>
+                    {(p.retail_cost != null || p.unit_cost != null) && (
+                      <div className="product-price">${Number(p.retail_cost ?? p.unit_cost).toFixed(2)}{p.unit ? ` / ${p.unit}` : ''}</div>
                     )}
                   </div>
                 </div>
