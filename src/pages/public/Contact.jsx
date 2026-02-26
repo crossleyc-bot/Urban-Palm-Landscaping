@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { apiPost } from '../../api';
+import { useState, useEffect } from 'react';
+import { apiGet, apiPost } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import Spinner from '../../components/ui/Spinner';
 import useFormValidation from '../../hooks/useFormValidation';
@@ -7,8 +7,13 @@ import './Contact.css';
 
 export default function Contact() {
   const { addToast } = useToast();
+  const [services, setServices] = useState([]);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    apiGet('/services').then(setServices);
+  }, []);
 
   const { getFieldProps, FieldError, validateAll } = useFormValidation({
     name: ['required'],
@@ -90,12 +95,9 @@ export default function Contact() {
                     <label htmlFor="service">Service Interested In</label>
                     <select id="service" name="service" defaultValue="">
                       <option value="" disabled>Select a service</option>
-                      <option>Landscape Delivery & Installation</option>
-                      <option>Landscape Design</option>
-                      <option>Tree & Shrub Care</option>
-                      <option>Irrigation Systems</option>
-                      <option>Hardscaping</option>
-                      <option>Seasonal Cleanup</option>
+                      {services.map(s => (
+                        <option key={s.id} value={s.name}>{s.name}</option>
+                      ))}
                       <option>Other</option>
                     </select>
                   </div>

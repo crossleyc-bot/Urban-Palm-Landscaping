@@ -197,6 +197,19 @@ app.get('/api/contact', (req, res) => {
   res.json(messages);
 });
 
+app.put('/api/contact/:id/reply', (req, res) => {
+  const { id } = req.params;
+  const { admin_reply, status } = req.body;
+  if (!admin_reply || !status) return res.status(400).json({ error: 'Reply and status are required' });
+
+  const result = db.prepare(
+    'UPDATE contact_messages SET admin_reply = ?, status = ? WHERE id = ?'
+  ).run(admin_reply, status, id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Message not found' });
+
+  res.json({ success: true });
+});
+
 // ─── Quote Requests ──────────────────────────────────────────────────────────
 
 app.post('/api/quotes', (req, res) => {
