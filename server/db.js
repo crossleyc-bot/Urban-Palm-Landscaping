@@ -69,6 +69,7 @@ db.exec(`
     role TEXT,
     phone TEXT,
     email TEXT,
+    image TEXT,
     status TEXT NOT NULL DEFAULT 'Active'
   );
 
@@ -128,6 +129,12 @@ if (!quoteColumns.includes('status')) {
 }
 if (!quoteColumns.includes('admin_reply')) {
   db.exec("ALTER TABLE quote_requests ADD COLUMN admin_reply TEXT");
+}
+
+// Migration: add image column to employees if missing
+const empColumns = db.prepare("PRAGMA table_info(employees)").all().map(c => c.name);
+if (!empColumns.includes('image')) {
+  db.exec("ALTER TABLE employees ADD COLUMN image TEXT");
 }
 
 // Migration: add status and admin_reply columns to contact_messages if missing
