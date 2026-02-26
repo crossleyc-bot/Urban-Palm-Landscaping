@@ -108,6 +108,21 @@ app.put('/api/jobs/:jobId/status', (req, res) => {
   res.json({ success: true });
 });
 
+app.put('/api/jobs/:jobId', (req, res) => {
+  const { jobId } = req.params;
+  const { client, service, assignee, date, status } = req.body;
+  if (!client || !service || !assignee || !date) {
+    return res.status(400).json({ error: 'Client, service, assignee, and date are required' });
+  }
+
+  const result = db.prepare(
+    'UPDATE jobs SET client = ?, service = ?, assignee = ?, date = ?, status = ? WHERE job_id = ?'
+  ).run(client, service, assignee, date, status || 'Scheduled', jobId);
+  if (result.changes === 0) return res.status(404).json({ error: 'Job not found' });
+
+  res.json({ success: true });
+});
+
 // ─── Employees ───────────────────────────────────────────────────────────────
 
 app.get('/api/employees', (req, res) => {
@@ -122,6 +137,19 @@ app.get('/api/employees', (req, res) => {
   })));
 });
 
+app.put('/api/employees/:empId', (req, res) => {
+  const { empId } = req.params;
+  const { name, role, phone, email, status } = req.body;
+  if (!name || !role) return res.status(400).json({ error: 'Name and role are required' });
+
+  const result = db.prepare(
+    'UPDATE employees SET name = ?, role = ?, phone = ?, email = ?, status = ? WHERE emp_id = ?'
+  ).run(name, role, phone || null, email || null, status || 'Active', empId);
+  if (result.changes === 0) return res.status(404).json({ error: 'Employee not found' });
+
+  res.json({ success: true });
+});
+
 // ─── Invoices ────────────────────────────────────────────────────────────────
 
 app.get('/api/invoices', (req, res) => {
@@ -134,6 +162,19 @@ app.get('/api/invoices', (req, res) => {
     dueDate: i.due_date,
     status: i.status,
   })));
+});
+
+app.put('/api/invoices/:invId', (req, res) => {
+  const { invId } = req.params;
+  const { client, amount, date, due_date, status } = req.body;
+  if (!client || amount == null || !status) return res.status(400).json({ error: 'Client, amount, and status are required' });
+
+  const result = db.prepare(
+    'UPDATE invoices SET client = ?, amount = ?, date = ?, due_date = ?, status = ? WHERE inv_id = ?'
+  ).run(client, amount, date, due_date, status, invId);
+  if (result.changes === 0) return res.status(404).json({ error: 'Invoice not found' });
+
+  res.json({ success: true });
 });
 
 // ─── Contact Messages ────────────────────────────────────────────────────────
@@ -174,6 +215,19 @@ app.post('/api/quotes', (req, res) => {
 app.get('/api/quotes', (req, res) => {
   const quotes = db.prepare('SELECT * FROM quote_requests ORDER BY created_at DESC').all();
   res.json(quotes);
+});
+
+app.put('/api/quotes/:id/reply', (req, res) => {
+  const { id } = req.params;
+  const { admin_reply, status } = req.body;
+  if (!admin_reply || !status) return res.status(400).json({ error: 'Reply and status are required' });
+
+  const result = db.prepare(
+    'UPDATE quote_requests SET admin_reply = ?, status = ? WHERE id = ?'
+  ).run(admin_reply, status, id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Quote request not found' });
+
+  res.json({ success: true });
 });
 
 // ─── Schedule Requests ───────────────────────────────────────────────────────

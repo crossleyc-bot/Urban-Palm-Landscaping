@@ -34,23 +34,20 @@
   gap: 1rem;
 }
 
-.milestone-year {
+.milestone-icon {
   flex-shrink: 0;
-  width: 56px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #dcfce7;
-  color: #166534;
-  font-size: 0.8rem;
-  font-weight: 700;
-  border-radius: 9999px;
+  border-radius: 50%;
+  font-size: 1rem;
 }
 
-[data-theme="dark"] .milestone-year {
+[data-theme="dark"] .milestone-icon {
   background: #14532d;
-  color: #86efac;
 }
 
 .milestone-text {
@@ -59,14 +56,14 @@
   line-height: 1.4;
 }
 
-/* Stats */
-.about-stats {
+/* Highlights */
+.about-highlights {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
 }
 
-.about-stat {
+.about-highlight {
   background: #f0fdf4;
   border-radius: 12px;
   padding: 1.5rem;
@@ -75,31 +72,32 @@
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.about-stat:hover {
+.about-highlight:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
 
-[data-theme="dark"] .about-stat {
+[data-theme="dark"] .about-highlight {
   background: #0c1e14;
   border-color: #1a3a25;
 }
 
-.about-stat-value {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #1a472a;
+.about-highlight-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
 }
 
-[data-theme="dark"] .about-stat-value {
-  color: #4ade80;
+.about-highlight h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 0.25rem;
 }
 
-.about-stat-label {
+.about-highlight p {
   font-size: 0.8rem;
   color: var(--color-text-muted);
-  font-weight: 500;
-  margin-top: 0.25rem;
+  line-height: 1.5;
 }
 
 /* Team section */

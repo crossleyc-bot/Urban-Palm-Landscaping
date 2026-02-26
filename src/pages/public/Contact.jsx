@@ -90,7 +90,7 @@ export default function Contact() {
                     <label htmlFor="service">Service Interested In</label>
                     <select id="service" name="service" defaultValue="">
                       <option value="" disabled>Select a service</option>
-                      <option>Lawn Maintenance</option>
+                      <option>Landscape Delivery & Installation</option>
                       <option>Landscape Design</option>
                       <option>Tree & Shrub Care</option>
                       <option>Irrigation Systems</option>

@@ -101,6 +101,8 @@ db.exec(`
     budget TEXT,
     details TEXT NOT NULL,
     address TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'Pending',
+    admin_reply TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -116,5 +118,14 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
+
+// Migration: add status and admin_reply columns to quote_requests if missing
+const quoteColumns = db.prepare("PRAGMA table_info(quote_requests)").all().map(c => c.name);
+if (!quoteColumns.includes('status')) {
+  db.exec("ALTER TABLE quote_requests ADD COLUMN status TEXT NOT NULL DEFAULT 'Pending'");
+}
+if (!quoteColumns.includes('admin_reply')) {
+  db.exec("ALTER TABLE quote_requests ADD COLUMN admin_reply TEXT");
+}
 
 export default db;

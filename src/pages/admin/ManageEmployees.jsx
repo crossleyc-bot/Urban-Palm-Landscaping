@@ -1,19 +1,23 @@
-import { useState, useEffect } from 'react';
-import { apiGet } from '../../api';
+import { useState, useEffect, useMemo } from 'react';
+import { apiGet, apiPut } from '../../api';
+import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonCards, SkeletonTable } from '../../components/ui/Skeleton';
 import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
-import { useMemo } from 'react';
 
 const PAGE_SIZE = 10;
 
 export default function ManageEmployees() {
+  const { addToast } = useToast();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState('id');
   const [sortDir, setSortDir] = useState('asc');
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     apiGet('/employees').then(setEmployees).finally(() => setLoading(false));
@@ -40,6 +44,30 @@ export default function ManageEmployees() {
 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const startEdit = (emp) => {
+    setEditing(emp.id);
+    setForm({ name: emp.name, role: emp.role, phone: emp.phone || '', email: emp.email || '', status: emp.status });
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setForm({});
+  };
+
+  const saveEdit = async (empId) => {
+    setSaving(true);
+    try {
+      await apiPut(`/employees/${empId}`, form);
+      setEmployees(prev => prev.map(e => e.id === empId ? { ...e, ...form } : e));
+      setEditing(null);
+      addToast('Employee updated successfully', 'success');
+    } catch {
+      addToast('Failed to update employee', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div>
@@ -78,14 +106,15 @@ export default function ManageEmployees() {
                 <th>Phone</th>
                 <th>Email</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <SkeletonTable rows={5} cols={6} />
+                <SkeletonTable rows={5} cols={7} />
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan="6">
+                  <td colSpan="7">
                     <EmptyState icon="&#128101;" title="No employees found" />
                   </td>
                 </tr>
@@ -93,15 +122,41 @@ export default function ManageEmployees() {
                 paginated.map((emp) => (
                   <tr key={emp.id}>
                     <td style={{ fontWeight: 500 }}>{emp.id}</td>
-                    <td>{emp.name}</td>
-                    <td>{emp.role}</td>
-                    <td>{emp.phone}</td>
-                    <td>{emp.email}</td>
-                    <td>
-                      <span className={`badge ${emp.status === 'Active' ? 'badge-green' : 'badge-yellow'}`}>
-                        {emp.status}
-                      </span>
-                    </td>
+                    {editing === emp.id ? (
+                      <>
+                        <td><input className="table-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></td>
+                        <td><input className="table-input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} /></td>
+                        <td><input className="table-input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></td>
+                        <td><input className="table-input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></td>
+                        <td>
+                          <select className="table-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                            <option>Active</option>
+                            <option>On Leave</option>
+                          </select>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button className="btn btn-primary btn-sm" onClick={() => saveEdit(emp.id)} disabled={saving}>Save</button>
+                            <button className="btn btn-outline btn-sm" onClick={cancelEdit}>Cancel</button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td>{emp.name}</td>
+                        <td>{emp.role}</td>
+                        <td>{emp.phone}</td>
+                        <td>{emp.email}</td>
+                        <td>
+                          <span className={`badge ${emp.status === 'Active' ? 'badge-green' : 'badge-yellow'}`}>
+                            {emp.status}
+                          </span>
+                        </td>
+                        <td>
+                          <button className="btn btn-outline btn-sm" onClick={() => startEdit(emp)}>Edit</button>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))
               )}
