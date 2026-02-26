@@ -14,11 +14,14 @@ const placeholderImg = (category) => {
 
 export default function Products() {
   const [products, setProducts] = useState([]);
+  const [productCategories, setProductCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All');
 
   useEffect(() => {
-    apiGet('/products').then(setProducts).finally(() => setLoading(false));
+    Promise.all([apiGet('/products'), apiGet('/product-categories')])
+      .then(([prods, cats]) => { setProducts(prods); setProductCategories(cats); })
+      .finally(() => setLoading(false));
   }, []);
 
   const categories = useMemo(() => {
@@ -40,7 +43,40 @@ export default function Products() {
         </div>
       </section>
 
-      <section className="section">
+      {/* Product Categories Section */}
+      {productCategories.length > 0 && (
+        <section className="section">
+          <div className="container">
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Product Categories</h2>
+              <p style={{ color: 'var(--color-text-muted)', maxWidth: 520, margin: '0 auto' }}>Browse our selection of landscaping materials by category.</p>
+            </div>
+            <div className="product-categories-grid">
+              {productCategories.map(cat => (
+                <div
+                  key={cat.id}
+                  className={`product-category-card${activeCategory === cat.name ? ' product-category-card-active' : ''}`}
+                  onClick={() => setActiveCategory(activeCategory === cat.name ? 'All' : cat.name)}
+                >
+                  <div className="product-category-image">
+                    {cat.image ? (
+                      <img src={cat.image} alt={cat.name} />
+                    ) : (
+                      <div className="product-placeholder">{placeholderImg(cat.name)}</div>
+                    )}
+                    <div className="product-category-overlay">
+                      <h3>{cat.name}</h3>
+                      {cat.description && <p>{cat.description}</p>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="section" style={productCategories.length > 0 ? { paddingTop: 0 } : {}}>
         <div className="container">
           {/* Category filter */}
           <div className="products-filter">
