@@ -1,11 +1,38 @@
-import { useState, useEffect } from 'react';
-import { apiGet, apiPost, apiPut, apiDelete } from '../../api';
+import { useState, useEffect, useRef } from 'react';
+import { apiGet, apiPostForm, apiPutForm, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
-import { SkeletonTable } from '../../components/ui/Skeleton';
 import Spinner from '../../components/ui/Spinner';
 
 const emptyForm = { name: '', description: '', price: '', icon: '' };
+
+const thumbStyle = {
+  width: 120, height: 80, objectFit: 'cover', borderRadius: 8,
+  border: '1px solid var(--color-border)',
+};
+const thumbPlaceholder = {
+  ...thumbStyle, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  background: 'var(--color-bg-secondary)', color: 'var(--color-text-muted)',
+  fontSize: '0.75rem', fontWeight: 500,
+};
+
+function PhotoUpload({ label, preview, onPick }) {
+  const ref = useRef();
+  const handleChange = (e) => { const f = e.target.files[0]; if (f) onPick(f); };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+      <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>{label}</label>
+      {preview
+        ? <img src={preview} alt={label} style={thumbStyle} />
+        : <div style={thumbPlaceholder}>No photo</div>
+      }
+      <button type="button" className="btn btn-outline btn-sm" onClick={() => ref.current.click()} style={{ alignSelf: 'flex-start' }}>
+        {preview ? 'Change' : 'Upload'}
+      </button>
+      <input ref={ref} type="file" accept="image/*" onChange={handleChange} style={{ display: 'none' }} />
+    </div>
+  );
+}
 
 export default function ManageServices() {
   const { addToast } = useToast();
@@ -13,6 +40,10 @@ export default function ManageServices() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [beforeFile, setBeforeFile] = useState(null);
+  const [afterFile, setAfterFile] = useState(null);
+  const [beforePreview, setBeforePreview] = useState(null);
+  const [afterPreview, setAfterPreview] = useState(null);
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -20,53 +51,72 @@ export default function ManageServices() {
     apiGet('/services').then(setServices).finally(() => setLoading(false));
   }, []);
 
+  const clearFiles = () => {
+    setBeforeFile(null); setAfterFile(null);
+    if (beforePreview?.startsWith('blob:')) URL.revokeObjectURL(beforePreview);
+    if (afterPreview?.startsWith('blob:')) URL.revokeObjectURL(afterPreview);
+    setBeforePreview(null); setAfterPreview(null);
+  };
+
+  const pickBefore = (f) => { setBeforeFile(f); setBeforePreview(URL.createObjectURL(f)); };
+  const pickAfter = (f) => { setAfterFile(f); setAfterPreview(URL.createObjectURL(f)); };
+
   const startEdit = (svc) => {
     setAdding(false);
     setEditing(svc.id);
     setForm({ name: svc.name, description: svc.description || '', price: svc.price || '', icon: svc.icon || '' });
+    setBeforeFile(null); setAfterFile(null);
+    setBeforePreview(svc.image_before || null);
+    setAfterPreview(svc.image_after || null);
   };
 
   const startAdd = () => {
-    setEditing(null);
-    setAdding(true);
-    setForm(emptyForm);
+    setEditing(null); setAdding(true);
+    setForm(emptyForm); clearFiles();
   };
 
   const cancel = () => {
-    setEditing(null);
-    setAdding(false);
-    setForm(emptyForm);
+    setEditing(null); setAdding(false);
+    setForm(emptyForm); clearFiles();
+  };
+
+  const buildFormData = () => {
+    const fd = new FormData();
+    fd.append('name', form.name);
+    fd.append('description', form.description);
+    fd.append('price', form.price);
+    fd.append('icon', form.icon);
+    if (beforeFile) fd.append('image_before', beforeFile);
+    if (afterFile) fd.append('image_after', afterFile);
+    return fd;
   };
 
   const saveEdit = async (id) => {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      await apiPut(`/services/${id}`, form);
-      setServices(prev => prev.map(s => s.id === id ? { ...s, ...form } : s));
-      setEditing(null);
+      const result = await apiPutForm(`/services/${id}`, buildFormData());
+      setServices(prev => prev.map(s => s.id === id ? {
+        ...s, ...form,
+        image_before: result.image_before ?? s.image_before,
+        image_after: result.image_after ?? s.image_after,
+      } : s));
+      setEditing(null); clearFiles();
       addToast('Service updated successfully', 'success');
-    } catch {
-      addToast('Failed to update service', 'error');
-    } finally {
-      setSaving(false);
-    }
+    } catch { addToast('Failed to update service', 'error'); }
+    finally { setSaving(false); }
   };
 
   const saveNew = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      const created = await apiPost('/services', form);
-      setServices(prev => [...prev, { id: created.id, ...form }]);
-      setAdding(false);
-      setForm(emptyForm);
+      const created = await apiPostForm('/services', buildFormData());
+      setServices(prev => [...prev, { id: created.id, ...form, image_before: created.image_before, image_after: created.image_after }]);
+      setAdding(false); setForm(emptyForm); clearFiles();
       addToast('Service added successfully', 'success');
-    } catch {
-      addToast('Failed to add service', 'error');
-    } finally {
-      setSaving(false);
-    }
+    } catch { addToast('Failed to add service', 'error'); }
+    finally { setSaving(false); }
   };
 
   const deleteService = async (id) => {
@@ -74,22 +124,51 @@ export default function ManageServices() {
       await apiDelete(`/services/${id}`);
       setServices(prev => prev.filter(s => s.id !== id));
       addToast('Service deleted', 'success');
-    } catch {
-      addToast('Failed to delete service', 'error');
-    }
+    } catch { addToast('Failed to delete service', 'error'); }
   };
 
   if (loading) {
     return (
       <div>
-        <div className="page-header">
-          <h1>Services</h1>
-          <p>Manage the services displayed across the website.</p>
-        </div>
+        <div className="page-header"><h1>Services</h1><p>Manage the services displayed across the website.</p></div>
         <div className="page-loading"><Spinner size={24} /> Loading services...</div>
       </div>
     );
   }
+
+  const renderForm = (onSave, saveLabel) => (
+    <div className="card" style={{ marginBottom: '1rem', padding: '1.5rem' }}>
+      <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>
+        {saveLabel === 'Add' ? 'New Service' : 'Edit Service'}
+      </h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Icon</label>
+          <input className="table-input" value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="🌿" style={{ width: 60, textAlign: 'center', fontSize: '1.25rem' }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', gridColumn: 'span 2' }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Name *</label>
+          <input className="table-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Service name" />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Price</label>
+          <input className="table-input" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="From $100" />
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.75rem' }}>
+        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Description</label>
+        <textarea className="table-input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Describe the service..." rows={3} style={{ resize: 'vertical' }} />
+      </div>
+      <div style={{ display: 'flex', gap: '2rem', marginTop: '1rem' }}>
+        <PhotoUpload label="Before Photo" preview={beforePreview} onPick={pickBefore} />
+        <PhotoUpload label="After Photo" preview={afterPreview} onPick={pickAfter} />
+      </div>
+      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+        <button className="btn btn-primary" onClick={onSave} disabled={saving || !form.name.trim()}>{saveLabel}</button>
+        <button className="btn btn-outline" onClick={cancel}>Cancel</button>
+      </div>
+    </div>
+  );
 
   return (
     <div>
@@ -98,89 +177,62 @@ export default function ManageServices() {
           <h1>Services</h1>
           <p>Manage the services displayed across the website.</p>
         </div>
-        {!adding && (
+        {!adding && !editing && (
           <button className="btn btn-primary" onClick={startAdd}>+ Add Service</button>
         )}
       </div>
 
-      <div className="card">
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th style={{ width: '50px' }}>Icon</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Price</th>
-                <th style={{ width: '140px' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {services.length === 0 && !adding ? (
-                <tr>
-                  <td colSpan="5">
-                    <EmptyState icon="&#127793;" title="No services yet" message="Add your first service to get started." />
-                  </td>
-                </tr>
-              ) : (
-                <>
-                  {services.map((svc) => (
-                    <tr key={svc.id}>
-                      {editing === svc.id ? (
-                        <>
-                          <td><input className="table-input" value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="🌿" style={{ width: '50px', textAlign: 'center' }} /></td>
-                          <td><input className="table-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Service name" /></td>
-                          <td><input className="table-input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Description" /></td>
-                          <td><input className="table-input" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="From $100" style={{ width: '110px' }} /></td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '0.25rem' }}>
-                              <button className="btn btn-primary btn-sm" onClick={() => saveEdit(svc.id)} disabled={saving}>Save</button>
-                              <button className="btn btn-outline btn-sm" onClick={cancel}>Cancel</button>
-                            </div>
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td style={{ fontSize: '1.5rem', textAlign: 'center' }}>{svc.icon || '\u2014'}</td>
-                          <td style={{ fontWeight: 600 }}>{svc.name}</td>
-                          <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', maxWidth: '300px' }}>{svc.description || '\u2014'}</td>
-                          <td style={{ fontWeight: 500, color: 'var(--color-primary)' }}>{svc.price || '\u2014'}</td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '0.25rem' }}>
-                              <button className="btn btn-outline btn-sm" onClick={() => startEdit(svc)}>Edit</button>
-                              <button className="btn btn-outline btn-sm" style={{ color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => deleteService(svc.id)}>Delete</button>
-                            </div>
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  ))}
+      {adding && renderForm(saveNew, 'Add')}
+      {editing && renderForm(() => saveEdit(editing), 'Save')}
 
-                  {adding && (
-                    <tr>
-                      <td><input className="table-input" value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="🌿" style={{ width: '50px', textAlign: 'center' }} /></td>
-                      <td><input className="table-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Service name" /></td>
-                      <td><input className="table-input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Description" /></td>
-                      <td><input className="table-input" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} placeholder="From $100" style={{ width: '110px' }} /></td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                          <button className="btn btn-primary btn-sm" onClick={saveNew} disabled={saving || !form.name.trim()}>Add</button>
-                          <button className="btn btn-outline btn-sm" onClick={cancel}>Cancel</button>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </>
-              )}
-            </tbody>
-          </table>
+      {services.length === 0 && !adding ? (
+        <div className="card">
+          <EmptyState icon="&#127793;" title="No services yet" message="Add your first service to get started." />
         </div>
-      </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {services.map(svc => (
+            <div key={svc.id} className="card" style={{ padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '2rem', flexShrink: 0 }}>{svc.icon || '\u2014'}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>{svc.name}</div>
+                    <div style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', lineHeight: 1.5 }}>{svc.description || 'No description'}</div>
+                    <div style={{ fontWeight: 500, color: 'var(--color-primary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>{svc.price || '\u2014'}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
+                  <button className="btn btn-outline btn-sm" onClick={() => startEdit(svc)}>Edit</button>
+                  <button className="btn btn-outline btn-sm" style={{ color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => deleteService(svc.id)}>Delete</button>
+                </div>
+              </div>
+
+              {(svc.image_before || svc.image_after) && (
+                <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
+                  {svc.image_before && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Before</span>
+                      <img src={svc.image_before} alt="Before" style={thumbStyle} />
+                    </div>
+                  )}
+                  {svc.image_after && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>After</span>
+                      <img src={svc.image_after} alt="After" style={thumbStyle} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="card" style={{ marginTop: '1.5rem' }}>
         <h3 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.75rem' }}>Where services appear</h3>
         <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.7 }}>
-          Changes to this table are reflected automatically across the website: the Services page,
+          Changes are reflected automatically across the website: the Services page (with before/after gallery),
           Home page preview, Contact form dropdown, customer Quote Request form, and Schedule Service form.
         </p>
       </div>

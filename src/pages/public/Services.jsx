@@ -24,14 +24,32 @@ export default function Services() {
         <div className="container">
           <div className="services-full-grid">
             {services.map((service) => (
-              <div key={service.id} className="service-full-card">
-                <div className="service-full-icon">{service.icon}</div>
-                <div className="service-full-content">
-                  <h3>{service.name}</h3>
-                  <p>{service.description}</p>
-                  <div className="service-full-footer">
-                    <span className="service-price">{service.price}</span>
-                    <Link to="/contact" className="btn btn-secondary btn-sm">Get Quote</Link>
+              <div key={service.id} className="service-full-card service-full-card-col">
+                {(service.image_before || service.image_after) && (
+                  <div className="service-ba-gallery">
+                    {service.image_before && (
+                      <div className="service-ba-item">
+                        <span className="service-ba-label">Before</span>
+                        <img src={service.image_before} alt={`${service.name} before`} />
+                      </div>
+                    )}
+                    {service.image_after && (
+                      <div className="service-ba-item">
+                        <span className="service-ba-label service-ba-label-after">After</span>
+                        <img src={service.image_after} alt={`${service.name} after`} />
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="service-full-body">
+                  <div className="service-full-icon">{service.icon}</div>
+                  <div className="service-full-content">
+                    <h3>{service.name}</h3>
+                    <p>{service.description}</p>
+                    <div className="service-full-footer">
+                      <span className="service-price">{service.price}</span>
+                      <Link to="/contact" className="btn btn-secondary btn-sm">Get Quote</Link>
+                    </div>
                   </div>
                 </div>
               </div>

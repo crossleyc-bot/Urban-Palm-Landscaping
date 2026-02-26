@@ -24,7 +24,9 @@ db.exec(`
     name TEXT NOT NULL,
     description TEXT,
     price TEXT,
-    icon TEXT
+    icon TEXT,
+    image_before TEXT,
+    image_after TEXT
   );
 
   CREATE TABLE IF NOT EXISTS team_members (
@@ -120,7 +122,43 @@ db.exec(`
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS suppliers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    contact_name TEXT,
+    email TEXT,
+    phone TEXT,
+    address TEXT,
+    website TEXT,
+    notes TEXT,
+    status TEXT NOT NULL DEFAULT 'Active',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS supplier_inventory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+    item_name TEXT NOT NULL,
+    sku TEXT,
+    category TEXT,
+    unit TEXT,
+    unit_cost REAL,
+    qty_available INTEGER DEFAULT 0,
+    reorder_point INTEGER DEFAULT 0,
+    notes TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
+
+// Migration: add before/after image columns to services if missing
+const svcColumns = db.prepare("PRAGMA table_info(services)").all().map(c => c.name);
+if (!svcColumns.includes('image_before')) {
+  db.exec("ALTER TABLE services ADD COLUMN image_before TEXT");
+}
+if (!svcColumns.includes('image_after')) {
+  db.exec("ALTER TABLE services ADD COLUMN image_after TEXT");
+}
 
 // Migration: add status and admin_reply columns to quote_requests if missing
 const quoteColumns = db.prepare("PRAGMA table_info(quote_requests)").all().map(c => c.name);
