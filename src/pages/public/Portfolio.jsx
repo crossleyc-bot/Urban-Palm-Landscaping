@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
-import BeforeAfterCarousel from '../../components/BeforeAfterCarousel';
 import './Portfolio.css';
 
 export default function Portfolio() {
@@ -20,12 +19,6 @@ export default function Portfolio() {
           <span className="section-tag">Portfolio</span>
           <h1>Our Transformations</h1>
           <p>See the difference professional landscaping makes. Browse our before-and-after gallery showcasing real projects across Central Florida.</p>
-        </div>
-      </section>
-
-      <section className="section carousel-section">
-        <div className="container">
-          <BeforeAfterCarousel />
         </div>
       </section>
 
