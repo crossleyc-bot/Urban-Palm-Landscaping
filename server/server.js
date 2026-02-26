@@ -475,20 +475,22 @@ app.get('/api/inventory', (req, res) => {
 const inventoryUpload = (req, _res, next) => { req.uploadDir = 'inventory'; next(); };
 
 app.post('/api/inventory', inventoryUpload, upload.single('image'), (req, res) => {
-  const { supplier_id, item_name, sku, category, unit, unit_cost, qty_available, reorder_point, notes } = req.body;
+  const { supplier_id, item_name, sku, category, unit, unit_cost, retail_cost, qty_available, reorder_point, notes } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
+  const wholesale = unit_cost != null && unit_cost !== '' ? Number(unit_cost) : null;
+  const retail = retail_cost != null && retail_cost !== '' ? Number(retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
   const image = req.file ? `/uploads/inventory/${req.file.filename}` : null;
   const result = db.prepare(
-    'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, unit, unit_cost, qty_available, reorder_point, notes, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(Number(supplier_id), item_name, sku || null, category || null, unit || null, unit_cost != null ? Number(unit_cost) : null, qty_available != null ? Number(qty_available) : 0, reorder_point != null ? Number(reorder_point) : 0, notes || null, image);
+    'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(Number(supplier_id), item_name, sku || null, category || null, unit || null, wholesale, retail, qty_available != null ? Number(qty_available) : 0, reorder_point != null ? Number(reorder_point) : 0, notes || null, image);
 
-  res.status(201).json({ id: result.lastInsertRowid, supplier_id: Number(supplier_id), item_name, sku, category, unit, unit_cost, qty_available: qty_available ?? 0, reorder_point: reorder_point ?? 0, notes, image });
+  res.status(201).json({ id: result.lastInsertRowid, supplier_id: Number(supplier_id), item_name, sku, category, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qty_available ?? 0, reorder_point: reorder_point ?? 0, notes, image });
 });
 
 app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res) => {
   const { id } = req.params;
-  const { supplier_id, item_name, sku, category, unit, unit_cost, qty_available, reorder_point, notes } = req.body;
+  const { supplier_id, item_name, sku, category, unit, unit_cost, retail_cost, qty_available, reorder_point, notes } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
   const existing = db.prepare('SELECT image FROM supplier_inventory WHERE id = ?').get(id);
@@ -502,9 +504,12 @@ app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res
     image = `/uploads/inventory/${req.file.filename}`;
   }
 
+  const wholesale = unit_cost != null && unit_cost !== '' ? Number(unit_cost) : null;
+  const retail = retail_cost != null && retail_cost !== '' ? Number(retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
+
   const result = db.prepare(
-    'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, unit = ?, unit_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, image = ?, updated_at = datetime(\'now\') WHERE id = ?'
-  ).run(Number(supplier_id), item_name, sku || null, category || null, unit || null, unit_cost != null ? Number(unit_cost) : null, qty_available != null ? Number(qty_available) : 0, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, id);
+    'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, unit = ?, unit_cost = ?, retail_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, image = ?, updated_at = datetime(\'now\') WHERE id = ?'
+  ).run(Number(supplier_id), item_name, sku || null, category || null, unit || null, wholesale, retail, qty_available != null ? Number(qty_available) : 0, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, id);
   if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
 
   res.json({ success: true, image });
@@ -571,7 +576,7 @@ app.delete('/api/job-openings/:id', (req, res) => {
 
 app.get('/api/products', (req, res) => {
   const items = db.prepare(`
-    SELECT si.item_name, si.category, si.unit_cost, si.image, si.unit,
+    SELECT si.item_name, si.category, si.unit_cost, si.retail_cost, si.image, si.unit,
            s.name AS supplier_name
     FROM supplier_inventory si
     JOIN suppliers s ON s.id = si.supplier_id

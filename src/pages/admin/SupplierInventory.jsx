@@ -7,7 +7,7 @@ import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
 
 const PAGE_SIZE = 15;
-const emptyForm = { supplier_id: '', item_name: '', sku: '', category: '', unit: '', unit_cost: '', qty_available: '', reorder_point: '', notes: '' };
+const emptyForm = { supplier_id: '', item_name: '', sku: '', category: '', unit: '', unit_cost: '', retail_cost: '', qty_available: '', reorder_point: '', notes: '' };
 const categories = ['Plants', 'Trees', 'Sod', 'Mulch', 'Stone', 'Pavers', 'Soil', 'Irrigation', 'Lighting', 'Fertilizer', 'Tools', 'Other'];
 
 export default function SupplierInventory() {
@@ -50,7 +50,7 @@ export default function SupplierInventory() {
     return [...filtered].sort((a, b) => {
       let aVal = a[sortField] ?? '';
       let bVal = b[sortField] ?? '';
-      if (sortField === 'unit_cost' || sortField === 'qty_available') { aVal = Number(aVal) || 0; bVal = Number(bVal) || 0; }
+      if (['unit_cost', 'retail_cost', 'qty_available'].includes(sortField)) { aVal = Number(aVal) || 0; bVal = Number(bVal) || 0; }
       const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
       return sortDir === 'asc' ? cmp : -cmp;
     });
@@ -67,7 +67,7 @@ export default function SupplierInventory() {
     setForm({
       supplier_id: String(item.supplier_id), item_name: item.item_name, sku: item.sku || '',
       category: item.category || '', unit: item.unit || '', unit_cost: item.unit_cost ?? '',
-      qty_available: item.qty_available ?? '', reorder_point: item.reorder_point ?? '', notes: item.notes || '',
+      retail_cost: item.retail_cost ?? '', qty_available: item.qty_available ?? '', reorder_point: item.reorder_point ?? '', notes: item.notes || '',
     });
   };
 
@@ -87,6 +87,7 @@ export default function SupplierInventory() {
     fd.append('category', form.category);
     fd.append('unit', form.unit);
     fd.append('unit_cost', form.unit_cost);
+    fd.append('retail_cost', form.retail_cost);
     fd.append('qty_available', form.qty_available);
     fd.append('reorder_point', form.reorder_point);
     fd.append('notes', form.notes);
@@ -99,10 +100,13 @@ export default function SupplierInventory() {
     setSaving(true);
     try {
       const result = await apiPutForm(`/inventory/${id}`, buildFormData());
+      const wholesale = form.unit_cost !== '' ? Number(form.unit_cost) : null;
+      const retail = form.retail_cost !== '' ? Number(form.retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
       setItems(prev => prev.map(i => i.id === id ? {
         ...i, ...form,
         supplier_id: Number(form.supplier_id),
-        unit_cost: form.unit_cost !== '' ? Number(form.unit_cost) : null,
+        unit_cost: wholesale,
+        retail_cost: retail,
         qty_available: form.qty_available !== '' ? Number(form.qty_available) : 0,
         reorder_point: form.reorder_point !== '' ? Number(form.reorder_point) : 0,
         supplier_name: supplierName(Number(form.supplier_id)),
@@ -165,7 +169,17 @@ export default function SupplierInventory() {
         </select>
       </td>
       <td><input className="table-input" value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))} placeholder="ea / pallet" style={{ width: 80 }} /></td>
-      <td><input className="table-input" type="number" min="0" step="0.01" value={form.unit_cost} onChange={e => setForm(f => ({ ...f, unit_cost: e.target.value }))} placeholder="0.00" style={{ width: 80 }} /></td>
+      <td><input className="table-input" type="number" min="0" step="0.01" value={form.unit_cost} onChange={e => {
+        const val = e.target.value;
+        setForm(f => {
+          const updated = { ...f, unit_cost: val };
+          if (f.retail_cost === '' || (f.unit_cost !== '' && f.retail_cost === String((Number(f.unit_cost) * 1.5).toFixed(2)))) {
+            updated.retail_cost = val !== '' ? String((Number(val) * 1.5).toFixed(2)) : '';
+          }
+          return updated;
+        });
+      }} placeholder="0.00" style={{ width: 80 }} /></td>
+      <td><input className="table-input" type="number" min="0" step="0.01" value={form.retail_cost} onChange={e => setForm(f => ({ ...f, retail_cost: e.target.value }))} placeholder="auto" style={{ width: 80 }} /></td>
       <td><input className="table-input" type="number" min="0" value={form.qty_available} onChange={e => setForm(f => ({ ...f, qty_available: e.target.value }))} placeholder="0" style={{ width: 65 }} /></td>
       <td><input className="table-input" type="number" min="0" value={form.reorder_point} onChange={e => setForm(f => ({ ...f, reorder_point: e.target.value }))} placeholder="0" style={{ width: 65 }} /></td>
       <td>
@@ -236,7 +250,8 @@ export default function SupplierInventory() {
                 <th>SKU</th>
                 <SortableHeader label="Category" field="category" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th>Unit</th>
-                <SortableHeader label="Cost" field="unit_cost" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                <SortableHeader label="Wholesale" field="unit_cost" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                <SortableHeader label="Retail" field="retail_cost" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <SortableHeader label="Qty" field="qty_available" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th>Reorder</th>
                 <th>Image</th>
@@ -246,7 +261,7 @@ export default function SupplierInventory() {
             <tbody>
               {paginated.length === 0 && !adding ? (
                 <tr>
-                  <td colSpan="10">
+                  <td colSpan="11">
                     <EmptyState icon="&#128230;" title="No inventory items" message={suppliers.length === 0 ? 'Add a supplier first, then add inventory items.' : 'Add your first inventory item to get started.'} />
                   </td>
                 </tr>
@@ -264,6 +279,7 @@ export default function SupplierInventory() {
                           <td>{item.category ? <span className="badge badge-blue">{item.category}</span> : '\u2014'}</td>
                           <td>{item.unit || '\u2014'}</td>
                           <td style={{ fontWeight: 500 }}>{item.unit_cost != null ? `$${Number(item.unit_cost).toFixed(2)}` : '\u2014'}</td>
+                          <td style={{ fontWeight: 500, color: 'var(--color-primary)' }}>{item.retail_cost != null ? `$${Number(item.retail_cost).toFixed(2)}` : '\u2014'}</td>
                           <td style={{ fontWeight: 600, color: item.qty_available <= item.reorder_point && item.reorder_point > 0 ? '#dc2626' : 'inherit' }}>
                             {item.qty_available ?? 0}
                           </td>
