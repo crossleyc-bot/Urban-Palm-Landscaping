@@ -5,6 +5,8 @@ import bcrypt from 'bcryptjs';
 db.pragma('foreign_keys = OFF');
 
 db.exec(`
+  DELETE FROM supplier_inventory;
+  DELETE FROM suppliers;
   DELETE FROM schedule_requests;
   DELETE FROM quote_requests;
   DELETE FROM contact_messages;
@@ -96,5 +98,30 @@ const invoices = [
   ['INV-005', 'Lisa Wang', 200, '2026-02-15', '2026-03-15', 'Paid'],
 ];
 for (const i of invoices) insertInvoice.run(...i);
+
+// Seed suppliers
+const insertSupplier = db.prepare('INSERT INTO suppliers (name, contact_name, email, phone, address, website, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+const suppliers = [
+  ['Green World Nursery', 'Maria Lopez', 'maria@greenworldnursery.com', '(407) 555-0101', '1200 Plant Ave, Orlando, FL 32803', 'https://greenworldnursery.com', 'Net 30 terms. Bulk discount on orders over $2,000.', 'Active'],
+  ['SunState Sod Farm', 'Jake Turner', 'jake@sunstatesod.com', '(407) 555-0202', '8400 Sod Rd, Sanford, FL 32771', 'https://sunstatesod.com', 'Same-day delivery available. Min order 1 pallet.', 'Active'],
+  ['Rock Solid Supply', 'Diane Park', 'diane@rocksolidsupply.com', '(321) 555-0303', '560 Quarry Ln, Clermont, FL 34711', null, 'Pavers, stone, gravel. Delivery Tue/Thu only.', 'Active'],
+];
+for (const s of suppliers) insertSupplier.run(...s);
+
+// Seed supplier inventory
+const insertInventory = db.prepare('INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, unit, unit_cost, qty_available, reorder_point, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+const inventory = [
+  [1, 'Foxtail Palm (10 gal)', 'GW-FP10', 'Trees', 'each', 85.00, 24, 5, null],
+  [1, 'Croton Gold Dust (3 gal)', 'GW-CG3', 'Plants', 'each', 12.50, 60, 10, null],
+  [1, 'Jasmine Confederate (1 gal)', 'GW-JC1', 'Plants', 'each', 8.00, 120, 20, 'Fragrant, popular for hedges'],
+  [1, 'Premium Mulch - Brown', 'GW-MBR', 'Mulch', 'cu yd', 35.00, 40, 10, null],
+  [2, 'Floratam St. Augustine Sod', 'SS-FSA', 'Sod', 'pallet', 185.00, 30, 5, '500 sq ft per pallet'],
+  [2, 'Bermuda Celebration Sod', 'SS-BCS', 'Sod', 'pallet', 210.00, 15, 5, 'Full sun recommended'],
+  [2, 'Zoysia Empire Sod', 'SS-ZES', 'Sod', 'pallet', 225.00, 8, 3, 'Shade tolerant'],
+  [3, 'Travertine Pavers 12x12', 'RS-TP12', 'Pavers', 'sq ft', 4.50, 2000, 200, null],
+  [3, 'River Rock (1-3 in)', 'RS-RR3', 'Stone', 'ton', 65.00, 12, 3, null],
+  [3, 'Retaining Wall Block', 'RS-RWB', 'Stone', 'each', 3.25, 500, 100, null],
+];
+for (const i of inventory) insertInventory.run(...i);
 
 console.log('Database seeded successfully.');

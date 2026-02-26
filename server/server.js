@@ -362,6 +362,95 @@ app.get('/api/schedule', (req, res) => {
   res.json(requests);
 });
 
+// ─── Suppliers ──────────────────────────────────────────────────────────────
+
+app.get('/api/suppliers', (req, res) => {
+  const suppliers = db.prepare('SELECT * FROM suppliers ORDER BY name').all();
+  res.json(suppliers);
+});
+
+app.post('/api/suppliers', (req, res) => {
+  const { name, contact_name, email, phone, address, website, notes, status } = req.body;
+  if (!name) return res.status(400).json({ error: 'Supplier name is required' });
+
+  const result = db.prepare(
+    'INSERT INTO suppliers (name, contact_name, email, phone, address, website, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(name, contact_name || null, email || null, phone || null, address || null, website || null, notes || null, status || 'Active');
+
+  res.status(201).json({ id: result.lastInsertRowid, name, contact_name, email, phone, address, website, notes, status: status || 'Active' });
+});
+
+app.put('/api/suppliers/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, contact_name, email, phone, address, website, notes, status } = req.body;
+  if (!name) return res.status(400).json({ error: 'Supplier name is required' });
+
+  const result = db.prepare(
+    'UPDATE suppliers SET name = ?, contact_name = ?, email = ?, phone = ?, address = ?, website = ?, notes = ?, status = ? WHERE id = ?'
+  ).run(name, contact_name || null, email || null, phone || null, address || null, website || null, notes || null, status || 'Active', id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Supplier not found' });
+
+  res.json({ success: true });
+});
+
+app.delete('/api/suppliers/:id', (req, res) => {
+  const { id } = req.params;
+  const result = db.prepare('DELETE FROM suppliers WHERE id = ?').run(id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Supplier not found' });
+
+  res.json({ success: true });
+});
+
+// ─── Supplier Inventory ─────────────────────────────────────────────────────
+
+app.get('/api/suppliers/:supplierId/inventory', (req, res) => {
+  const { supplierId } = req.params;
+  const items = db.prepare('SELECT * FROM supplier_inventory WHERE supplier_id = ? ORDER BY item_name').all(supplierId);
+  res.json(items);
+});
+
+app.get('/api/inventory', (req, res) => {
+  const items = db.prepare(`
+    SELECT si.*, s.name AS supplier_name
+    FROM supplier_inventory si
+    JOIN suppliers s ON s.id = si.supplier_id
+    ORDER BY si.item_name
+  `).all();
+  res.json(items);
+});
+
+app.post('/api/inventory', (req, res) => {
+  const { supplier_id, item_name, sku, category, unit, unit_cost, qty_available, reorder_point, notes } = req.body;
+  if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
+
+  const result = db.prepare(
+    'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, unit, unit_cost, qty_available, reorder_point, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(supplier_id, item_name, sku || null, category || null, unit || null, unit_cost ?? null, qty_available ?? 0, reorder_point ?? 0, notes || null);
+
+  res.status(201).json({ id: result.lastInsertRowid, supplier_id, item_name, sku, category, unit, unit_cost, qty_available: qty_available ?? 0, reorder_point: reorder_point ?? 0, notes });
+});
+
+app.put('/api/inventory/:id', (req, res) => {
+  const { id } = req.params;
+  const { supplier_id, item_name, sku, category, unit, unit_cost, qty_available, reorder_point, notes } = req.body;
+  if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
+
+  const result = db.prepare(
+    'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, unit = ?, unit_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, updated_at = datetime(\'now\') WHERE id = ?'
+  ).run(supplier_id, item_name, sku || null, category || null, unit || null, unit_cost ?? null, qty_available ?? 0, reorder_point ?? 0, notes || null, id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
+
+  res.json({ success: true });
+});
+
+app.delete('/api/inventory/:id', (req, res) => {
+  const { id } = req.params;
+  const result = db.prepare('DELETE FROM supplier_inventory WHERE id = ?').run(id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
+
+  res.json({ success: true });
+});
+
 // ─── Start ───────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3001;

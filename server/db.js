@@ -120,6 +120,33 @@ db.exec(`
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS suppliers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    contact_name TEXT,
+    email TEXT,
+    phone TEXT,
+    address TEXT,
+    website TEXT,
+    notes TEXT,
+    status TEXT NOT NULL DEFAULT 'Active',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS supplier_inventory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+    item_name TEXT NOT NULL,
+    sku TEXT,
+    category TEXT,
+    unit TEXT,
+    unit_cost REAL,
+    qty_available INTEGER DEFAULT 0,
+    reorder_point INTEGER DEFAULT 0,
+    notes TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 // Migration: add status and admin_reply columns to quote_requests if missing

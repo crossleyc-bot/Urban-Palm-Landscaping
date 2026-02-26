@@ -29,6 +29,8 @@ import QuoteRequests from './pages/admin/QuoteRequests';
 import ScheduleRequests from './pages/admin/ScheduleRequests';
 import ContactMessages from './pages/admin/ContactMessages';
 import ManageServices from './pages/admin/ManageServices';
+import ManageSuppliers from './pages/admin/ManageSuppliers';
+import SupplierInventory from './pages/admin/SupplierInventory';
 
 import './App.css';
 
@@ -44,6 +46,8 @@ const adminNav = [
   { path: '/admin/services', label: 'Services', icon: '\uD83C\uDF3F' },
   { path: '/admin/jobs', label: 'Manage Jobs', icon: '\uD83D\uDCBC' },
   { path: '/admin/employees', label: 'Employees', icon: '\uD83D\uDC65' },
+  { path: '/admin/suppliers', label: 'Suppliers', icon: '\uD83D\uDE9A' },
+  { path: '/admin/inventory', label: 'Inventory', icon: '\uD83D\uDCE6' },
   { path: '/admin/schedule', label: 'Schedule', icon: '\uD83D\uDCC5' },
   { path: '/admin/invoices', label: 'Invoices', icon: '\uD83D\uDCB0' },
   { path: '/admin/quotes', label: 'Quote Requests', icon: '\u2709' },
@@ -134,6 +138,8 @@ export default function App() {
                   <Route path="/admin/services" element={<ManageServices />} />
                   <Route path="/admin/jobs" element={<ManageJobs />} />
                   <Route path="/admin/employees" element={<ManageEmployees />} />
+                  <Route path="/admin/suppliers" element={<ManageSuppliers />} />
+                  <Route path="/admin/inventory" element={<SupplierInventory />} />
                   <Route path="/admin/schedule" element={<AdminSchedule />} />
                   <Route path="/admin/invoices" element={<Invoices />} />
                   <Route path="/admin/quotes" element={<QuoteRequests />} />
