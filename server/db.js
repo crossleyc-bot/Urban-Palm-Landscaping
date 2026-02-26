@@ -174,6 +174,9 @@ const empColumns = db.prepare("PRAGMA table_info(employees)").all().map(c => c.n
 if (!empColumns.includes('image')) {
   db.exec("ALTER TABLE employees ADD COLUMN image TEXT");
 }
+if (!empColumns.includes('show_on_website')) {
+  db.exec("ALTER TABLE employees ADD COLUMN show_on_website INTEGER NOT NULL DEFAULT 0");
+}
 
 // Migration: add status and admin_reply columns to contact_messages if missing
 const contactColumns = db.prepare("PRAGMA table_info(contact_messages)").all().map(c => c.name);

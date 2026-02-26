@@ -229,28 +229,40 @@ app.get('/api/employees', (req, res) => {
     email: e.email,
     image: e.image,
     status: e.status,
+    show_on_website: e.show_on_website,
+  })));
+});
+
+app.get('/api/employees/featured', (req, res) => {
+  const employees = db.prepare('SELECT * FROM employees WHERE show_on_website = 1 AND status = ?').all('Active');
+  res.json(employees.map(e => ({
+    id: e.emp_id,
+    name: e.name,
+    role: e.role,
+    image: e.image,
   })));
 });
 
 app.post('/api/employees', employeeUpload, upload.single('image'), (req, res) => {
-  const { name, role, phone, email, status } = req.body;
+  const { name, role, phone, email, status, show_on_website } = req.body;
   if (!name || !role) return res.status(400).json({ error: 'Name and role are required' });
 
   const last = db.prepare("SELECT emp_id FROM employees ORDER BY id DESC LIMIT 1").get();
   const nextNum = last ? parseInt(last.emp_id.replace('EMP-', ''), 10) + 1 : 1;
   const empId = `EMP-${String(nextNum).padStart(3, '0')}`;
   const image = req.file ? `/uploads/employees/${req.file.filename}` : null;
+  const showOnWeb = show_on_website === '1' || show_on_website === 'true' ? 1 : 0;
 
   db.prepare(
-    'INSERT INTO employees (emp_id, name, role, phone, email, image, status) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(empId, name, role, phone || null, email || null, image, status || 'Active');
+    'INSERT INTO employees (emp_id, name, role, phone, email, image, status, show_on_website) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(empId, name, role, phone || null, email || null, image, status || 'Active', showOnWeb);
 
-  res.status(201).json({ id: empId, name, role, phone, email, image, status: status || 'Active' });
+  res.status(201).json({ id: empId, name, role, phone, email, image, status: status || 'Active', show_on_website: showOnWeb });
 });
 
 app.put('/api/employees/:empId', employeeUpload, upload.single('image'), (req, res) => {
   const { empId } = req.params;
-  const { name, role, phone, email, status } = req.body;
+  const { name, role, phone, email, status, show_on_website } = req.body;
   if (!name || !role) return res.status(400).json({ error: 'Name and role are required' });
 
   const existing = db.prepare('SELECT image FROM employees WHERE emp_id = ?').get(empId);
@@ -266,11 +278,13 @@ app.put('/api/employees/:empId', employeeUpload, upload.single('image'), (req, r
     image = `/uploads/employees/${req.file.filename}`;
   }
 
-  db.prepare(
-    'UPDATE employees SET name = ?, role = ?, phone = ?, email = ?, image = ?, status = ? WHERE emp_id = ?'
-  ).run(name, role, phone || null, email || null, image, status || 'Active', empId);
+  const showOnWeb = show_on_website === '1' || show_on_website === 'true' ? 1 : 0;
 
-  res.json({ success: true, image });
+  db.prepare(
+    'UPDATE employees SET name = ?, role = ?, phone = ?, email = ?, image = ?, status = ?, show_on_website = ? WHERE emp_id = ?'
+  ).run(name, role, phone || null, email || null, image, status || 'Active', showOnWeb, empId);
+
+  res.json({ success: true, image, show_on_website: showOnWeb });
 });
 
 app.delete('/api/employees/:empId', (req, res) => {

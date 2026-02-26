@@ -7,7 +7,7 @@ export default function About() {
   const [teamMembers, setTeamMembers] = useState([]);
 
   useEffect(() => {
-    apiGet('/team').then(setTeamMembers);
+    apiGet('/employees/featured').then(setTeamMembers);
   }, []);
 
   return (
@@ -112,7 +112,6 @@ export default function About() {
                 )}
                 <h3>{member.name}</h3>
                 <p className="team-role">{member.role}</p>
-                <p className="team-exp">{member.experience} experience</p>
               </div>
             ))}
           </div>
