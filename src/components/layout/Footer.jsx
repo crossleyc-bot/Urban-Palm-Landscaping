@@ -25,7 +25,7 @@ export default function Footer() {
 
           <div className="footer-links">
             <h4>Services</h4>
-            <Link to="/services">Lawn Maintenance</Link>
+            <Link to="/services">Delivery & Installation</Link>
             <Link to="/services">Landscape Design</Link>
             <Link to="/services">Hardscaping</Link>
             <Link to="/services">Irrigation</Link>

@@ -26,14 +26,14 @@ export default function Home() {
               <span className="section-tag">Full-Service Partner</span>
               <h2>One Provider for Your Entire Landscape Lifecycle</h2>
               <p>
-                From initial design concepts to ongoing maintenance, Urban Palm delivers
+                From initial design concepts to delivery and installation, Urban Palm delivers
                 seamless landscaping services that cover every phase of your outdoor space.
                 No more juggling multiple contractors.
               </p>
               <ul className="value-prop-list">
                 <li><span className="vp-check">&#10003;</span> Design & landscape architecture</li>
                 <li><span className="vp-check">&#10003;</span> Professional installation & hardscaping</li>
-                <li><span className="vp-check">&#10003;</span> Ongoing maintenance & seasonal care</li>
+                <li><span className="vp-check">&#10003;</span> Material delivery & professional installation</li>
                 <li><span className="vp-check">&#10003;</span> Water management & irrigation systems</li>
               </ul>
               <Link to="/services" className="btn btn-primary">See All Services</Link>
@@ -50,9 +50,9 @@ export default function Home() {
                 <p>Quality installation with premium materials</p>
               </div>
               <div className="vp-card">
-                <div className="vp-card-icon">&#127807;</div>
-                <h4>Maintain</h4>
-                <p>Year-round care to keep landscapes thriving</p>
+                <div className="vp-card-icon">&#128666;</div>
+                <h4>Deliver</h4>
+                <p>Materials and plants delivered right to your door</p>
               </div>
               <div className="vp-card">
                 <div className="vp-card-icon">&#9830;</div>

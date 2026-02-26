@@ -1,9 +1,9 @@
 export const services = [
   {
     id: 1,
-    name: 'Lawn Maintenance',
-    description: 'Regular mowing, edging, and lawn health management to keep your yard pristine.',
-    price: 'From $75/visit',
+    name: 'Landscape Delivery & Installation',
+    description: 'Professional delivery and installation of plants, trees, sod, and landscape materials to transform your property.',
+    price: 'From $250',
     icon: '🌿',
   },
   {
@@ -58,7 +58,7 @@ export const testimonials = [
   {
     id: 2,
     name: 'David Chen',
-    text: 'Reliable, professional, and creative. Our lawn has never looked better since we started their maintenance plan.',
+    text: 'Reliable, professional, and creative. They delivered and installed everything exactly as promised — our yard looks incredible.',
     rating: 5,
   },
   {
@@ -70,14 +70,14 @@ export const testimonials = [
 ];
 
 export const mockOrders = [
-  { id: 'ORD-001', service: 'Lawn Maintenance', date: '2026-02-10', status: 'Completed', amount: 75 },
+  { id: 'ORD-001', service: 'Landscape Delivery & Installation', date: '2026-02-10', status: 'Completed', amount: 350 },
   { id: 'ORD-002', service: 'Tree & Shrub Care', date: '2026-02-14', status: 'In Progress', amount: 200 },
   { id: 'ORD-003', service: 'Irrigation Systems', date: '2026-02-20', status: 'Scheduled', amount: 450 },
   { id: 'ORD-004', service: 'Landscape Design', date: '2026-03-01', status: 'Pending Quote', amount: null },
 ];
 
 export const mockJobs = [
-  { id: 'JOB-001', client: 'Sarah Mitchell', service: 'Lawn Maintenance', assignee: 'James Okoro', date: '2026-02-16', status: 'In Progress' },
+  { id: 'JOB-001', client: 'Sarah Mitchell', service: 'Landscape Delivery & Installation', assignee: 'James Okoro', date: '2026-02-16', status: 'In Progress' },
   { id: 'JOB-002', client: 'David Chen', service: 'Tree & Shrub Care', assignee: 'James Okoro', date: '2026-02-17', status: 'Scheduled' },
   { id: 'JOB-003', client: 'Rachel Torres', service: 'Hardscaping', assignee: 'Carlos Rivera', date: '2026-02-18', status: 'Scheduled' },
   { id: 'JOB-004', client: 'Mark Johnson', service: 'Irrigation Systems', assignee: 'Aisha Patel', date: '2026-02-19', status: 'Scheduled' },

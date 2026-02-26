@@ -68,8 +68,8 @@ export default function Services() {
             <div className="process-connector" />
             <div className="process-step">
               <div className="step-number">4</div>
-              <h3>Maintenance</h3>
-              <p>Ongoing care to keep your landscape looking its best year-round with proactive solutions.</p>
+              <h3>Delivery</h3>
+              <p>We deliver and install all materials, plants, and features right to your property with care.</p>
             </div>
           </div>
         </div>

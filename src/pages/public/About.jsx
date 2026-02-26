@@ -16,7 +16,7 @@ export default function About() {
         <div className="container">
           <span className="hero-badge">Central Florida &bull; Growing Every Day</span>
           <h1>About Urban Palm</h1>
-          <p>What started with a lawnmower and a handshake is growing into Central Florida's go-to landscaping partner.</p>
+          <p>What started with a pickup truck and a handshake is growing into Central Florida's go-to landscaping partner.</p>
         </div>
       </section>
 
@@ -35,16 +35,17 @@ export default function About() {
               </p>
               <p>
                 As our client list grew, so did the scope of what people asked us to do.
-                Lawn care turned into garden design. Garden design turned into hardscaping
-                and irrigation. Before long, we realized we weren't just cutting grass
-                anymore — we were building outdoor spaces people loved coming home to.
+                Small plantings turned into full garden designs. Garden design turned into
+                hardscaping, irrigation, and material delivery. Before long, we realized we
+                weren't just planting shrubs anymore — we were building outdoor spaces
+                people loved coming home to.
               </p>
               <p>
                 Today, Urban Palm is a full-service landscaping company serving
                 residential and commercial properties across Central Florida. We've
                 kept the same personal touch that earned us those early referrals,
                 but now we bring professional design, expert installation, and
-                reliable ongoing maintenance to every project.
+                reliable delivery to every project.
               </p>
               <div className="about-milestones">
                 <div className="milestone">
@@ -74,7 +75,7 @@ export default function About() {
               <div className="about-highlight">
                 <div className="about-highlight-icon">&#127807;</div>
                 <h4>Full Service</h4>
-                <p>Design, install, and maintain — all under one roof</p>
+                <p>Design, deliver, and install — all under one roof</p>
               </div>
               <div className="about-highlight">
                 <div className="about-highlight-icon">&#128170;</div>
@@ -188,7 +189,7 @@ export default function About() {
       <section className="section cta-section">
         <div className="container">
           <h2>Want to Work With Us?</h2>
-          <p>Whether you need a full landscape redesign or ongoing maintenance, we'd love to hear from you.</p>
+          <p>Whether you need a full landscape redesign or professional installation, we'd love to hear from you.</p>
           <div className="cta-actions">
             <Link to="/contact" className="btn btn-primary btn-lg">Get Free Consultation</Link>
             <a href="tel:3212312094" className="btn btn-outline btn-lg cta-phone-btn">Call (321) 231-2094</a>

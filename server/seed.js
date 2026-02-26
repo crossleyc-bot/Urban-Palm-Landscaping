@@ -25,7 +25,7 @@ insertUser.run('customer@example.com', hash, 'Customer', 'customer');
 // Seed services
 const insertService = db.prepare('INSERT INTO services (name, description, price, icon) VALUES (?, ?, ?, ?)');
 const services = [
-  ['Lawn Maintenance', 'Regular mowing, edging, and lawn health management to keep your yard pristine.', 'From $75/visit', '🌿'],
+  ['Landscape Delivery & Installation', 'Professional delivery and installation of plants, trees, sod, and landscape materials to transform your property.', 'From $250', '🌿'],
   ['Landscape Design', 'Custom landscape architecture tailored to your property and lifestyle.', 'From $500', '🎨'],
   ['Tree & Shrub Care', 'Professional pruning, trimming, and health assessments for all your plants.', 'From $150', '🌳'],
   ['Irrigation Systems', 'Design, installation, and repair of efficient irrigation and sprinkler systems.', 'From $300', '💧'],
@@ -46,7 +46,7 @@ for (const t of team) insertTeam.run(...t);
 const insertTestimonial = db.prepare('INSERT INTO testimonials (name, text, rating) VALUES (?, ?, ?)');
 const testimonials = [
   ['Sarah Mitchell', 'Urban Palm completely transformed our backyard. The design team listened to every detail and delivered beyond expectations.', 5],
-  ['David Chen', 'Reliable, professional, and creative. Our lawn has never looked better since we started their maintenance plan.', 5],
+  ['David Chen', 'Reliable, professional, and creative. They delivered and installed everything exactly as promised — our yard looks incredible.', 5],
   ['Rachel Torres', 'The hardscaping work they did on our patio was outstanding. Great craftsmanship and fair pricing.', 4],
 ];
 for (const t of testimonials) insertTestimonial.run(...t);
@@ -54,7 +54,7 @@ for (const t of testimonials) insertTestimonial.run(...t);
 // Seed orders
 const insertOrder = db.prepare('INSERT INTO orders (order_id, user_id, service, date, status, amount) VALUES (?, ?, ?, ?, ?, ?)');
 const orders = [
-  ['ORD-001', 2, 'Lawn Maintenance', '2026-02-10', 'Completed', 75],
+  ['ORD-001', 2, 'Landscape Delivery & Installation', '2026-02-10', 'Completed', 350],
   ['ORD-002', 2, 'Tree & Shrub Care', '2026-02-14', 'In Progress', 200],
   ['ORD-003', 2, 'Irrigation Systems', '2026-02-20', 'Scheduled', 450],
   ['ORD-004', 2, 'Landscape Design', '2026-03-01', 'Pending Quote', null],
@@ -64,7 +64,7 @@ for (const o of orders) insertOrder.run(...o);
 // Seed jobs
 const insertJob = db.prepare('INSERT INTO jobs (job_id, client, service, assignee, date, status) VALUES (?, ?, ?, ?, ?, ?)');
 const jobs = [
-  ['JOB-001', 'Sarah Mitchell', 'Lawn Maintenance', 'James Okoro', '2026-02-16', 'In Progress'],
+  ['JOB-001', 'Sarah Mitchell', 'Landscape Delivery & Installation', 'James Okoro', '2026-02-16', 'In Progress'],
   ['JOB-002', 'David Chen', 'Tree & Shrub Care', 'James Okoro', '2026-02-17', 'Scheduled'],
   ['JOB-003', 'Rachel Torres', 'Hardscaping', 'Carlos Rivera', '2026-02-18', 'Scheduled'],
   ['JOB-004', 'Mark Johnson', 'Irrigation Systems', 'Aisha Patel', '2026-02-19', 'Scheduled'],
