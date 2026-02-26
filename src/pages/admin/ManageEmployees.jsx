@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { apiGet, apiPut } from '../../api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonCards, SkeletonTable } from '../../components/ui/Skeleton';
@@ -7,6 +7,7 @@ import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
 
 const PAGE_SIZE = 10;
+const emptyForm = { name: '', role: '', phone: '', email: '', status: 'Active' };
 
 export default function ManageEmployees() {
   const { addToast } = useToast();
@@ -18,6 +19,7 @@ export default function ManageEmployees() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     apiGet('/employees').then(setEmployees).finally(() => setLoading(false));
@@ -46,16 +48,25 @@ export default function ManageEmployees() {
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const startEdit = (emp) => {
+    setAdding(false);
     setEditing(emp.id);
     setForm({ name: emp.name, role: emp.role, phone: emp.phone || '', email: emp.email || '', status: emp.status });
   };
 
-  const cancelEdit = () => {
+  const startAdd = () => {
     setEditing(null);
+    setAdding(true);
+    setForm(emptyForm);
+  };
+
+  const cancel = () => {
+    setEditing(null);
+    setAdding(false);
     setForm({});
   };
 
   const saveEdit = async (empId) => {
+    if (!form.name.trim() || !form.role.trim()) return;
     setSaving(true);
     try {
       await apiPut(`/employees/${empId}`, form);
@@ -69,11 +80,42 @@ export default function ManageEmployees() {
     }
   };
 
+  const saveNew = async () => {
+    if (!form.name.trim() || !form.role.trim()) return;
+    setSaving(true);
+    try {
+      const created = await apiPost('/employees', form);
+      setEmployees(prev => [...prev, { id: created.id, ...form }]);
+      setAdding(false);
+      setForm({});
+      addToast('Employee added successfully', 'success');
+    } catch {
+      addToast('Failed to add employee', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteEmployee = async (empId) => {
+    try {
+      await apiDelete(`/employees/${empId}`);
+      setEmployees(prev => prev.filter(e => e.id !== empId));
+      addToast('Employee deleted', 'success');
+    } catch {
+      addToast('Failed to delete employee', 'error');
+    }
+  };
+
   return (
     <div>
-      <div className="page-header">
-        <h1>Employees</h1>
-        <p>Manage your team members and their information.</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1>Employees</h1>
+          <p>Manage your team members and their information.</p>
+        </div>
+        {!adding && (
+          <button className="btn btn-primary" onClick={startAdd}>+ Add Employee</button>
+        )}
       </div>
 
       {loading ? (
@@ -106,59 +148,86 @@ export default function ManageEmployees() {
                 <th>Phone</th>
                 <th>Email</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th style={{ width: '160px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <SkeletonTable rows={5} cols={7} />
-              ) : paginated.length === 0 ? (
+              ) : paginated.length === 0 && !adding ? (
                 <tr>
                   <td colSpan="7">
-                    <EmptyState icon="&#128101;" title="No employees found" />
+                    <EmptyState icon="&#128101;" title="No employees found" message="Add your first employee to get started." />
                   </td>
                 </tr>
               ) : (
-                paginated.map((emp) => (
-                  <tr key={emp.id}>
-                    <td style={{ fontWeight: 500 }}>{emp.id}</td>
-                    {editing === emp.id ? (
-                      <>
-                        <td><input className="table-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></td>
-                        <td><input className="table-input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} /></td>
-                        <td><input className="table-input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></td>
-                        <td><input className="table-input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></td>
-                        <td>
-                          <select className="table-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-                            <option>Active</option>
-                            <option>On Leave</option>
-                          </select>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '0.25rem' }}>
-                            <button className="btn btn-primary btn-sm" onClick={() => saveEdit(emp.id)} disabled={saving}>Save</button>
-                            <button className="btn btn-outline btn-sm" onClick={cancelEdit}>Cancel</button>
-                          </div>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td>{emp.name}</td>
-                        <td>{emp.role}</td>
-                        <td>{emp.phone}</td>
-                        <td>{emp.email}</td>
-                        <td>
-                          <span className={`badge ${emp.status === 'Active' ? 'badge-green' : 'badge-yellow'}`}>
-                            {emp.status}
-                          </span>
-                        </td>
-                        <td>
-                          <button className="btn btn-outline btn-sm" onClick={() => startEdit(emp)}>Edit</button>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))
+                <>
+                  {paginated.map((emp) => (
+                    <tr key={emp.id}>
+                      <td style={{ fontWeight: 500 }}>{emp.id}</td>
+                      {editing === emp.id ? (
+                        <>
+                          <td><input className="table-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" /></td>
+                          <td><input className="table-input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="Job title" /></td>
+                          <td><input className="table-input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 000-0000" /></td>
+                          <td><input className="table-input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" /></td>
+                          <td>
+                            <select className="table-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                              <option>Active</option>
+                              <option>On Leave</option>
+                            </select>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              <button className="btn btn-primary btn-sm" onClick={() => saveEdit(emp.id)} disabled={saving || !form.name.trim() || !form.role.trim()}>Save</button>
+                              <button className="btn btn-outline btn-sm" onClick={cancel}>Cancel</button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td>{emp.name}</td>
+                          <td>{emp.role}</td>
+                          <td>{emp.phone}</td>
+                          <td>{emp.email}</td>
+                          <td>
+                            <span className={`badge ${emp.status === 'Active' ? 'badge-green' : 'badge-yellow'}`}>
+                              {emp.status}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              <button className="btn btn-outline btn-sm" onClick={() => startEdit(emp)}>Edit</button>
+                              <button className="btn btn-outline btn-sm" style={{ color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => deleteEmployee(emp.id)}>Delete</button>
+                            </div>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+
+                  {adding && (
+                    <tr>
+                      <td style={{ fontWeight: 500, color: 'var(--color-text-muted)' }}>Auto</td>
+                      <td><input className="table-input" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" /></td>
+                      <td><input className="table-input" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="Job title" /></td>
+                      <td><input className="table-input" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(555) 000-0000" /></td>
+                      <td><input className="table-input" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" /></td>
+                      <td>
+                        <select className="table-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
+                          <option>Active</option>
+                          <option>On Leave</option>
+                        </select>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                          <button className="btn btn-primary btn-sm" onClick={saveNew} disabled={saving || !form.name.trim() || !form.role.trim()}>Add</button>
+                          <button className="btn btn-outline btn-sm" onClick={cancel}>Cancel</button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               )}
             </tbody>
           </table>

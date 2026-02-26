@@ -169,6 +169,22 @@ app.get('/api/employees', (req, res) => {
   })));
 });
 
+app.post('/api/employees', (req, res) => {
+  const { name, role, phone, email, status } = req.body;
+  if (!name || !role) return res.status(400).json({ error: 'Name and role are required' });
+
+  // Auto-generate next EMP-XXX id
+  const last = db.prepare("SELECT emp_id FROM employees ORDER BY id DESC LIMIT 1").get();
+  const nextNum = last ? parseInt(last.emp_id.replace('EMP-', ''), 10) + 1 : 1;
+  const empId = `EMP-${String(nextNum).padStart(3, '0')}`;
+
+  db.prepare(
+    'INSERT INTO employees (emp_id, name, role, phone, email, status) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(empId, name, role, phone || null, email || null, status || 'Active');
+
+  res.status(201).json({ id: empId, name, role, phone, email, status: status || 'Active' });
+});
+
 app.put('/api/employees/:empId', (req, res) => {
   const { empId } = req.params;
   const { name, role, phone, email, status } = req.body;
@@ -177,6 +193,14 @@ app.put('/api/employees/:empId', (req, res) => {
   const result = db.prepare(
     'UPDATE employees SET name = ?, role = ?, phone = ?, email = ?, status = ? WHERE emp_id = ?'
   ).run(name, role, phone || null, email || null, status || 'Active', empId);
+  if (result.changes === 0) return res.status(404).json({ error: 'Employee not found' });
+
+  res.json({ success: true });
+});
+
+app.delete('/api/employees/:empId', (req, res) => {
+  const { empId } = req.params;
+  const result = db.prepare('DELETE FROM employees WHERE emp_id = ?').run(empId);
   if (result.changes === 0) return res.status(404).json({ error: 'Employee not found' });
 
   res.json({ success: true });
