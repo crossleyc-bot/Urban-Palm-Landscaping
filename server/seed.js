@@ -1,7 +1,9 @@
 import db from './db.js';
 import bcrypt from 'bcryptjs';
 
-// Clear existing data
+// Temporarily disable FK checks so we can clear and reseed with known IDs
+db.pragma('foreign_keys = OFF');
+
 db.exec(`
   DELETE FROM schedule_requests;
   DELETE FROM quote_requests;
@@ -14,7 +16,10 @@ db.exec(`
   DELETE FROM team_members;
   DELETE FROM services;
   DELETE FROM users;
+  DELETE FROM sqlite_sequence;
 `);
+
+db.pragma('foreign_keys = ON');
 
 // Seed users
 const hash = bcrypt.hashSync('password123', 10);
@@ -25,7 +30,7 @@ insertUser.run('customer@example.com', hash, 'Customer', 'customer');
 // Seed services
 const insertService = db.prepare('INSERT INTO services (name, description, price, icon) VALUES (?, ?, ?, ?)');
 const services = [
-  ['Landscape Delivery & Installation', 'Professional delivery and installation of plants, trees, sod, and landscape materials to transform your property.', 'From $250', '🌿'],
+  ['Landscape Delivery & Installation', 'We deliver and install sod, plants, trees, mulch, and landscape materials across Central Florida. Our crews handle everything from site prep to final placement so your property is transformed with zero hassle.', 'From $250', '🌿'],
   ['Landscape Design', 'Custom landscape architecture tailored to your property and lifestyle.', 'From $500', '🎨'],
   ['Tree & Shrub Care', 'Professional pruning, trimming, and health assessments for all your plants.', 'From $150', '🌳'],
   ['Irrigation Systems', 'Design, installation, and repair of efficient irrigation and sprinkler systems.', 'From $300', '💧'],
