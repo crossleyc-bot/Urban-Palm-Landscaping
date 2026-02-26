@@ -1,39 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
 import './About.css';
-
-function AnimatedStat({ end, suffix = '' }) {
-  const [count, setCount] = useState(0);
-  const ref = useRef(null);
-  const started = useRef(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !started.current) {
-          started.current = true;
-          const startTime = Date.now();
-          const numEnd = parseInt(end, 10);
-          const duration = 2000;
-          const tick = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setCount(Math.round(eased * numEnd));
-            if (progress < 1) requestAnimationFrame(tick);
-          };
-          requestAnimationFrame(tick);
-        }
-      },
-      { threshold: 0.3 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [end]);
-
-  return <span ref={ref}>{count}{suffix}</span>;
-}
 
 export default function About() {
   const [teamMembers, setTeamMembers] = useState([]);
@@ -46,66 +14,77 @@ export default function About() {
     <div className="about-page">
       <section className="page-hero">
         <div className="container">
-          <span className="hero-badge">Est. 2011 &bull; Central Florida</span>
+          <span className="hero-badge">Central Florida &bull; Growing Every Day</span>
           <h1>About Urban Palm</h1>
-          <p>Passionate about creating beautiful outdoor spaces for over a decade.</p>
+          <p>What started with a lawnmower and a handshake is growing into Central Florida's go-to landscaping partner.</p>
         </div>
       </section>
 
-      {/* Heritage / Story */}
+      {/* Our Story */}
       <section className="section">
         <div className="container">
           <div className="about-story">
             <div className="about-story-content">
-              <span className="section-tag">Our Heritage</span>
-              <h2>Rooted in Central Florida Since 2011</h2>
+              <span className="section-tag">Our Story</span>
+              <h2>From Referrals to Full Service</h2>
               <p>
-                Urban Palm Landscaping was founded with a simple mission: to transform
-                ordinary outdoor spaces into extraordinary living environments. What
-                started as a one-person lawn care operation has grown into a
-                full-service landscaping company serving the greater Central Florida area.
+                Urban Palm Landscaping started the way the best businesses do — with
+                a neighbor who needed help. We began taking on small residential projects
+                for homeowners in the area, one yard at a time. Every clean edge and
+                healthy hedge led to another referral, and word spread quickly.
               </p>
               <p>
-                Today, our team of skilled designers, horticulturists, and craftsmen
-                work together to deliver exceptional results on every project. We
-                combine creative design with sustainable practices to create landscapes
-                that are both beautiful and environmentally responsible.
+                As our client list grew, so did the scope of what people asked us to do.
+                Lawn care turned into garden design. Garden design turned into hardscaping
+                and irrigation. Before long, we realized we weren't just cutting grass
+                anymore — we were building outdoor spaces people loved coming home to.
+              </p>
+              <p>
+                Today, Urban Palm is a full-service landscaping company serving
+                residential and commercial properties across Central Florida. We've
+                kept the same personal touch that earned us those early referrals,
+                but now we bring professional design, expert installation, and
+                reliable ongoing maintenance to every project.
               </p>
               <div className="about-milestones">
                 <div className="milestone">
-                  <div className="milestone-year">2011</div>
-                  <div className="milestone-text">Founded in Orlando as a residential lawn care provider</div>
+                  <div className="milestone-icon">&#127793;</div>
+                  <div className="milestone-text">Started with small residential projects through word-of-mouth referrals</div>
                 </div>
                 <div className="milestone">
-                  <div className="milestone-year">2015</div>
-                  <div className="milestone-text">Expanded to full-service landscaping design &amp; installation</div>
+                  <div className="milestone-icon">&#128200;</div>
+                  <div className="milestone-text">Grew our services to include design, hardscaping, and irrigation</div>
                 </div>
                 <div className="milestone">
-                  <div className="milestone-year">2019</div>
-                  <div className="milestone-text">Launched commercial landscaping division for Central Florida businesses</div>
+                  <div className="milestone-icon">&#127968;</div>
+                  <div className="milestone-text">Expanded into commercial properties and HOA communities</div>
                 </div>
                 <div className="milestone">
-                  <div className="milestone-year">2024</div>
-                  <div className="milestone-text">Serving 50+ active clients across 8 communities</div>
+                  <div className="milestone-icon">&#9733;</div>
+                  <div className="milestone-text">Now a full-service landscaping partner for Central Florida</div>
                 </div>
               </div>
             </div>
-            <div className="about-stats">
-              <div className="about-stat">
-                <div className="about-stat-value"><AnimatedStat end={500} suffix="+" /></div>
-                <div className="about-stat-label">Projects Completed</div>
+            <div className="about-highlights">
+              <div className="about-highlight">
+                <div className="about-highlight-icon">&#129309;</div>
+                <h4>Referral Built</h4>
+                <p>Most of our clients found us through someone we already helped</p>
               </div>
-              <div className="about-stat">
-                <div className="about-stat-value"><AnimatedStat end={15} suffix="+" /></div>
-                <div className="about-stat-label">Years Experience</div>
+              <div className="about-highlight">
+                <div className="about-highlight-icon">&#127807;</div>
+                <h4>Full Service</h4>
+                <p>Design, install, and maintain — all under one roof</p>
               </div>
-              <div className="about-stat">
-                <div className="about-stat-value"><AnimatedStat end={98} suffix="%" /></div>
-                <div className="about-stat-label">Client Satisfaction</div>
+              <div className="about-highlight">
+                <div className="about-highlight-icon">&#128170;</div>
+                <h4>Hands-On Team</h4>
+                <p>Our crew takes pride in every property we touch</p>
               </div>
-              <div className="about-stat">
-                <div className="about-stat-value"><AnimatedStat end={50} suffix="+" /></div>
-                <div className="about-stat-label">Active Clients</div>
+              <div className="about-highlight">
+                <div className="about-highlight-icon">&#127774;</div>
+                <h4>Florida Focused</h4>
+                <p>We know Central Florida's climate, soil, and what thrives here</p>
               </div>
             </div>
           </div>
