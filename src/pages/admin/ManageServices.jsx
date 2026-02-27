@@ -34,6 +34,55 @@ function PhotoUpload({ label, preview, onPick }) {
   );
 }
 
+function ImagePairUploader({ serviceId, onUploaded }) {
+  const { addToast } = useToast();
+  const [beforeFile, setBeforeFile] = useState(null);
+  const [afterFile, setAfterFile] = useState(null);
+  const [beforePreview, setBeforePreview] = useState(null);
+  const [afterPreview, setAfterPreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  const clearFiles = () => {
+    setBeforeFile(null); setAfterFile(null);
+    if (beforePreview?.startsWith('blob:')) URL.revokeObjectURL(beforePreview);
+    if (afterPreview?.startsWith('blob:')) URL.revokeObjectURL(afterPreview);
+    setBeforePreview(null); setAfterPreview(null);
+  };
+
+  const pickBefore = (f) => { setBeforeFile(f); setBeforePreview(URL.createObjectURL(f)); };
+  const pickAfter = (f) => { setAfterFile(f); setAfterPreview(URL.createObjectURL(f)); };
+
+  const handleUpload = async () => {
+    if (!beforeFile && !afterFile) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      if (beforeFile) fd.append('image_before', beforeFile);
+      if (afterFile) fd.append('image_after', afterFile);
+      const created = await apiPostForm(`/services/${serviceId}/images`, fd);
+      onUploaded(created);
+      clearFiles();
+      addToast('Images uploaded', 'success');
+    } catch { addToast('Failed to upload images', 'error'); }
+    finally { setUploading(false); }
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap', padding: '0.75rem', background: 'var(--color-bg-secondary)', borderRadius: 8 }}>
+      <PhotoUpload label="Before" preview={beforePreview} onPick={pickBefore} />
+      <PhotoUpload label="After" preview={afterPreview} onPick={pickAfter} />
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <button className="btn btn-primary btn-sm" onClick={handleUpload} disabled={uploading || (!beforeFile && !afterFile)}>
+          {uploading ? 'Uploading...' : 'Add Pair'}
+        </button>
+        {(beforeFile || afterFile) && (
+          <button className="btn btn-outline btn-sm" onClick={clearFiles}>Clear</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ManageServices() {
   const { addToast } = useToast();
   const [services, setServices] = useState([]);
@@ -112,7 +161,7 @@ export default function ManageServices() {
     setSaving(true);
     try {
       const created = await apiPostForm('/services', buildFormData());
-      setServices(prev => [...prev, { id: created.id, ...form, image_before: created.image_before, image_after: created.image_after }]);
+      setServices(prev => [...prev, { id: created.id, ...form, image_before: created.image_before, image_after: created.image_after, images: [] }]);
       setAdding(false); setForm(emptyForm); clearFiles();
       addToast('Service added successfully', 'success');
     } catch { addToast('Failed to add service', 'error'); }
@@ -125,6 +174,24 @@ export default function ManageServices() {
       setServices(prev => prev.filter(s => s.id !== id));
       addToast('Service deleted', 'success');
     } catch { addToast('Failed to delete service', 'error'); }
+  };
+
+  const handleImageUploaded = (serviceId, newImage) => {
+    setServices(prev => prev.map(s => s.id === serviceId
+      ? { ...s, images: [...(s.images || []), newImage] }
+      : s
+    ));
+  };
+
+  const deleteImage = async (serviceId, imageId) => {
+    try {
+      await apiDelete(`/service-images/${imageId}`);
+      setServices(prev => prev.map(s => s.id === serviceId
+        ? { ...s, images: (s.images || []).filter(i => i.id !== imageId) }
+        : s
+      ));
+      addToast('Image pair deleted', 'success');
+    } catch { addToast('Failed to delete image', 'error'); }
   };
 
   if (loading) {
@@ -144,7 +211,7 @@ export default function ManageServices() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Icon</label>
-          <input className="table-input" value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="🌿" style={{ width: 60, textAlign: 'center', fontSize: '1.25rem' }} />
+          <input className="table-input" value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="\uD83C\uDF3F" style={{ width: 60, textAlign: 'center', fontSize: '1.25rem' }} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', gridColumn: 'span 2' }}>
           <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Name *</label>
@@ -159,9 +226,12 @@ export default function ManageServices() {
         <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Description</label>
         <textarea className="table-input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Describe the service..." rows={3} style={{ resize: 'vertical' }} />
       </div>
-      <div style={{ display: 'flex', gap: '2rem', marginTop: '1rem' }}>
-        <PhotoUpload label="Before Photo" preview={beforePreview} onPick={pickBefore} />
-        <PhotoUpload label="After Photo" preview={afterPreview} onPick={pickAfter} />
+      <div style={{ marginTop: '1rem' }}>
+        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.5rem' }}>Primary Before &amp; After</label>
+        <div style={{ display: 'flex', gap: '2rem' }}>
+          <PhotoUpload label="Before Photo" preview={beforePreview} onPick={pickBefore} />
+          <PhotoUpload label="After Photo" preview={afterPreview} onPick={pickAfter} />
+        </div>
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
         <button className="btn btn-primary" onClick={onSave} disabled={saving || !form.name.trim()}>{saveLabel}</button>
@@ -169,6 +239,17 @@ export default function ManageServices() {
       </div>
     </div>
   );
+
+  const allImages = (svc) => {
+    const pairs = [];
+    if (svc.image_before || svc.image_after) {
+      pairs.push({ id: 'primary', image_before: svc.image_before, image_after: svc.image_after, primary: true });
+    }
+    for (const img of (svc.images || [])) {
+      pairs.push(img);
+    }
+    return pairs;
+  };
 
   return (
     <div>
@@ -191,49 +272,83 @@ export default function ManageServices() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {services.map(svc => (
-            <div key={svc.id} className="card" style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '2rem', flexShrink: 0 }}>{svc.icon || '\u2014'}</div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>{svc.name}</div>
-                    <div style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', lineHeight: 1.5 }}>{svc.description || 'No description'}</div>
-                    <div style={{ fontWeight: 500, color: 'var(--color-primary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>{svc.price || '\u2014'}</div>
+          {services.map(svc => {
+            const imagePairs = allImages(svc);
+            return (
+              <div key={svc.id} className="card" style={{ padding: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>{svc.icon || '\u2014'}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>{svc.name}</div>
+                      <div style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', lineHeight: 1.5 }}>{svc.description || 'No description'}</div>
+                      <div style={{ fontWeight: 500, color: 'var(--color-primary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>{svc.price || '\u2014'}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
+                    <button className="btn btn-outline btn-sm" onClick={() => startEdit(svc)}>Edit</button>
+                    <button className="btn btn-outline btn-sm" style={{ color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => deleteService(svc.id)}>Delete</button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
-                  <button className="btn btn-outline btn-sm" onClick={() => startEdit(svc)}>Edit</button>
-                  <button className="btn btn-outline btn-sm" style={{ color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => deleteService(svc.id)}>Delete</button>
+
+                {/* Before/After Image Pairs */}
+                {imagePairs.length > 0 && (
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>
+                      Before &amp; After Photos ({imagePairs.length})
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      {imagePairs.map(pair => (
+                        <div key={pair.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', padding: '0.5rem', background: 'var(--color-bg-secondary)', borderRadius: 8, position: 'relative' }}>
+                          {pair.image_before && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                              <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Before</span>
+                              <img src={pair.image_before} alt="Before" style={thumbStyle} />
+                            </div>
+                          )}
+                          {pair.image_after && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                              <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>After</span>
+                              <img src={pair.image_after} alt="After" style={thumbStyle} />
+                            </div>
+                          )}
+                          {!pair.primary && (
+                            <button
+                              onClick={() => deleteImage(svc.id, pair.id)}
+                              style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(220,38,38,0.9)', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: '0.7rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                              title="Remove this pair"
+                            >
+                              &times;
+                            </button>
+                          )}
+                          {pair.primary && (
+                            <span style={{ position: 'absolute', top: 4, right: 6, fontSize: '0.55rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase' }}>Primary</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add more images */}
+                <div style={{ marginTop: '0.75rem' }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                    Add Before &amp; After Pair
+                  </div>
+                  <ImagePairUploader serviceId={svc.id} onUploaded={(img) => handleImageUploaded(svc.id, img)} />
                 </div>
               </div>
-
-              {(svc.image_before || svc.image_after) && (
-                <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
-                  {svc.image_before && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Before</span>
-                      <img src={svc.image_before} alt="Before" style={thumbStyle} />
-                    </div>
-                  )}
-                  {svc.image_after && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>After</span>
-                      <img src={svc.image_after} alt="After" style={thumbStyle} />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       <div className="card" style={{ marginTop: '1.5rem' }}>
         <h3 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.75rem' }}>Where services appear</h3>
         <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.7 }}>
-          Changes are reflected automatically across the website: the Services page (with before/after gallery),
-          Home page preview, Contact form dropdown, customer Quote Request form, and Schedule Service form.
+          Changes are reflected automatically across the website: the Services page,
+          Portfolio page (all before/after images), Home page preview, Contact form dropdown,
+          customer Quote Request form, and Schedule Service form.
         </p>
       </div>
     </div>

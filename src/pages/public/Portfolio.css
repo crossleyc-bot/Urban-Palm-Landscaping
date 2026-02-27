@@ -29,6 +29,24 @@
   background: var(--color-bg);
 }
 
+.portfolio-service-group {
+  margin-bottom: 2.5rem;
+}
+
+.portfolio-service-group:last-child {
+  margin-bottom: 0;
+}
+
+.portfolio-service-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-primary);
+  display: inline-block;
+}
+
 .portfolio-ba-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

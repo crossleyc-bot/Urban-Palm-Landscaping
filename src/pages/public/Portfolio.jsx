@@ -8,9 +8,24 @@ export default function Portfolio() {
 
   useEffect(() => {
     apiGet('/services').then(data => {
-      setServices(data.filter(s => s.image_before || s.image_after));
+      // Keep services that have any before/after images (primary or additional)
+      setServices(data.filter(s =>
+        s.image_before || s.image_after || (s.images && s.images.length > 0)
+      ));
     });
   }, []);
+
+  // Build all image pairs for a service (primary + additional)
+  const getAllPairs = (service) => {
+    const pairs = [];
+    if (service.image_before || service.image_after) {
+      pairs.push({ id: 'primary', image_before: service.image_before, image_after: service.image_after });
+    }
+    for (const img of (service.images || [])) {
+      pairs.push(img);
+    }
+    return pairs;
+  };
 
   return (
     <div className="portfolio-page">
@@ -30,29 +45,34 @@ export default function Portfolio() {
               <h2>Service Transformations</h2>
               <p>Real results from our landscaping services.</p>
             </div>
-            <div className="portfolio-ba-grid">
-              {services.map(service => (
-                <div key={service.id} className="portfolio-ba-card">
-                  <div className="portfolio-ba-images">
-                    {service.image_before && (
-                      <div className="portfolio-ba-item">
-                        <span className="portfolio-ba-label">Before</span>
-                        <img src={service.image_before} alt={`${service.name} before`} />
+            {services.map(service => {
+              const pairs = getAllPairs(service);
+              return (
+                <div key={service.id} className="portfolio-service-group">
+                  <h3 className="portfolio-service-name">{service.name}</h3>
+                  <div className="portfolio-ba-grid">
+                    {pairs.map(pair => (
+                      <div key={pair.id} className="portfolio-ba-card">
+                        <div className="portfolio-ba-images">
+                          {pair.image_before && (
+                            <div className="portfolio-ba-item">
+                              <span className="portfolio-ba-label">Before</span>
+                              <img src={pair.image_before} alt={`${service.name} before`} />
+                            </div>
+                          )}
+                          {pair.image_after && (
+                            <div className="portfolio-ba-item">
+                              <span className="portfolio-ba-label portfolio-ba-label-after">After</span>
+                              <img src={pair.image_after} alt={`${service.name} after`} />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    {service.image_after && (
-                      <div className="portfolio-ba-item">
-                        <span className="portfolio-ba-label portfolio-ba-label-after">After</span>
-                        <img src={service.image_after} alt={`${service.name} after`} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="portfolio-ba-info">
-                    <h3>{service.name}</h3>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </section>
       )}
