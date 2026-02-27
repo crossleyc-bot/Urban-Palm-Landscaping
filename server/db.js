@@ -159,6 +159,14 @@ db.exec(`
     image TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS service_images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    service_id INTEGER NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+    image_before TEXT,
+    image_after TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0
+  );
+
   CREATE TABLE IF NOT EXISTS job_openings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,

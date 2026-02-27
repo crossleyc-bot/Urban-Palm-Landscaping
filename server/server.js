@@ -78,7 +78,13 @@ const serviceUpload = (req, _res, next) => { req.uploadDir = 'services'; next();
 
 app.get('/api/services', (req, res) => {
   const services = db.prepare('SELECT * FROM services').all();
-  res.json(services);
+  const allImages = db.prepare('SELECT * FROM service_images ORDER BY sort_order, id').all();
+  const imageMap = new Map();
+  for (const img of allImages) {
+    if (!imageMap.has(img.service_id)) imageMap.set(img.service_id, []);
+    imageMap.get(img.service_id).push(img);
+  }
+  res.json(services.map(s => ({ ...s, images: imageMap.get(s.id) || [] })));
 });
 
 app.post('/api/services', serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
@@ -129,13 +135,51 @@ app.put('/api/services/:id', serviceUpload, upload.fields([{ name: 'image_before
 app.delete('/api/services/:id', (req, res) => {
   const { id } = req.params;
   const existing = db.prepare('SELECT image_before, image_after FROM services WHERE id = ?').get(id);
+  const extraImages = db.prepare('SELECT image_before, image_after FROM service_images WHERE service_id = ?').all(id);
   const result = db.prepare('DELETE FROM services WHERE id = ?').run(id);
   if (result.changes === 0) return res.status(404).json({ error: 'Service not found' });
 
-  if (existing) {
-    for (const img of [existing.image_before, existing.image_after]) {
-      if (img) { try { unlinkSync(join(__dirname, img.replace(/^\//, ''))); } catch { /* ignore */ } }
-    }
+  const toDelete = [];
+  if (existing) toDelete.push(existing.image_before, existing.image_after);
+  for (const row of extraImages) toDelete.push(row.image_before, row.image_after);
+  for (const img of toDelete) {
+    if (img) { try { unlinkSync(join(__dirname, img.replace(/^\//, ''))); } catch { /* ignore */ } }
+  }
+
+  res.json({ success: true });
+});
+
+// ─── Service Images ─────────────────────────────────────────────────────────
+
+app.post('/api/services/:serviceId/images', serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
+  const { serviceId } = req.params;
+  const service = db.prepare('SELECT id FROM services WHERE id = ?').get(serviceId);
+  if (!service) return res.status(404).json({ error: 'Service not found' });
+
+  const imageBefore = req.files?.image_before?.[0] ? `/uploads/services/${req.files.image_before[0].filename}` : null;
+  const imageAfter = req.files?.image_after?.[0] ? `/uploads/services/${req.files.image_after[0].filename}` : null;
+
+  if (!imageBefore && !imageAfter) return res.status(400).json({ error: 'At least one image is required' });
+
+  const maxOrder = db.prepare('SELECT MAX(sort_order) as m FROM service_images WHERE service_id = ?').get(serviceId);
+  const sortOrder = (maxOrder?.m ?? -1) + 1;
+
+  const result = db.prepare(
+    'INSERT INTO service_images (service_id, image_before, image_after, sort_order) VALUES (?, ?, ?, ?)'
+  ).run(serviceId, imageBefore, imageAfter, sortOrder);
+
+  res.status(201).json({ id: result.lastInsertRowid, service_id: Number(serviceId), image_before: imageBefore, image_after: imageAfter, sort_order: sortOrder });
+});
+
+app.delete('/api/service-images/:id', (req, res) => {
+  const { id } = req.params;
+  const existing = db.prepare('SELECT image_before, image_after FROM service_images WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'Image not found' });
+
+  db.prepare('DELETE FROM service_images WHERE id = ?').run(id);
+
+  for (const img of [existing.image_before, existing.image_after]) {
+    if (img) { try { unlinkSync(join(__dirname, img.replace(/^\//, ''))); } catch { /* ignore */ } }
   }
 
   res.json({ success: true });
