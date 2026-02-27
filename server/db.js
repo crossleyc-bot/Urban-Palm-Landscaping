@@ -137,7 +137,8 @@ db.exec(`
     public_access TEXT,
     notes TEXT,
     status TEXT NOT NULL DEFAULT 'Active',
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
   CREATE TABLE IF NOT EXISTS supplier_inventory (
@@ -238,6 +239,9 @@ if (!supplierColumns.includes('delivery_fees')) {
 }
 if (!supplierColumns.includes('public_access')) {
   db.exec("ALTER TABLE suppliers ADD COLUMN public_access TEXT");
+}
+if (!supplierColumns.includes('updated_at')) {
+  db.exec("ALTER TABLE suppliers ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))");
 }
 
 // Migration: add status and admin_reply columns to contact_messages if missing

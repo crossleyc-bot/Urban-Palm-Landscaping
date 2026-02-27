@@ -262,6 +262,10 @@ export default function ManageSuppliers() {
                       <span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Notes:</span> {s.notes}
                     </div>
                   )}
+                  <div style={{ gridColumn: '1 / -1', paddingTop: '0.5rem', borderTop: '1px solid var(--color-border)', fontSize: '0.8rem', color: 'var(--color-text-muted)', display: 'flex', gap: '1.5rem' }}>
+                    {s.created_at && <span>Created: {new Date(s.created_at + 'Z').toLocaleDateString()}</span>}
+                    {s.updated_at && <span>Last Updated: {new Date(s.updated_at + 'Z').toLocaleString()}</span>}
+                  </div>
                 </div>
               )}
             </div>

@@ -483,7 +483,7 @@ app.put('/api/suppliers/:id', (req, res) => {
   if (!name) return res.status(400).json({ error: 'Supplier name is required' });
 
   const result = db.prepare(
-    'UPDATE suppliers SET name = ?, contact_name = ?, email = ?, phone = ?, address = ?, website = ?, operating_hours = ?, delivery_info = ?, delivery_fees = ?, public_access = ?, notes = ?, status = ? WHERE id = ?'
+    'UPDATE suppliers SET name = ?, contact_name = ?, email = ?, phone = ?, address = ?, website = ?, operating_hours = ?, delivery_info = ?, delivery_fees = ?, public_access = ?, notes = ?, status = ?, updated_at = datetime(\'now\') WHERE id = ?'
   ).run(name, contact_name || null, email || null, phone || null, address || null, website || null, operating_hours || null, delivery_info || null, delivery_fees || null, public_access || null, notes || null, status || 'Active', id);
   if (result.changes === 0) return res.status(404).json({ error: 'Supplier not found' });
 
