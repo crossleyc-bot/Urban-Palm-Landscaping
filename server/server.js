@@ -5,13 +5,14 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, join, extname } from 'path';
 import { existsSync, mkdirSync, unlinkSync } from 'fs';
+import XLSX from 'xlsx';
 import db from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Ensure upload directories exist
-const uploadDirs = ['employees', 'services', 'inventory', 'categories'];
+const uploadDirs = ['employees', 'services', 'inventory', 'categories', 'imports'];
 for (const dir of uploadDirs) {
   const p = join(__dirname, 'uploads', dir);
   if (!existsSync(p)) mkdirSync(p, { recursive: true });
@@ -27,7 +28,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.csv', '.xlsx', '.xls'];
     cb(null, allowed.includes(extname(file.originalname).toLowerCase()));
   },
 });
@@ -496,6 +497,83 @@ app.delete('/api/suppliers/:id', (req, res) => {
   if (result.changes === 0) return res.status(404).json({ error: 'Supplier not found' });
 
   res.json({ success: true });
+});
+
+app.delete('/api/suppliers', (req, res) => {
+  // Delete all inventory images first
+  const images = db.prepare('SELECT image FROM supplier_inventory WHERE image IS NOT NULL').all();
+  for (const row of images) {
+    if (row.image) { try { unlinkSync(join(__dirname, row.image.replace(/^\//, ''))); } catch { /* ignore */ } }
+  }
+  db.prepare('DELETE FROM supplier_inventory').run();
+  db.prepare('DELETE FROM suppliers').run();
+  res.json({ success: true });
+});
+
+const supplierImportUpload = (req, _res, next) => { req.uploadDir = 'imports'; next(); };
+
+app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'File is required' });
+
+  try {
+    const workbook = XLSX.readFile(req.file.path);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+    if (rows.length === 0) {
+      unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'File contains no data rows' });
+    }
+
+    // Normalize column headers (lowercase, trim, map common aliases)
+    const normalize = (key) => {
+      const k = String(key).trim().toLowerCase().replace(/[\s_-]+/g, '_');
+      const aliases = {
+        company: 'name', company_name: 'name', supplier: 'name', supplier_name: 'name',
+        contact: 'contact_name', contact_person: 'contact_name',
+        phone_number: 'phone', telephone: 'phone',
+        email_address: 'email',
+        site: 'website', url: 'website', web: 'website',
+        note: 'notes', comment: 'notes', comments: 'notes',
+      };
+      return aliases[k] || k;
+    };
+
+    const insert = db.prepare(
+      'INSERT INTO suppliers (name, contact_name, email, phone, address, website, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+
+    let imported = 0;
+    let skipped = 0;
+    const insertMany = db.transaction((data) => {
+      for (const raw of data) {
+        const row = {};
+        for (const [key, val] of Object.entries(raw)) {
+          row[normalize(key)] = String(val).trim();
+        }
+        if (!row.name) { skipped++; continue; }
+        insert.run(
+          row.name,
+          row.contact_name || null,
+          row.email || null,
+          row.phone || null,
+          row.address || null,
+          row.website || null,
+          row.notes || null,
+          row.status || 'Active'
+        );
+        imported++;
+      }
+    });
+
+    insertMany(rows);
+    unlinkSync(req.file.path);
+
+    res.json({ success: true, imported, skipped });
+  } catch (err) {
+    if (req.file?.path) { try { unlinkSync(req.file.path); } catch { /* ignore */ } }
+    res.status(400).json({ error: 'Failed to parse file. Ensure it is a valid CSV or Excel file.' });
+  }
 });
 
 // ─── Supplier Inventory ─────────────────────────────────────────────────────
