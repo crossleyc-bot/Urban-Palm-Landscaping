@@ -72,6 +72,36 @@ app.post('/api/auth/register', (req, res) => {
   res.status(201).json({ id: result.lastInsertRowid, email, name, role: role || 'customer' });
 });
 
+// ─── Site Settings ──────────────────────────────────────────────────────────
+
+app.get('/api/settings', (req, res) => {
+  const rows = db.prepare('SELECT key, value FROM site_settings').all();
+  const settings = {};
+  for (const r of rows) settings[r.key] = r.value;
+  res.json(settings);
+});
+
+app.get('/api/settings/:key', (req, res) => {
+  const row = db.prepare('SELECT value FROM site_settings WHERE key = ?').get(req.params.key);
+  res.json({ value: row ? row.value : null });
+});
+
+app.put('/api/settings', (req, res) => {
+  const entries = req.body;
+  if (!entries || typeof entries !== 'object') return res.status(400).json({ error: 'Invalid settings data' });
+
+  const upsert = db.prepare(
+    "INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')"
+  );
+  const updateMany = db.transaction((data) => {
+    for (const [key, value] of Object.entries(data)) {
+      upsert.run(key, value ?? null);
+    }
+  });
+  updateMany(entries);
+  res.json({ success: true });
+});
+
 // ─── Services ────────────────────────────────────────────────────────────────
 
 const serviceUpload = (req, _res, next) => { req.uploadDir = 'services'; next(); };
