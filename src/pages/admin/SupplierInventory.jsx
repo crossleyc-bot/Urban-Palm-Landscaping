@@ -221,6 +221,7 @@ export default function SupplierInventory() {
           <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setImageFile(e.target.files[0] || null)} />
         </div>
       </td>
+      <td></td>
       <td>
         <div style={{ display: 'flex', gap: '0.25rem' }}>
           <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving || !form.supplier_id || !form.item_name.trim()}>{saveLabel}</button>
@@ -303,13 +304,14 @@ export default function SupplierInventory() {
                 <SortableHeader label="Qty" field="qty_available" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th>Reorder</th>
                 <th>Image</th>
+                <SortableHeader label="Updated" field="updated_at" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th style={{ width: '140px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginated.length === 0 && !adding ? (
                 <tr>
-                  <td colSpan="11">
+                  <td colSpan="12">
                     <EmptyState icon="&#128230;" title="No inventory items" message={suppliers.length === 0 ? 'Add a supplier first, then add inventory items.' : 'Add your first inventory item to get started.'} />
                   </td>
                 </tr>
@@ -338,6 +340,9 @@ export default function SupplierInventory() {
                             ) : (
                               <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>{'\u2014'}</span>
                             )}
+                          </td>
+                          <td style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                            {item.updated_at ? new Date(item.updated_at + 'Z').toLocaleDateString() : '\u2014'}
                           </td>
                           <td>
                             <div style={{ display: 'flex', gap: '0.25rem' }}>
