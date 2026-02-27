@@ -5,7 +5,7 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, join, extname } from 'path';
 import { existsSync, mkdirSync, unlinkSync } from 'fs';
-import XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 import db from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
