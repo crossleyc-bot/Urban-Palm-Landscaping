@@ -3,9 +3,11 @@ import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 import { dirname, join, extname } from 'path';
 import { existsSync, mkdirSync, unlinkSync } from 'fs';
-import * as XLSX from 'xlsx';
+const require = createRequire(import.meta.url);
+const XLSX = require('xlsx');
 import db from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
