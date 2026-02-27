@@ -131,6 +131,10 @@ db.exec(`
     phone TEXT,
     address TEXT,
     website TEXT,
+    operating_hours TEXT,
+    delivery_info TEXT,
+    delivery_fees TEXT,
+    public_access TEXT,
     notes TEXT,
     status TEXT NOT NULL DEFAULT 'Active',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -219,6 +223,21 @@ if (!invColumns.includes('retail_cost')) {
 // Migration: add category_id to supplier_inventory if missing
 if (!invColumns.includes('category_id')) {
   db.exec("ALTER TABLE supplier_inventory ADD COLUMN category_id INTEGER REFERENCES product_categories(id)");
+}
+
+// Migration: add new description columns to suppliers if missing
+const supplierColumns = db.prepare("PRAGMA table_info(suppliers)").all().map(c => c.name);
+if (!supplierColumns.includes('operating_hours')) {
+  db.exec("ALTER TABLE suppliers ADD COLUMN operating_hours TEXT");
+}
+if (!supplierColumns.includes('delivery_info')) {
+  db.exec("ALTER TABLE suppliers ADD COLUMN delivery_info TEXT");
+}
+if (!supplierColumns.includes('delivery_fees')) {
+  db.exec("ALTER TABLE suppliers ADD COLUMN delivery_fees TEXT");
+}
+if (!supplierColumns.includes('public_access')) {
+  db.exec("ALTER TABLE suppliers ADD COLUMN public_access TEXT");
 }
 
 // Migration: add status and admin_reply columns to contact_messages if missing

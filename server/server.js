@@ -467,24 +467,24 @@ app.get('/api/suppliers', (req, res) => {
 });
 
 app.post('/api/suppliers', (req, res) => {
-  const { name, contact_name, email, phone, address, website, notes, status } = req.body;
+  const { name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status } = req.body;
   if (!name) return res.status(400).json({ error: 'Supplier name is required' });
 
   const result = db.prepare(
-    'INSERT INTO suppliers (name, contact_name, email, phone, address, website, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(name, contact_name || null, email || null, phone || null, address || null, website || null, notes || null, status || 'Active');
+    'INSERT INTO suppliers (name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(name, contact_name || null, email || null, phone || null, address || null, website || null, operating_hours || null, delivery_info || null, delivery_fees || null, public_access || null, notes || null, status || 'Active');
 
-  res.status(201).json({ id: result.lastInsertRowid, name, contact_name, email, phone, address, website, notes, status: status || 'Active' });
+  res.status(201).json({ id: result.lastInsertRowid, name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status: status || 'Active' });
 });
 
 app.put('/api/suppliers/:id', (req, res) => {
   const { id } = req.params;
-  const { name, contact_name, email, phone, address, website, notes, status } = req.body;
+  const { name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status } = req.body;
   if (!name) return res.status(400).json({ error: 'Supplier name is required' });
 
   const result = db.prepare(
-    'UPDATE suppliers SET name = ?, contact_name = ?, email = ?, phone = ?, address = ?, website = ?, notes = ?, status = ? WHERE id = ?'
-  ).run(name, contact_name || null, email || null, phone || null, address || null, website || null, notes || null, status || 'Active', id);
+    'UPDATE suppliers SET name = ?, contact_name = ?, email = ?, phone = ?, address = ?, website = ?, operating_hours = ?, delivery_info = ?, delivery_fees = ?, public_access = ?, notes = ?, status = ? WHERE id = ?'
+  ).run(name, contact_name || null, email || null, phone || null, address || null, website || null, operating_hours || null, delivery_info || null, delivery_fees || null, public_access || null, notes || null, status || 'Active', id);
   if (result.changes === 0) return res.status(404).json({ error: 'Supplier not found' });
 
   res.json({ success: true });
@@ -561,13 +561,17 @@ app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (
         phone_number: 'phone', telephone: 'phone',
         email_address: 'email',
         site: 'website', url: 'website', web: 'website',
+        hours: 'operating_hours', business_hours: 'operating_hours', open_hours: 'operating_hours',
+        delivery: 'delivery_info', delivery_description: 'delivery_info', delivery_details: 'delivery_info',
+        fees: 'delivery_fees', delivery_cost: 'delivery_fees', shipping_fees: 'delivery_fees',
+        access: 'public_access', public: 'public_access', walk_in: 'public_access', walkin: 'public_access',
         note: 'notes', comment: 'notes', comments: 'notes',
       };
       return aliases[k] || k;
     };
 
     const insert = db.prepare(
-      'INSERT INTO suppliers (name, contact_name, email, phone, address, website, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO suppliers (name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
 
     let imported = 0;
@@ -586,6 +590,10 @@ app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (
           row.phone || null,
           row.address || null,
           row.website || null,
+          row.operating_hours || null,
+          row.delivery_info || null,
+          row.delivery_fees || null,
+          row.public_access || null,
           row.notes || null,
           row.status || 'Active'
         );
