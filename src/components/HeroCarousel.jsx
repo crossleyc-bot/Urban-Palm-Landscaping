@@ -20,7 +20,7 @@ const slides = [
     headline: "Transform Your Backyard Into a Living Masterpiece",
     subtext: "Custom design, expert installation, and reliable delivery for Central Florida homes.",
     cta: { label: "Get Free Consultation", to: "/contact" },
-    ctaSecondary: { label: "View Portfolio", to: "/services" },
+    ctaSecondary: { label: "View Portfolio", to: "/portfolio" },
   },
   {
     image: afterImages[1],
