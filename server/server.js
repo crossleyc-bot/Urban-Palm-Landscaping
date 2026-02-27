@@ -3,11 +3,8 @@ import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
 import { dirname, join, extname } from 'path';
-import { existsSync, mkdirSync, unlinkSync } from 'fs';
-const require = createRequire(import.meta.url);
-const XLSX = require('xlsx');
+import { existsSync, mkdirSync, unlinkSync, readFileSync } from 'fs';
 import db from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -30,7 +27,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.csv', '.xlsx', '.xls'];
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.csv'];
     cb(null, allowed.includes(extname(file.originalname).toLowerCase()));
   },
 });
@@ -518,13 +515,41 @@ app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (
   if (!req.file) return res.status(400).json({ error: 'File is required' });
 
   try {
-    const workbook = XLSX.readFile(req.file.path);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-    if (rows.length === 0) {
+    const raw = readFileSync(req.file.path, 'utf-8');
+    const lines = raw.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) {
       unlinkSync(req.file.path);
       return res.status(400).json({ error: 'File contains no data rows' });
+    }
+
+    // Simple CSV parser that handles quoted fields
+    const parseCSVLine = (line) => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+          if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
+          else if (ch === '"') { inQuotes = false; }
+          else { current += ch; }
+        } else {
+          if (ch === '"') { inQuotes = true; }
+          else if (ch === ',') { result.push(current.trim()); current = ''; }
+          else { current += ch; }
+        }
+      }
+      result.push(current.trim());
+      return result;
+    };
+
+    const headers = parseCSVLine(lines[0]);
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      const obj = {};
+      headers.forEach((h, idx) => { obj[h] = values[idx] || ''; });
+      rows.push(obj);
     }
 
     // Normalize column headers (lowercase, trim, map common aliases)
@@ -574,7 +599,7 @@ app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (
     res.json({ success: true, imported, skipped });
   } catch (err) {
     if (req.file?.path) { try { unlinkSync(req.file.path); } catch { /* ignore */ } }
-    res.status(400).json({ error: 'Failed to parse file. Ensure it is a valid CSV or Excel file.' });
+    res.status(400).json({ error: 'Failed to parse file. Ensure it is a valid CSV file.' });
   }
 });
 

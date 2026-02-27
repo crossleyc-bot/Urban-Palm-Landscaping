@@ -161,12 +161,12 @@ export default function ManageSuppliers() {
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button className="btn btn-primary" onClick={startAdd}>+ Add Supplier</button>
             <button className="btn btn-outline" onClick={() => fileRef.current?.click()} disabled={importing}>
-              {importing ? 'Importing...' : 'Import CSV/Excel'}
+              {importing ? 'Importing...' : 'Import CSV'}
             </button>
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv"
               onChange={handleImport}
               style={{ display: 'none' }}
             />
@@ -201,9 +201,9 @@ export default function ManageSuppliers() {
 
       {/* Import Instructions */}
       <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
-        <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>Bulk Import</div>
+        <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>CSV Import</div>
         <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-          Upload a CSV or Excel file with columns: <strong>name</strong> (required), contact_name, email, phone, address, website, notes, status.
+          Upload a CSV file with columns: <strong>name</strong> (required), contact_name, email, phone, address, website, notes, status.
           Column headers are flexible (e.g., "Company Name", "Contact Person", "Phone Number" all work).
         </p>
       </div>
@@ -213,7 +213,7 @@ export default function ManageSuppliers() {
 
       {suppliers.length === 0 && !adding ? (
         <div className="card">
-          <EmptyState icon="&#128230;" title="No suppliers yet" message="Add your first supplier or import from a CSV/Excel file." />
+          <EmptyState icon="&#128230;" title="No suppliers yet" message="Add your first supplier or import from a CSV file." />
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
