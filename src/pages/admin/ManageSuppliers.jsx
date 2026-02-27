@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { apiGet, apiPost, apiPut, apiDelete } from '../../api';
+import { useState, useEffect, useRef } from 'react';
+import { apiGet, apiPost, apiPut, apiDelete, apiPostForm } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
@@ -15,6 +15,9 @@ export default function ManageSuppliers() {
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const fileRef = useRef();
 
   useEffect(() => {
     apiGet('/suppliers').then(setSuppliers).finally(() => setLoading(false));
@@ -69,6 +72,34 @@ export default function ManageSuppliers() {
       setSuppliers(prev => prev.filter(s => s.id !== id));
       addToast('Supplier deleted', 'success');
     } catch { addToast('Failed to delete supplier', 'error'); }
+  };
+
+  const handleImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const result = await apiPostForm('/suppliers/import', fd);
+      addToast(`Imported ${result.imported} supplier${result.imported !== 1 ? 's' : ''}${result.skipped ? ` (${result.skipped} skipped)` : ''}`, 'success');
+      const updated = await apiGet('/suppliers');
+      setSuppliers(updated);
+    } catch (err) {
+      addToast(err.message || 'Import failed', 'error');
+    } finally {
+      setImporting(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      await apiDelete('/suppliers');
+      setSuppliers([]);
+      setConfirmDeleteAll(false);
+      addToast('All suppliers removed', 'success');
+    } catch { addToast('Failed to remove suppliers', 'error'); }
   };
 
   if (loading) {
@@ -127,8 +158,54 @@ export default function ManageSuppliers() {
           <p>Manage your material and plant suppliers.</p>
         </div>
         {!adding && !editing && (
-          <button className="btn btn-primary" onClick={startAdd}>+ Add Supplier</button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" onClick={startAdd}>+ Add Supplier</button>
+            <button className="btn btn-outline" onClick={() => fileRef.current?.click()} disabled={importing}>
+              {importing ? 'Importing...' : 'Import CSV/Excel'}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={handleImport}
+              style={{ display: 'none' }}
+            />
+            {suppliers.length > 0 && (
+              <button
+                className="btn btn-outline"
+                style={{ color: '#dc2626', borderColor: '#fca5a5' }}
+                onClick={() => setConfirmDeleteAll(true)}
+              >
+                Remove All
+              </button>
+            )}
+          </div>
         )}
+      </div>
+
+      {/* Delete All Confirmation */}
+      {confirmDeleteAll && (
+        <div className="card" style={{ marginBottom: '1rem', padding: '1.25rem', border: '1px solid #fca5a5', background: 'rgba(220, 38, 38, 0.04)' }}>
+          <div style={{ fontWeight: 600, color: '#dc2626', marginBottom: '0.5rem' }}>Remove All Suppliers?</div>
+          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+            This will permanently delete all {suppliers.length} supplier{suppliers.length !== 1 ? 's' : ''} and their associated inventory items. This action cannot be undone.
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} onClick={handleDeleteAll}>
+              Yes, Remove All
+            </button>
+            <button className="btn btn-outline" onClick={() => setConfirmDeleteAll(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Import Instructions */}
+      <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
+        <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>Bulk Import</div>
+        <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+          Upload a CSV or Excel file with columns: <strong>name</strong> (required), contact_name, email, phone, address, website, notes, status.
+          Column headers are flexible (e.g., "Company Name", "Contact Person", "Phone Number" all work).
+        </p>
       </div>
 
       {adding && renderForm(saveNew, 'Add')}
@@ -136,7 +213,7 @@ export default function ManageSuppliers() {
 
       {suppliers.length === 0 && !adding ? (
         <div className="card">
-          <EmptyState icon="&#128230;" title="No suppliers yet" message="Add your first supplier to get started." />
+          <EmptyState icon="&#128230;" title="No suppliers yet" message="Add your first supplier or import from a CSV/Excel file." />
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
