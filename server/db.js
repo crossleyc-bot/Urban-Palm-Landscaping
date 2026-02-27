@@ -154,6 +154,7 @@ db.exec(`
     reorder_point INTEGER DEFAULT 0,
     notes TEXT,
     image TEXT,
+    available INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -225,6 +226,9 @@ if (!invColumns.includes('retail_cost')) {
 if (!invColumns.includes('category_id')) {
   db.exec("ALTER TABLE supplier_inventory ADD COLUMN category_id INTEGER REFERENCES product_categories(id)");
 }
+if (!invColumns.includes('available')) {
+  db.exec("ALTER TABLE supplier_inventory ADD COLUMN available INTEGER NOT NULL DEFAULT 0");
+}
 
 // Migration: add new description columns to suppliers if missing
 const supplierColumns = db.prepare("PRAGMA table_info(suppliers)").all().map(c => c.name);
@@ -241,7 +245,8 @@ if (!supplierColumns.includes('public_access')) {
   db.exec("ALTER TABLE suppliers ADD COLUMN public_access TEXT");
 }
 if (!supplierColumns.includes('updated_at')) {
-  db.exec("ALTER TABLE suppliers ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))");
+  db.exec("ALTER TABLE suppliers ADD COLUMN updated_at TEXT");
+  db.exec("UPDATE suppliers SET updated_at = datetime('now') WHERE updated_at IS NULL");
 }
 
 // Migration: add status and admin_reply columns to contact_messages if missing
