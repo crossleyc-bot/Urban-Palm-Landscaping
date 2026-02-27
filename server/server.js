@@ -646,6 +646,117 @@ app.post('/api/inventory', inventoryUpload, upload.single('image'), (req, res) =
   res.status(201).json({ id: result.lastInsertRowid, supplier_id: Number(supplier_id), item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qty_available ?? 0, reorder_point: reorder_point ?? 0, notes, image });
 });
 
+const inventoryImportUpload = (req, _res, next) => { req.uploadDir = 'imports'; next(); };
+
+app.post('/api/inventory/import', inventoryImportUpload, upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'File is required' });
+
+  try {
+    const raw = readFileSync(req.file.path, 'utf-8');
+    const lines = raw.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) {
+      unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'File contains no data rows' });
+    }
+
+    const parseCSVLine = (line) => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+          if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
+          else if (ch === '"') { inQuotes = false; }
+          else { current += ch; }
+        } else {
+          if (ch === '"') { inQuotes = true; }
+          else if (ch === ',') { result.push(current.trim()); current = ''; }
+          else { current += ch; }
+        }
+      }
+      result.push(current.trim());
+      return result;
+    };
+
+    const headers = parseCSVLine(lines[0]);
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      const obj = {};
+      headers.forEach((h, idx) => { obj[h] = values[idx] || ''; });
+      rows.push(obj);
+    }
+
+    const normalize = (key) => {
+      const k = String(key).trim().toLowerCase().replace(/[\s_-]+/g, '_');
+      const aliases = {
+        supplier: 'supplier_name', supplier_id: 'supplier_name', company: 'supplier_name', company_name: 'supplier_name',
+        item: 'item_name', name: 'item_name', product: 'item_name', product_name: 'item_name',
+        wholesale: 'unit_cost', wholesale_cost: 'unit_cost', cost: 'unit_cost', price: 'unit_cost',
+        retail: 'retail_cost', retail_price: 'retail_cost', sell_price: 'retail_cost',
+        qty: 'qty_available', quantity: 'qty_available', stock: 'qty_available', in_stock: 'qty_available',
+        reorder: 'reorder_point', min_stock: 'reorder_point', reorder_level: 'reorder_point',
+        note: 'notes', comment: 'notes', comments: 'notes', description: 'notes',
+      };
+      return aliases[k] || k;
+    };
+
+    // Build a map of supplier names (case-insensitive) to IDs
+    const allSuppliers = db.prepare('SELECT id, name FROM suppliers').all();
+    const supplierMap = {};
+    for (const s of allSuppliers) {
+      supplierMap[s.name.toLowerCase().trim()] = s.id;
+    }
+
+    const insert = db.prepare(
+      'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, unit, unit_cost, retail_cost, qty_available, reorder_point, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+
+    let imported = 0;
+    let skipped = 0;
+    const skippedReasons = [];
+    const insertMany = db.transaction((data) => {
+      for (const rawRow of data) {
+        const row = {};
+        for (const [key, val] of Object.entries(rawRow)) {
+          row[normalize(key)] = String(val).trim();
+        }
+        if (!row.item_name) { skipped++; skippedReasons.push('Missing item name'); continue; }
+        if (!row.supplier_name) { skipped++; skippedReasons.push(`"${row.item_name}" — missing supplier`); continue; }
+
+        const supplierId = supplierMap[row.supplier_name.toLowerCase().trim()];
+        if (!supplierId) { skipped++; skippedReasons.push(`"${row.item_name}" — supplier "${row.supplier_name}" not found`); continue; }
+
+        const wholesale = row.unit_cost ? Number(row.unit_cost) : null;
+        const retail = row.retail_cost ? Number(row.retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
+
+        insert.run(
+          supplierId,
+          row.item_name,
+          row.sku || null,
+          row.category || null,
+          row.unit || null,
+          wholesale,
+          retail,
+          row.qty_available ? Number(row.qty_available) : 0,
+          row.reorder_point ? Number(row.reorder_point) : 0,
+          row.notes || null
+        );
+        imported++;
+      }
+    });
+
+    insertMany(rows);
+    unlinkSync(req.file.path);
+
+    res.json({ success: true, imported, skipped, skippedReasons: skippedReasons.slice(0, 10) });
+  } catch (err) {
+    if (req.file?.path) { try { unlinkSync(req.file.path); } catch { /* ignore */ } }
+    res.status(400).json({ error: 'Failed to parse file. Ensure it is a valid CSV file.' });
+  }
+});
+
 app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res) => {
   const { id } = req.params;
   const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes } = req.body;
