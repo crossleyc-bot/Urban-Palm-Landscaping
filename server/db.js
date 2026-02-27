@@ -241,7 +241,8 @@ if (!supplierColumns.includes('public_access')) {
   db.exec("ALTER TABLE suppliers ADD COLUMN public_access TEXT");
 }
 if (!supplierColumns.includes('updated_at')) {
-  db.exec("ALTER TABLE suppliers ADD COLUMN updated_at TEXT NOT NULL DEFAULT (datetime('now'))");
+  db.exec("ALTER TABLE suppliers ADD COLUMN updated_at TEXT");
+  db.exec("UPDATE suppliers SET updated_at = datetime('now') WHERE updated_at IS NULL");
 }
 
 // Migration: add status and admin_reply columns to contact_messages if missing
