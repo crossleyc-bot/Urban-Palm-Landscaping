@@ -4,7 +4,7 @@ import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
 
-const emptyForm = { name: '', contact_name: '', email: '', phone: '', address: '', website: '', notes: '', status: 'Active' };
+const emptyForm = { name: '', contact_name: '', email: '', phone: '', address: '', website: '', operating_hours: '', delivery_info: '', delivery_fees: '', public_access: '', notes: '', status: 'Active' };
 
 export default function ManageSuppliers() {
   const { addToast } = useToast();
@@ -29,6 +29,8 @@ export default function ManageSuppliers() {
     setForm({
       name: s.name, contact_name: s.contact_name || '', email: s.email || '',
       phone: s.phone || '', address: s.address || '', website: s.website || '',
+      operating_hours: s.operating_hours || '', delivery_info: s.delivery_info || '',
+      delivery_fees: s.delivery_fees || '', public_access: s.public_access || '',
       notes: s.notes || '', status: s.status,
     });
   };
@@ -132,6 +134,7 @@ export default function ManageSuppliers() {
         <Field label="Phone" field="phone" placeholder="(555) 000-0000" />
         <Field label="Address" field="address" placeholder="123 Main St, Orlando, FL" />
         <Field label="Website" field="website" placeholder="https://supplier.com" />
+        <Field label="Operating Hours" field="operating_hours" placeholder="Mon-Fri 7am-5pm, Sat 8am-12pm" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Status</label>
           <select className="table-select" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
@@ -140,8 +143,13 @@ export default function ManageSuppliers() {
           </select>
         </div>
       </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem', marginTop: '0.75rem' }}>
+        <Field label="Delivery" field="delivery_info" placeholder="Same-day delivery, Tue/Thu only, etc." />
+        <Field label="Delivery Fees" field="delivery_fees" placeholder="Free over $500, $75 flat rate, etc." />
+        <Field label="Public Access" field="public_access" placeholder="Open to public, contractors only, etc." />
+      </div>
       <div style={{ marginTop: '0.75rem' }}>
-        <Field label="Notes" field="notes" placeholder="Payment terms, delivery schedule, etc." type="textarea" />
+        <Field label="Notes" field="notes" placeholder="Payment terms, special arrangements, etc." type="textarea" />
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
         <button className="btn btn-primary" onClick={onSave} disabled={saving || !form.name.trim()}>{label}</button>
@@ -161,12 +169,12 @@ export default function ManageSuppliers() {
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button className="btn btn-primary" onClick={startAdd}>+ Add Supplier</button>
             <button className="btn btn-outline" onClick={() => fileRef.current?.click()} disabled={importing}>
-              {importing ? 'Importing...' : 'Import CSV/Excel'}
+              {importing ? 'Importing...' : 'Import CSV'}
             </button>
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv"
               onChange={handleImport}
               style={{ display: 'none' }}
             />
@@ -201,10 +209,10 @@ export default function ManageSuppliers() {
 
       {/* Import Instructions */}
       <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
-        <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>Bulk Import</div>
+        <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>CSV Import</div>
         <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-          Upload a CSV or Excel file with columns: <strong>name</strong> (required), contact_name, email, phone, address, website, notes, status.
-          Column headers are flexible (e.g., "Company Name", "Contact Person", "Phone Number" all work).
+          Upload a CSV file with columns: <strong>name</strong> (required), contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status.
+          Column headers are flexible (e.g., "Company Name", "Contact Person", "Phone Number", "Business Hours", "Delivery", "Fees", "Public Access" all work).
         </p>
       </div>
 
@@ -213,7 +221,7 @@ export default function ManageSuppliers() {
 
       {suppliers.length === 0 && !adding ? (
         <div className="card">
-          <EmptyState icon="&#128230;" title="No suppliers yet" message="Add your first supplier or import from a CSV/Excel file." />
+          <EmptyState icon="&#128230;" title="No suppliers yet" message="Add your first supplier or import from a CSV file." />
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -245,6 +253,10 @@ export default function ManageSuppliers() {
                   <div><span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Phone:</span> {s.phone || '\u2014'}</div>
                   <div><span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Address:</span> {s.address || '\u2014'}</div>
                   <div><span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Website:</span> {s.website ? <a href={s.website} target="_blank" rel="noreferrer">{s.website}</a> : '\u2014'}</div>
+                  <div><span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Operating Hours:</span> {s.operating_hours || '\u2014'}</div>
+                  <div><span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Delivery:</span> {s.delivery_info || '\u2014'}</div>
+                  <div><span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Delivery Fees:</span> {s.delivery_fees || '\u2014'}</div>
+                  <div><span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Public Access:</span> {s.public_access || '\u2014'}</div>
                   {s.notes && (
                     <div style={{ gridColumn: '1 / -1' }}>
                       <span style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>Notes:</span> {s.notes}

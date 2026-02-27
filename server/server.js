@@ -4,8 +4,7 @@ import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, join, extname } from 'path';
-import { existsSync, mkdirSync, unlinkSync } from 'fs';
-import XLSX from 'xlsx';
+import { existsSync, mkdirSync, unlinkSync, readFileSync } from 'fs';
 import db from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -28,7 +27,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.csv', '.xlsx', '.xls'];
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.csv'];
     cb(null, allowed.includes(extname(file.originalname).toLowerCase()));
   },
 });
@@ -468,24 +467,24 @@ app.get('/api/suppliers', (req, res) => {
 });
 
 app.post('/api/suppliers', (req, res) => {
-  const { name, contact_name, email, phone, address, website, notes, status } = req.body;
+  const { name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status } = req.body;
   if (!name) return res.status(400).json({ error: 'Supplier name is required' });
 
   const result = db.prepare(
-    'INSERT INTO suppliers (name, contact_name, email, phone, address, website, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(name, contact_name || null, email || null, phone || null, address || null, website || null, notes || null, status || 'Active');
+    'INSERT INTO suppliers (name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(name, contact_name || null, email || null, phone || null, address || null, website || null, operating_hours || null, delivery_info || null, delivery_fees || null, public_access || null, notes || null, status || 'Active');
 
-  res.status(201).json({ id: result.lastInsertRowid, name, contact_name, email, phone, address, website, notes, status: status || 'Active' });
+  res.status(201).json({ id: result.lastInsertRowid, name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status: status || 'Active' });
 });
 
 app.put('/api/suppliers/:id', (req, res) => {
   const { id } = req.params;
-  const { name, contact_name, email, phone, address, website, notes, status } = req.body;
+  const { name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status } = req.body;
   if (!name) return res.status(400).json({ error: 'Supplier name is required' });
 
   const result = db.prepare(
-    'UPDATE suppliers SET name = ?, contact_name = ?, email = ?, phone = ?, address = ?, website = ?, notes = ?, status = ? WHERE id = ?'
-  ).run(name, contact_name || null, email || null, phone || null, address || null, website || null, notes || null, status || 'Active', id);
+    'UPDATE suppliers SET name = ?, contact_name = ?, email = ?, phone = ?, address = ?, website = ?, operating_hours = ?, delivery_info = ?, delivery_fees = ?, public_access = ?, notes = ?, status = ? WHERE id = ?'
+  ).run(name, contact_name || null, email || null, phone || null, address || null, website || null, operating_hours || null, delivery_info || null, delivery_fees || null, public_access || null, notes || null, status || 'Active', id);
   if (result.changes === 0) return res.status(404).json({ error: 'Supplier not found' });
 
   res.json({ success: true });
@@ -516,13 +515,41 @@ app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (
   if (!req.file) return res.status(400).json({ error: 'File is required' });
 
   try {
-    const workbook = XLSX.readFile(req.file.path);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-    if (rows.length === 0) {
+    const raw = readFileSync(req.file.path, 'utf-8');
+    const lines = raw.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) {
       unlinkSync(req.file.path);
       return res.status(400).json({ error: 'File contains no data rows' });
+    }
+
+    // Simple CSV parser that handles quoted fields
+    const parseCSVLine = (line) => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+          if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
+          else if (ch === '"') { inQuotes = false; }
+          else { current += ch; }
+        } else {
+          if (ch === '"') { inQuotes = true; }
+          else if (ch === ',') { result.push(current.trim()); current = ''; }
+          else { current += ch; }
+        }
+      }
+      result.push(current.trim());
+      return result;
+    };
+
+    const headers = parseCSVLine(lines[0]);
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      const obj = {};
+      headers.forEach((h, idx) => { obj[h] = values[idx] || ''; });
+      rows.push(obj);
     }
 
     // Normalize column headers (lowercase, trim, map common aliases)
@@ -534,13 +561,17 @@ app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (
         phone_number: 'phone', telephone: 'phone',
         email_address: 'email',
         site: 'website', url: 'website', web: 'website',
+        hours: 'operating_hours', business_hours: 'operating_hours', open_hours: 'operating_hours',
+        delivery: 'delivery_info', delivery_description: 'delivery_info', delivery_details: 'delivery_info',
+        fees: 'delivery_fees', delivery_cost: 'delivery_fees', shipping_fees: 'delivery_fees',
+        access: 'public_access', public: 'public_access', walk_in: 'public_access', walkin: 'public_access',
         note: 'notes', comment: 'notes', comments: 'notes',
       };
       return aliases[k] || k;
     };
 
     const insert = db.prepare(
-      'INSERT INTO suppliers (name, contact_name, email, phone, address, website, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO suppliers (name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
 
     let imported = 0;
@@ -559,6 +590,10 @@ app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (
           row.phone || null,
           row.address || null,
           row.website || null,
+          row.operating_hours || null,
+          row.delivery_info || null,
+          row.delivery_fees || null,
+          row.public_access || null,
           row.notes || null,
           row.status || 'Active'
         );
@@ -572,7 +607,7 @@ app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (
     res.json({ success: true, imported, skipped });
   } catch (err) {
     if (req.file?.path) { try { unlinkSync(req.file.path); } catch { /* ignore */ } }
-    res.status(400).json({ error: 'Failed to parse file. Ensure it is a valid CSV or Excel file.' });
+    res.status(400).json({ error: 'Failed to parse file. Ensure it is a valid CSV file.' });
   }
 });
 
