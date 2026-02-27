@@ -154,6 +154,7 @@ db.exec(`
     reorder_point INTEGER DEFAULT 0,
     notes TEXT,
     image TEXT,
+    available INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -224,6 +225,9 @@ if (!invColumns.includes('retail_cost')) {
 // Migration: add category_id to supplier_inventory if missing
 if (!invColumns.includes('category_id')) {
   db.exec("ALTER TABLE supplier_inventory ADD COLUMN category_id INTEGER REFERENCES product_categories(id)");
+}
+if (!invColumns.includes('available')) {
+  db.exec("ALTER TABLE supplier_inventory ADD COLUMN available INTEGER NOT NULL DEFAULT 0");
 }
 
 // Migration: add new description columns to suppliers if missing

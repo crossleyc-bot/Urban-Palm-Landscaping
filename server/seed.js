@@ -190,41 +190,41 @@ const suppliers = [
 for (const s of suppliers) insertSupplier.run(...s);
 
 // ─── Supplier Inventory ─────────────────────────────────────────────────────
-const insertInventory = db.prepare('INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, unit, unit_cost, retail_cost, qty_available, reorder_point, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+const insertInventory = db.prepare('INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
 const inventory = [
-  // Green World Nursery                                         wholesale  retail
-  [1, 'Foxtail Palm (10 gal)', 'GW-FP10', 'Trees', 'each',      85.00, 127.50, 24, 5, null],
-  [1, 'Croton Gold Dust (3 gal)', 'GW-CG3', 'Plants', 'each',   12.50,  18.75, 60, 10, null],
-  [1, 'Jasmine Confederate (1 gal)', 'GW-JC1', 'Plants', 'each', 8.00,  12.00, 120, 20, 'Fragrant, popular for hedges'],
-  [1, 'Premium Mulch - Brown', 'GW-MBR', 'Mulch', 'cu yd',      35.00,  52.50, 40, 10, null],
-  [1, 'Pygmy Date Palm (7 gal)', 'GW-PDP7', 'Trees', 'each',    65.00,  97.50, 18, 5, 'Great for accent planting'],
-  [1, 'Ixora Nora Grant (3 gal)', 'GW-ING3', 'Plants', 'each',  14.00,  21.00, 45, 10, 'Red blooms year-round'],
-  [1, 'Bird of Paradise (7 gal)', 'GW-BOP7', 'Plants', 'each',  42.00,  63.00, 12, 3, 'Tropical statement plant'],
+  // Green World Nursery                                         wholesale  retail                                                   avail
+  [1, 'Foxtail Palm (10 gal)', 'GW-FP10', 'Trees', 'each',      85.00, 127.50, 24, 5, null,                                        1],
+  [1, 'Croton Gold Dust (3 gal)', 'GW-CG3', 'Plants', 'each',   12.50,  18.75, 60, 10, null,                                       1],
+  [1, 'Jasmine Confederate (1 gal)', 'GW-JC1', 'Plants', 'each', 8.00,  12.00, 120, 20, 'Fragrant, popular for hedges',             1],
+  [1, 'Premium Mulch - Brown', 'GW-MBR', 'Mulch', 'cu yd',      35.00,  52.50, 40, 10, null,                                        1],
+  [1, 'Pygmy Date Palm (7 gal)', 'GW-PDP7', 'Trees', 'each',    65.00,  97.50, 18, 5, 'Great for accent planting',                  1],
+  [1, 'Ixora Nora Grant (3 gal)', 'GW-ING3', 'Plants', 'each',  14.00,  21.00, 45, 10, 'Red blooms year-round',                     1],
+  [1, 'Bird of Paradise (7 gal)', 'GW-BOP7', 'Plants', 'each',  42.00,  63.00, 12, 3, 'Tropical statement plant',                   1],
   // SunState Sod Farm
-  [2, 'Floratam St. Augustine Sod', 'SS-FSA', 'Sod', 'pallet', 185.00, 277.50, 30, 5, '500 sq ft per pallet'],
-  [2, 'Bermuda Celebration Sod', 'SS-BCS', 'Sod', 'pallet',    210.00, 315.00, 15, 5, 'Full sun recommended'],
-  [2, 'Zoysia Empire Sod', 'SS-ZES', 'Sod', 'pallet',          225.00, 337.50, 8, 3, 'Shade tolerant'],
-  [2, 'Bahia Argentine Sod', 'SS-BAS', 'Sod', 'pallet',        160.00, 240.00, 20, 5, 'Drought tolerant, low maintenance'],
+  [2, 'Floratam St. Augustine Sod', 'SS-FSA', 'Sod', 'pallet', 185.00, 277.50, 30, 5, '500 sq ft per pallet',                       1],
+  [2, 'Bermuda Celebration Sod', 'SS-BCS', 'Sod', 'pallet',    210.00, 315.00, 15, 5, 'Full sun recommended',                        1],
+  [2, 'Zoysia Empire Sod', 'SS-ZES', 'Sod', 'pallet',          225.00, 337.50, 8, 3, 'Shade tolerant',                               1],
+  [2, 'Bahia Argentine Sod', 'SS-BAS', 'Sod', 'pallet',        160.00, 240.00, 20, 5, 'Drought tolerant, low maintenance',           1],
   // Rock Solid Supply
-  [3, 'Travertine Pavers 12x12', 'RS-TP12', 'Pavers', 'sq ft',   4.50,   6.75, 2000, 200, null],
-  [3, 'River Rock (1-3 in)', 'RS-RR3', 'Stone', 'ton',          65.00,  97.50, 12, 3, null],
-  [3, 'Retaining Wall Block', 'RS-RWB', 'Stone', 'each',         3.25,   4.88, 500, 100, null],
-  [3, 'Flagstone - Natural', 'RS-FN', 'Stone', 'sq ft',          6.75,  10.13, 800, 100, 'Irregular shapes, great for pathways'],
-  [3, 'Decomposed Granite', 'RS-DG', 'Stone', 'ton',            45.00,  67.50, 25, 5, 'Gray. Good for paths and fill.'],
-  [3, 'Fire Pit Kit - Round 42in', 'RS-FPK', 'Stone', 'each',  320.00, 480.00, 6, 2, 'Includes blocks, ring, and cap stones'],
+  [3, 'Travertine Pavers 12x12', 'RS-TP12', 'Pavers', 'sq ft',   4.50,   6.75, 2000, 200, null,                                     1],
+  [3, 'River Rock (1-3 in)', 'RS-RR3', 'Stone', 'ton',          65.00,  97.50, 12, 3, null,                                          1],
+  [3, 'Retaining Wall Block', 'RS-RWB', 'Stone', 'each',         3.25,   4.88, 500, 100, null,                                       1],
+  [3, 'Flagstone - Natural', 'RS-FN', 'Stone', 'sq ft',          6.75,  10.13, 800, 100, 'Irregular shapes, great for pathways',      1],
+  [3, 'Decomposed Granite', 'RS-DG', 'Stone', 'ton',            45.00,  67.50, 25, 5, 'Gray. Good for paths and fill.',               1],
+  [3, 'Fire Pit Kit - Round 42in', 'RS-FPK', 'Stone', 'each',  320.00, 480.00, 6, 2, 'Includes blocks, ring, and cap stones',        1],
   // BrightPath Lighting
-  [4, 'LED Path Light - Brass', 'BP-PLB', 'Lighting', 'each',   38.00,  57.00, 80, 15, 'Warm white 3000K, 12V'],
-  [4, 'LED Uplight - Adjustable', 'BP-ULA', 'Lighting', 'each', 52.00,  78.00, 40, 10, 'For tree and facade uplighting'],
-  [4, 'LED Deck Light - Recessed', 'BP-DLR', 'Lighting', 'each', 28.00, 42.00, 60, 10, 'Flush mount, stainless steel'],
-  [4, 'Smart Transformer 300W', 'BP-ST300', 'Lighting', 'each', 185.00, 277.50, 8, 2, 'WiFi enabled, dusk-to-dawn timer'],
-  [4, 'LED Flood Light - 20W', 'BP-FL20', 'Lighting', 'each',   65.00,  97.50, 20, 5, 'Security/accent, adjustable angle'],
+  [4, 'LED Path Light - Brass', 'BP-PLB', 'Lighting', 'each',   38.00,  57.00, 80, 15, 'Warm white 3000K, 12V',                      1],
+  [4, 'LED Uplight - Adjustable', 'BP-ULA', 'Lighting', 'each', 52.00,  78.00, 40, 10, 'For tree and facade uplighting',              1],
+  [4, 'LED Deck Light - Recessed', 'BP-DLR', 'Lighting', 'each', 28.00, 42.00, 60, 10, 'Flush mount, stainless steel',               1],
+  [4, 'Smart Transformer 300W', 'BP-ST300', 'Lighting', 'each', 185.00, 277.50, 8, 2, 'WiFi enabled, dusk-to-dawn timer',             1],
+  [4, 'LED Flood Light - 20W', 'BP-FL20', 'Lighting', 'each',   65.00,  97.50, 20, 5, 'Security/accent, adjustable angle',            1],
   // Central FL Irrigation Depot
-  [5, 'Rain Bird ESP-TM2 Controller', 'CF-RBTM2', 'Irrigation', 'each', 135.00, 202.50, 10, 3, '6-zone, WiFi smart controller'],
-  [5, 'Hunter PGP Ultra Rotor', 'CF-HPGP', 'Irrigation', 'each',  18.50, 27.75, 200, 30, '40-50 ft radius, adjustable arc'],
-  [5, 'Rain Bird 1804 Pop-Up Spray', 'CF-RB1804', 'Irrigation', 'each', 4.25, 6.38, 500, 50, '4-inch pop-up, multiple nozzles available'],
-  [5, 'Drip Tubing 1/2in - 100ft', 'CF-DT100', 'Irrigation', 'roll',  22.00, 33.00, 35, 8, 'For garden beds and planters'],
-  [5, 'PVC Pipe 3/4in - 10ft', 'CF-PVC34', 'Irrigation', 'each',   3.80,  5.70, 150, 25, 'Schedule 40, for main lines'],
-  [5, 'Valve Box - Standard', 'CF-VBS', 'Irrigation', 'each',     12.00, 18.00, 40, 10, 'Green lid, fits 2-4 valves'],
+  [5, 'Rain Bird ESP-TM2 Controller', 'CF-RBTM2', 'Irrigation', 'each', 135.00, 202.50, 10, 3, '6-zone, WiFi smart controller',      1],
+  [5, 'Hunter PGP Ultra Rotor', 'CF-HPGP', 'Irrigation', 'each',  18.50, 27.75, 200, 30, '40-50 ft radius, adjustable arc',          1],
+  [5, 'Rain Bird 1804 Pop-Up Spray', 'CF-RB1804', 'Irrigation', 'each', 4.25, 6.38, 500, 50, '4-inch pop-up, multiple nozzles available', 1],
+  [5, 'Drip Tubing 1/2in - 100ft', 'CF-DT100', 'Irrigation', 'roll',  22.00, 33.00, 35, 8, 'For garden beds and planters',           1],
+  [5, 'PVC Pipe 3/4in - 10ft', 'CF-PVC34', 'Irrigation', 'each',   3.80,  5.70, 150, 25, 'Schedule 40, for main lines',              1],
+  [5, 'Valve Box - Standard', 'CF-VBS', 'Irrigation', 'each',     12.00, 18.00, 40, 10, 'Green lid, fits 2-4 valves',                 1],
 ];
 for (const i of inventory) insertInventory.run(...i);
 

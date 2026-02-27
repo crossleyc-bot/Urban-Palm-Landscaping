@@ -215,6 +215,7 @@ export default function SupplierInventory() {
       <td><input className="table-input" type="number" min="0" step="0.01" value={form.retail_cost} onChange={e => setForm(f => ({ ...f, retail_cost: e.target.value }))} placeholder="auto" style={{ width: 80 }} /></td>
       <td><input className="table-input" type="number" min="0" value={form.qty_available} onChange={e => setForm(f => ({ ...f, qty_available: e.target.value }))} placeholder="0" style={{ width: 65 }} /></td>
       <td><input className="table-input" type="number" min="0" value={form.reorder_point} onChange={e => setForm(f => ({ ...f, reorder_point: e.target.value }))} placeholder="0" style={{ width: 65 }} /></td>
+      <td></td>
       <td>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           <button type="button" className="btn btn-outline btn-sm" onClick={() => fileRef.current?.click()} style={{ fontSize: '0.7rem' }}>{imageFile ? '1 file' : 'Photo'}</button>
@@ -303,6 +304,7 @@ export default function SupplierInventory() {
                 <SortableHeader label="Retail" field="retail_cost" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <SortableHeader label="Qty" field="qty_available" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th>Reorder</th>
+                <SortableHeader label="Available" field="available" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th>Image</th>
                 <SortableHeader label="Updated" field="updated_at" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th style={{ width: '140px' }}>Actions</th>
@@ -311,7 +313,7 @@ export default function SupplierInventory() {
             <tbody>
               {paginated.length === 0 && !adding ? (
                 <tr>
-                  <td colSpan="12">
+                  <td colSpan="13">
                     <EmptyState icon="&#128230;" title="No inventory items" message={suppliers.length === 0 ? 'Add a supplier first, then add inventory items.' : 'Add your first inventory item to get started.'} />
                   </td>
                 </tr>
@@ -334,6 +336,11 @@ export default function SupplierInventory() {
                             {item.qty_available ?? 0}
                           </td>
                           <td style={{ color: 'var(--color-text-muted)' }}>{item.reorder_point ?? 0}</td>
+                          <td>
+                            <span className={`badge ${item.available ? 'badge-green' : 'badge-yellow'}`}>
+                              {item.available ? 'Yes' : 'No'}
+                            </span>
+                          </td>
                           <td>
                             {item.image ? (
                               <img src={item.image} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--color-border)' }} />
