@@ -35,6 +35,7 @@ import ManageSuppliers from './pages/admin/ManageSuppliers';
 import SupplierInventory from './pages/admin/SupplierInventory';
 import ManageJobOpenings from './pages/admin/ManageJobOpenings';
 import ManageProductCategories from './pages/admin/ManageProductCategories';
+import SiteSettings from './pages/admin/SiteSettings';
 
 import './App.css';
 
@@ -59,6 +60,7 @@ const adminNav = [
   { path: '/admin/schedule-requests', label: 'Schedule Requests', icon: '\uD83D\uDCC6' },
   { path: '/admin/messages', label: 'Messages', icon: '\uD83D\uDCAC' },
   { path: '/admin/job-openings', label: 'Job Openings', icon: '\uD83D\uDCCB' },
+  { path: '/admin/settings', label: 'Site Settings', icon: '\u2699\uFE0F' },
 ];
 
 function ProtectedRoute({ allowedRole }) {
@@ -155,6 +157,7 @@ export default function App() {
                   <Route path="/admin/schedule-requests" element={<ScheduleRequests />} />
                   <Route path="/admin/messages" element={<ContactMessages />} />
                   <Route path="/admin/job-openings" element={<ManageJobOpenings />} />
+                  <Route path="/admin/settings" element={<SiteSettings />} />
                 </Route>
               </Route>
 

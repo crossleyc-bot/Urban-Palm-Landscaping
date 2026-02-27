@@ -4,19 +4,59 @@ import { apiGet } from '../../api';
 import HeroCarousel from '../../components/HeroCarousel';
 import './Home.css';
 
+function getEmbedUrl(url) {
+  if (!url) return null;
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]+)/);
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  return url;
+}
+
 export default function Home() {
   const [services, setServices] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
+  const [welcomeVideo, setWelcomeVideo] = useState(null);
 
   useEffect(() => {
     apiGet('/services').then(setServices);
     apiGet('/testimonials').then(setTestimonials);
+    apiGet('/settings').then(s => {
+      if (s.welcome_video_url) {
+        setWelcomeVideo({
+          url: s.welcome_video_url,
+          title: s.welcome_video_title || 'Welcome to Urban Palm',
+          subtitle: s.welcome_video_subtitle || '',
+        });
+      }
+    });
   }, []);
 
   return (
     <div className="home">
       {/* Hero Carousel */}
       <HeroCarousel />
+
+      {/* Welcome Video */}
+      {welcomeVideo && getEmbedUrl(welcomeVideo.url) && (
+        <section className="section welcome-video-section">
+          <div className="container">
+            <div className="section-header">
+              <span className="section-tag">Watch</span>
+              <h2>{welcomeVideo.title}</h2>
+              {welcomeVideo.subtitle && <p>{welcomeVideo.subtitle}</p>}
+            </div>
+            <div className="welcome-video-wrapper">
+              <iframe
+                src={getEmbedUrl(welcomeVideo.url)}
+                title={welcomeVideo.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Single Provider Value Prop */}
       <section className="section value-prop-section">
