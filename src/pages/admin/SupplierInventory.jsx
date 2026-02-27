@@ -25,7 +25,9 @@ export default function SupplierInventory() {
   const [filterSupplier, setFilterSupplier] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [imageFile, setImageFile] = useState(null);
+  const [importing, setImporting] = useState(false);
   const fileRef = useRef();
+  const csvRef = useRef();
 
   useEffect(() => {
     Promise.all([apiGet('/inventory'), apiGet('/suppliers'), apiGet('/product-categories')])
@@ -144,6 +146,30 @@ export default function SupplierInventory() {
     } catch { addToast('Failed to delete item', 'error'); }
   };
 
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const result = await apiPostForm('/inventory/import', fd);
+      let msg = `Imported ${result.imported} item${result.imported !== 1 ? 's' : ''}`;
+      if (result.skipped) msg += ` (${result.skipped} skipped)`;
+      addToast(msg, 'success');
+      if (result.skippedReasons?.length) {
+        addToast(`Skipped: ${result.skippedReasons.join('; ')}`, 'warning');
+      }
+      const updated = await apiGet('/inventory');
+      setItems(updated);
+    } catch (err) {
+      addToast(err.message || 'Import failed', 'error');
+    } finally {
+      setImporting(false);
+      if (csvRef.current) csvRef.current.value = '';
+    }
+  };
+
   const lowStock = items.filter(i => i.qty_available <= i.reorder_point && i.reorder_point > 0);
 
   if (loading) {
@@ -212,7 +238,13 @@ export default function SupplierInventory() {
           <p>Track materials and products from your suppliers.</p>
         </div>
         {!adding && (
-          <button className="btn btn-primary" onClick={startAdd}>+ Add Item</button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" onClick={startAdd}>+ Add Item</button>
+            <button className="btn btn-outline" onClick={() => csvRef.current?.click()} disabled={importing}>
+              {importing ? 'Importing...' : 'Import CSV'}
+            </button>
+            <input ref={csvRef} type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
+          </div>
         )}
       </div>
 
@@ -245,6 +277,15 @@ export default function SupplierInventory() {
         {(filterSupplier || filterCategory) && (
           <button className="btn btn-outline btn-sm" onClick={() => { setFilterSupplier(''); setFilterCategory(''); setPage(1); }}>Clear</button>
         )}
+      </div>
+
+      {/* Import Instructions */}
+      <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
+        <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>CSV Import</div>
+        <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+          Upload a CSV file with columns: <strong>supplier_name</strong> (required — must match an existing supplier), <strong>item_name</strong> (required), sku, category, unit, unit_cost, retail_cost, qty_available, reorder_point, notes.
+          Column headers are flexible (e.g., "Supplier", "Item", "Wholesale", "Qty", "Reorder" all work). Rows with unrecognized supplier names will be skipped.
+        </p>
       </div>
 
       <div className="card">
