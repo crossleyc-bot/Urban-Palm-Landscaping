@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Ensure upload directories exist
-const uploadDirs = ['employees', 'services', 'inventory', 'categories', 'imports'];
+const uploadDirs = ['employees', 'services', 'inventory', 'categories', 'imports', 'videos'];
 for (const dir of uploadDirs) {
   const p = join(__dirname, 'uploads', dir);
   if (!existsSync(p)) mkdirSync(p, { recursive: true });
@@ -28,6 +28,15 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.csv'];
+    cb(null, allowed.includes(extname(file.originalname).toLowerCase()));
+  },
+});
+
+const videoUpload = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['.mp4', '.webm', '.mov', '.ogg'];
     cb(null, allowed.includes(extname(file.originalname).toLowerCase()));
   },
 });
@@ -99,6 +108,38 @@ app.put('/api/settings', (req, res) => {
     }
   });
   updateMany(entries);
+  res.json({ success: true });
+});
+
+const settingsVideoUpload = (req, _res, next) => { req.uploadDir = 'videos'; next(); };
+
+app.post('/api/settings/upload-video', settingsVideoUpload, videoUpload.single('video'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Video file is required. Accepted formats: .mp4, .webm, .mov, .ogg (max 100MB).' });
+
+  // Delete old uploaded video if one exists
+  const existing = db.prepare("SELECT value FROM site_settings WHERE key = 'welcome_video_url'").get();
+  if (existing && existing.value && existing.value.startsWith('/uploads/videos/')) {
+    try { unlinkSync(join(__dirname, existing.value.replace(/^\//, ''))); } catch { /* ignore */ }
+  }
+
+  const videoPath = `/uploads/videos/${req.file.filename}`;
+  const upsert = db.prepare(
+    "INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')"
+  );
+  upsert.run('welcome_video_url', videoPath);
+
+  res.json({ success: true, url: videoPath });
+});
+
+app.delete('/api/settings/video', (req, res) => {
+  const existing = db.prepare("SELECT value FROM site_settings WHERE key = 'welcome_video_url'").get();
+  if (existing && existing.value && existing.value.startsWith('/uploads/videos/')) {
+    try { unlinkSync(join(__dirname, existing.value.replace(/^\//, ''))); } catch { /* ignore */ }
+  }
+  const upsert = db.prepare(
+    "INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, datetime('now')) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')"
+  );
+  upsert.run('welcome_video_url', '');
   res.json({ success: true });
 });
 

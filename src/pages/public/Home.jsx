@@ -10,7 +10,12 @@ function getEmbedUrl(url) {
   if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
   const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
   if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-  return url;
+  return null;
+}
+
+function isDirectVideo(url) {
+  if (!url) return false;
+  return url.startsWith('/uploads/videos/') || /\.(mp4|webm|mov|ogg)(\?|$)/i.test(url);
 }
 
 export default function Home() {
@@ -38,7 +43,7 @@ export default function Home() {
       <HeroCarousel />
 
       {/* Welcome Video */}
-      {welcomeVideo && getEmbedUrl(welcomeVideo.url) && (
+      {welcomeVideo && (getEmbedUrl(welcomeVideo.url) || isDirectVideo(welcomeVideo.url)) && (
         <section className="section welcome-video-section">
           <div className="container">
             <div className="section-header">
@@ -47,12 +52,18 @@ export default function Home() {
               {welcomeVideo.subtitle && <p>{welcomeVideo.subtitle}</p>}
             </div>
             <div className="welcome-video-wrapper">
-              <iframe
-                src={getEmbedUrl(welcomeVideo.url)}
-                title={welcomeVideo.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              {getEmbedUrl(welcomeVideo.url) ? (
+                <iframe
+                  src={getEmbedUrl(welcomeVideo.url)}
+                  title={welcomeVideo.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video controls>
+                  <source src={welcomeVideo.url} />
+                </video>
+              )}
             </div>
           </div>
         </section>
