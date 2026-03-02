@@ -38,23 +38,36 @@ export default function Products() {
     return map;
   }, [taxonomyRoots]);
 
-  // Derive filter chip categories from product data
-  const filterCategories = useMemo(() => {
-    const cats = [...new Set(products.map(p => p.category).filter(Boolean))].sort();
-    return ['All', ...cats];
-  }, [products]);
+  // Map each product to its taxonomy root name
+  const productTaxonomy = useMemo(() => {
+    const lookup = {};
+    for (const p of products) {
+      if (!p.category) continue;
+      const cat = p.category.toLowerCase();
+      for (const [rootName, names] of Object.entries(categoryMatchMap)) {
+        if (names.has(cat)) {
+          lookup[p.item_name] = rootName;
+          break;
+        }
+      }
+    }
+    return lookup;
+  }, [products, categoryMatchMap]);
 
-  // Filter products: when a taxonomy root is selected, match any product whose
-  // category text matches the root name or any of its descendant names
+  // Filter chip categories from taxonomy roots (only those with matching products)
+  const filterCategories = useMemo(() => {
+    const matched = new Set(Object.values(productTaxonomy));
+    const cats = taxonomyRoots
+      .filter(r => matched.has(r.name))
+      .map(r => r.name);
+    return ['All', ...cats];
+  }, [taxonomyRoots, productTaxonomy]);
+
+  // Filter products by taxonomy root match
   const filtered = useMemo(() => {
     if (activeCategory === 'All') return products;
-    const matchNames = categoryMatchMap[activeCategory];
-    if (matchNames) {
-      return products.filter(p => p.category && matchNames.has(p.category.toLowerCase()));
-    }
-    // Fallback: exact match on the inventory category text
-    return products.filter(p => p.category === activeCategory);
-  }, [products, activeCategory, categoryMatchMap]);
+    return products.filter(p => productTaxonomy[p.item_name] === activeCategory);
+  }, [products, activeCategory, productTaxonomy]);
 
   const handleCategoryClick = (name) => {
     setActiveCategory(prev => prev === name ? 'All' : name);
@@ -121,15 +134,17 @@ export default function Products() {
             <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '3rem 0' }}>No products available in this category.</p>
           ) : (
             <div className="products-grid">
-              {filtered.map((p, i) => (
+              {filtered.map((p, i) => {
+                const rootName = productTaxonomy[p.item_name];
+                return (
                 <div key={i} className="product-card">
                   <div className="product-image">
                     {p.image ? (
                       <img src={p.image} alt={p.item_name} />
                     ) : (
-                      <div className="product-placeholder">{placeholderIcon(p.category)}</div>
+                      <div className="product-placeholder">{placeholderIcon(rootName || p.category)}</div>
                     )}
-                    {p.category && <span className="product-category-badge">{p.category}</span>}
+                    {rootName && <span className="product-category-badge">{rootName}</span>}
                   </div>
                   <div className="product-body">
                     <h3>{p.item_name}</h3>
@@ -142,7 +157,8 @@ export default function Products() {
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

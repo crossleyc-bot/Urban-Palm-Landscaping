@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
 import './Portfolio.css';
 
 export default function Portfolio() {
   const [services, setServices] = useState([]);
+  const [lightbox, setLightbox] = useState(null); // { src, alt }
 
   useEffect(() => {
     apiGet('/services').then(data => {
@@ -14,6 +15,16 @@ export default function Portfolio() {
       ));
     });
   }, []);
+
+  const openLightbox = (src, alt) => setLightbox({ src, alt });
+  const closeLightbox = useCallback(() => setLightbox(null), []);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const handleKey = (e) => { if (e.key === 'Escape') closeLightbox(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [lightbox, closeLightbox]);
 
   // Build all image pairs for a service (primary + additional)
   const getAllPairs = (service) => {
@@ -55,15 +66,23 @@ export default function Portfolio() {
                       <div key={pair.id} className="portfolio-ba-card">
                         <div className="portfolio-ba-images">
                           {pair.image_before && (
-                            <div className="portfolio-ba-item">
+                            <div
+                              className="portfolio-ba-item portfolio-ba-clickable"
+                              onClick={() => openLightbox(pair.image_before, `${service.name} before`)}
+                            >
                               <span className="portfolio-ba-label">Before</span>
                               <img src={pair.image_before} alt={`${service.name} before`} />
+                              <div className="portfolio-ba-zoom">&#x2922;</div>
                             </div>
                           )}
                           {pair.image_after && (
-                            <div className="portfolio-ba-item">
+                            <div
+                              className="portfolio-ba-item portfolio-ba-clickable"
+                              onClick={() => openLightbox(pair.image_after, `${service.name} after`)}
+                            >
                               <span className="portfolio-ba-label portfolio-ba-label-after">After</span>
                               <img src={pair.image_after} alt={`${service.name} after`} />
+                              <div className="portfolio-ba-zoom">&#x2922;</div>
                             </div>
                           )}
                         </div>
@@ -75,6 +94,19 @@ export default function Portfolio() {
             })}
           </div>
         </section>
+      )}
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="portfolio-lightbox-overlay" onClick={closeLightbox}>
+          <button className="portfolio-lightbox-close" onClick={closeLightbox}>&times;</button>
+          <img
+            src={lightbox.src}
+            alt={lightbox.alt}
+            className="portfolio-lightbox-img"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
       )}
 
       <section className="section portfolio-cta">
