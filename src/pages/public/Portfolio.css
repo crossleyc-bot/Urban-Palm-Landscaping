@@ -112,8 +112,96 @@
   color: var(--color-text);
 }
 
+/* Clickable image hints */
+.portfolio-ba-clickable {
+  cursor: pointer;
+}
+
+.portfolio-ba-zoom {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 1rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.portfolio-ba-clickable:hover .portfolio-ba-zoom {
+  opacity: 1;
+}
+
+.portfolio-ba-clickable:hover img {
+  filter: brightness(0.92);
+  transition: filter 0.2s;
+}
+
+/* Lightbox */
+.portfolio-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  cursor: zoom-out;
+  animation: lightbox-fade-in 0.2s ease;
+}
+
+@keyframes lightbox-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.portfolio-lightbox-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+
+.portfolio-lightbox-close {
+  position: fixed;
+  top: 1rem;
+  right: 1.25rem;
+  z-index: 2001;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  line-height: 1;
+}
+
+.portfolio-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 @media (max-width: 768px) {
   .portfolio-ba-grid {
     grid-template-columns: 1fr;
+  }
+
+  .portfolio-lightbox-overlay {
+    padding: 1rem;
   }
 }
