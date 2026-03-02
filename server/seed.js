@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 db.pragma('foreign_keys = OFF');
 
 db.exec(`
+  DELETE FROM taxonomy;
   DELETE FROM job_openings;
   DELETE FROM supplier_inventory;
   DELETE FROM suppliers;
@@ -248,5 +249,99 @@ const jobOpenings = [
     'Degree in landscape architecture or horticulture\nFamiliarity with Florida-native plants\nProficiency in CAD or landscape design software\nStrong communication skills', 'Draft'],
 ];
 for (const jo of jobOpenings) insertJobOpening.run(...jo);
+
+// ─── Taxonomy ──────────────────────────────────────────────────────────────
+const insertTaxonomy = db.prepare('INSERT INTO taxonomy (name, description, parent_id, sort_order) VALUES (?, ?, ?, ?)');
+
+// Top-level categories
+const plants = insertTaxonomy.run('Plants & Greenery', 'Living plant materials for landscaping projects', null, 0).lastInsertRowid;
+const hardscape = insertTaxonomy.run('Hardscape Materials', 'Stone, pavers, and structural landscape materials', null, 1).lastInsertRowid;
+const soils = insertTaxonomy.run('Soils & Amendments', 'Growing media, mulch, and soil conditioners', null, 2).lastInsertRowid;
+const irrigation = insertTaxonomy.run('Irrigation & Water Management', 'Sprinklers, drip systems, and water management products', null, 3).lastInsertRowid;
+const lighting = insertTaxonomy.run('Outdoor Lighting', 'Landscape and architectural lighting products', null, 4).lastInsertRowid;
+const turf = insertTaxonomy.run('Turf & Sod', 'Grass varieties for lawns and ground cover', null, 5).lastInsertRowid;
+const maintenance = insertTaxonomy.run('Maintenance Supplies', 'Tools, fertilizers, and ongoing care products', null, 6).lastInsertRowid;
+const outdoor = insertTaxonomy.run('Outdoor Living', 'Furniture, structures, and outdoor lifestyle features', null, 7).lastInsertRowid;
+
+// Plants & Greenery children
+const trees = insertTaxonomy.run('Trees', 'Shade, ornamental, and specimen trees', plants, 0).lastInsertRowid;
+const shrubs = insertTaxonomy.run('Shrubs & Hedges', 'Foundation plantings and privacy screens', plants, 1).lastInsertRowid;
+insertTaxonomy.run('Perennials', 'Recurring flowering plants for beds and borders', plants, 2);
+insertTaxonomy.run('Annuals & Seasonal Color', 'Seasonal blooming plants for rotating displays', plants, 3);
+insertTaxonomy.run('Ground Cover', 'Low-growing plants for erosion control and fill areas', plants, 4);
+insertTaxonomy.run('Ornamental Grasses', 'Decorative grasses for texture and movement', plants, 5);
+insertTaxonomy.run('Tropical & Exotic', 'Tropical foliage and exotic specimen plants', plants, 6);
+insertTaxonomy.run('Native Florida Plants', 'Drought-tolerant plants native to the region', plants, 7);
+
+// Trees sub-categories
+insertTaxonomy.run('Palm Trees', 'Palms for tropical landscapes', trees, 0);
+insertTaxonomy.run('Shade Trees', 'Large canopy trees for shade and cooling', trees, 1);
+insertTaxonomy.run('Ornamental Trees', 'Flowering and accent trees', trees, 2);
+insertTaxonomy.run('Fruit Trees', 'Citrus and other fruit-bearing trees', trees, 3);
+
+// Shrubs sub-categories
+insertTaxonomy.run('Flowering Shrubs', 'Blooming varieties like ixora and hibiscus', shrubs, 0);
+insertTaxonomy.run('Evergreen Shrubs', 'Year-round foliage for structure and screening', shrubs, 1);
+insertTaxonomy.run('Hedge Plants', 'Dense varieties for formal and informal hedges', shrubs, 2);
+
+// Hardscape Materials children
+const pavers = insertTaxonomy.run('Pavers & Paving', 'Patio, driveway, and walkway pavers', hardscape, 0).lastInsertRowid;
+const stone = insertTaxonomy.run('Natural Stone', 'Flagstone, boulders, and decorative stone', hardscape, 1).lastInsertRowid;
+insertTaxonomy.run('Retaining Wall Systems', 'Blocks and materials for retaining walls', hardscape, 2);
+insertTaxonomy.run('Edging & Borders', 'Landscape edging and bed borders', hardscape, 3);
+insertTaxonomy.run('Gravel & Aggregates', 'Crushed stone, pea gravel, and decorative rock', hardscape, 4);
+insertTaxonomy.run('Sand & Base Materials', 'Leveling sand, polymeric sand, and compactable base', hardscape, 5);
+
+// Pavers sub-categories
+insertTaxonomy.run('Travertine Pavers', 'Natural travertine for elegant patios and pool decks', pavers, 0);
+insertTaxonomy.run('Brick Pavers', 'Classic clay brick for walkways and driveways', pavers, 1);
+insertTaxonomy.run('Concrete Pavers', 'Interlocking concrete for durable surfaces', pavers, 2);
+
+// Natural Stone sub-categories
+insertTaxonomy.run('Flagstone', 'Irregular flat stone for natural pathways and patios', stone, 0);
+insertTaxonomy.run('Boulders & Accent Rocks', 'Large decorative stones for focal points', stone, 1);
+insertTaxonomy.run('River Rock', 'Smooth river stone for beds and dry creek features', stone, 2);
+
+// Soils & Amendments children
+insertTaxonomy.run('Topsoil', 'Screened and blended topsoil for planting beds', soils, 0);
+insertTaxonomy.run('Mulch', 'Wood, pine, and rubber mulch for beds and pathways', soils, 1);
+insertTaxonomy.run('Compost & Organic Matter', 'Composted materials for soil enrichment', soils, 2);
+insertTaxonomy.run('Potting & Planting Mix', 'Specialty mixes for containers and raised beds', soils, 3);
+insertTaxonomy.run('Fertilizers', 'Granular, liquid, and slow-release plant nutrition', soils, 4);
+
+// Irrigation children
+insertTaxonomy.run('Sprinkler Heads & Rotors', 'Pop-up sprays, rotors, and specialty heads', irrigation, 0);
+insertTaxonomy.run('Drip Irrigation', 'Drip tubing, emitters, and micro-spray for beds', irrigation, 1);
+insertTaxonomy.run('Controllers & Timers', 'Smart and standard irrigation controllers', irrigation, 2);
+insertTaxonomy.run('Valves & Valve Boxes', 'Zone valves, solenoids, and access boxes', irrigation, 3);
+insertTaxonomy.run('Pipes & Fittings', 'PVC, poly pipe, and connectors', irrigation, 4);
+insertTaxonomy.run('Rain Sensors & Accessories', 'Weather sensors and moisture monitors', irrigation, 5);
+
+// Outdoor Lighting children
+insertTaxonomy.run('Path & Area Lights', 'Walkway bollards and area illumination', lighting, 0);
+insertTaxonomy.run('Uplights & Spotlights', 'Tree, facade, and feature accent lighting', lighting, 1);
+insertTaxonomy.run('Deck & Step Lights', 'Recessed and surface-mount deck lighting', lighting, 2);
+insertTaxonomy.run('Flood & Security Lights', 'High-output security and area flood lights', lighting, 3);
+insertTaxonomy.run('Transformers & Controllers', 'Low-voltage transformers and smart controls', lighting, 4);
+
+// Turf & Sod children
+insertTaxonomy.run('St. Augustine', 'Floratam and other St. Augustine varieties', turf, 0);
+insertTaxonomy.run('Bermuda Grass', 'Celebration and hybrid bermuda varieties', turf, 1);
+insertTaxonomy.run('Zoysia', 'Empire and other shade-tolerant zoysia varieties', turf, 2);
+insertTaxonomy.run('Bahia', 'Argentine and Pensacola bahia for low-maintenance lawns', turf, 3);
+insertTaxonomy.run('Artificial Turf', 'Synthetic grass for zero-maintenance areas', turf, 4);
+
+// Maintenance Supplies children
+insertTaxonomy.run('Weed Control', 'Pre-emergent and post-emergent herbicides', maintenance, 0);
+insertTaxonomy.run('Pest & Disease Control', 'Insecticides, fungicides, and biological controls', maintenance, 1);
+insertTaxonomy.run('Lawn Care Products', 'Fertilizers, soil conditioners, and turf treatments', maintenance, 2);
+insertTaxonomy.run('Pruning & Trimming Tools', 'Hand tools and power equipment for plant care', maintenance, 3);
+
+// Outdoor Living children
+insertTaxonomy.run('Fire Features', 'Fire pits, fireplaces, and fire bowls', outdoor, 0);
+insertTaxonomy.run('Outdoor Kitchens', 'Built-in grills, counters, and cooking stations', outdoor, 1);
+insertTaxonomy.run('Pergolas & Shade Structures', 'Overhead coverage for patios and outdoor rooms', outdoor, 2);
+insertTaxonomy.run('Water Features', 'Fountains, ponds, and cascading water elements', outdoor, 3);
+insertTaxonomy.run('Outdoor Furniture', 'Seating, dining, and lounge furniture', outdoor, 4);
 
 console.log('Database seeded successfully.');

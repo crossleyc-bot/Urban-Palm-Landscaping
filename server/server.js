@@ -1029,6 +1029,78 @@ app.get('/api/products', (req, res) => {
   res.json(Array.from(seen.values()));
 });
 
+// ─── Taxonomy ─────────────────────────────────────────────────────────────────
+
+app.get('/api/taxonomy', (_req, res) => {
+  const rows = db.prepare('SELECT * FROM taxonomy ORDER BY sort_order, name').all();
+  res.json(rows);
+});
+
+app.post('/api/taxonomy', (req, res) => {
+  const { name, description, parent_id } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+
+  const maxOrder = db.prepare(
+    'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM taxonomy WHERE parent_id IS ?'
+  ).get(parent_id ?? null);
+
+  const result = db.prepare(
+    "INSERT INTO taxonomy (name, description, parent_id, sort_order) VALUES (?, ?, ?, ?)"
+  ).run(name.trim(), (description || '').trim() || null, parent_id ?? null, maxOrder.next);
+
+  const created = db.prepare('SELECT * FROM taxonomy WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json(created);
+});
+
+app.put('/api/taxonomy/:id', (req, res) => {
+  const { name, description, parent_id } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+
+  // Prevent making a node its own parent
+  const id = Number(req.params.id);
+  if (parent_id === id) return res.status(400).json({ error: 'A node cannot be its own parent' });
+
+  // Prevent making a node a child of its own descendants
+  if (parent_id != null) {
+    const descendants = new Set();
+    const collectDescendants = (nodeId) => {
+      const children = db.prepare('SELECT id FROM taxonomy WHERE parent_id = ?').all(nodeId);
+      for (const child of children) {
+        descendants.add(child.id);
+        collectDescendants(child.id);
+      }
+    };
+    collectDescendants(id);
+    if (descendants.has(parent_id)) {
+      return res.status(400).json({ error: 'Cannot move a node under its own descendant' });
+    }
+  }
+
+  db.prepare(
+    "UPDATE taxonomy SET name = ?, description = ?, parent_id = ?, updated_at = datetime('now') WHERE id = ?"
+  ).run(name.trim(), (description || '').trim() || null, parent_id ?? null, id);
+
+  const updated = db.prepare('SELECT * FROM taxonomy WHERE id = ?').get(id);
+  if (!updated) return res.status(404).json({ error: 'Not found' });
+  res.json(updated);
+});
+
+app.put('/api/taxonomy/:id/reorder', (req, res) => {
+  const { sort_order } = req.body;
+  if (sort_order == null) return res.status(400).json({ error: 'sort_order is required' });
+  db.prepare("UPDATE taxonomy SET sort_order = ?, updated_at = datetime('now') WHERE id = ?").run(sort_order, req.params.id);
+  res.json({ success: true });
+});
+
+app.delete('/api/taxonomy/:id', (req, res) => {
+  const node = db.prepare('SELECT * FROM taxonomy WHERE id = ?').get(req.params.id);
+  if (!node) return res.status(404).json({ error: 'Not found' });
+
+  // CASCADE will delete children automatically
+  db.prepare('DELETE FROM taxonomy WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
 // ─── Start ───────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3001;
