@@ -948,10 +948,12 @@ app.delete('/api/job-openings/:id', (req, res) => {
 
 app.get('/api/products', (req, res) => {
   const items = db.prepare(`
-    SELECT si.item_name, si.category, si.unit_cost, si.retail_cost, si.image, si.unit,
-           s.name AS supplier_name
+    SELECT si.item_name, si.category, si.category_id, si.unit_cost, si.retail_cost, si.image, si.unit,
+           s.name AS supplier_name,
+           t.name AS taxonomy_name
     FROM supplier_inventory si
     JOIN suppliers s ON s.id = si.supplier_id
+    LEFT JOIN taxonomy t ON t.id = si.category_id
     WHERE si.available = 1
     ORDER BY si.category, si.item_name
   `).all();
@@ -997,6 +999,16 @@ app.get('/api/taxonomy/roots', (_req, res) => {
   }));
 
   res.json(result);
+});
+
+app.get('/api/taxonomy/leaves', (_req, res) => {
+  const leaves = db.prepare(`
+    SELECT t.id, t.name, t.parent_id
+    FROM taxonomy t
+    WHERE NOT EXISTS (SELECT 1 FROM taxonomy c WHERE c.parent_id = t.id)
+    ORDER BY t.name
+  `).all();
+  res.json(leaves);
 });
 
 app.get('/api/taxonomy', (_req, res) => {
