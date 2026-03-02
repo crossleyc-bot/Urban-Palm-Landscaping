@@ -969,6 +969,36 @@ app.get('/api/products', (req, res) => {
 
 // ─── Taxonomy ─────────────────────────────────────────────────────────────────
 
+app.get('/api/taxonomy/roots', (_req, res) => {
+  const roots = db.prepare(
+    'SELECT id, name, description, sort_order FROM taxonomy WHERE parent_id IS NULL ORDER BY sort_order, name'
+  ).all();
+
+  // For each root, collect all descendant names (for product matching)
+  const allNodes = db.prepare('SELECT id, name, parent_id FROM taxonomy').all();
+  const childMap = {};
+  for (const n of allNodes) {
+    if (n.parent_id != null) {
+      (childMap[n.parent_id] ||= []).push(n);
+    }
+  }
+  const collectNames = (nodeId) => {
+    const names = [];
+    for (const child of (childMap[nodeId] || [])) {
+      names.push(child.name);
+      names.push(...collectNames(child.id));
+    }
+    return names;
+  };
+
+  const result = roots.map(r => ({
+    ...r,
+    descendant_names: collectNames(r.id),
+  }));
+
+  res.json(result);
+});
+
 app.get('/api/taxonomy', (_req, res) => {
   const rows = db.prepare('SELECT * FROM taxonomy ORDER BY sort_order, name').all();
   res.json(rows);
