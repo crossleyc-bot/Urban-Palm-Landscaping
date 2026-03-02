@@ -35,6 +35,7 @@ import ManageSuppliers from './pages/admin/ManageSuppliers';
 import SupplierInventory from './pages/admin/SupplierInventory';
 import ManageJobOpenings from './pages/admin/ManageJobOpenings';
 import ManageProductCategories from './pages/admin/ManageProductCategories';
+import ManageTaxonomy from './pages/admin/ManageTaxonomy';
 import SiteSettings from './pages/admin/SiteSettings';
 
 import './App.css';
@@ -54,6 +55,7 @@ const adminNav = [
   { path: '/admin/suppliers', label: 'Suppliers', icon: '\uD83D\uDE9A' },
   { path: '/admin/inventory', label: 'Inventory', icon: '\uD83D\uDCE6' },
   { path: '/admin/product-categories', label: 'Product Categories', icon: '\uD83C\uDFF7\uFE0F' },
+  { path: '/admin/taxonomy', label: 'Taxonomy', icon: '\uD83C\uDF33' },
   { path: '/admin/schedule', label: 'Schedule', icon: '\uD83D\uDCC5' },
   { path: '/admin/invoices', label: 'Invoices', icon: '\uD83D\uDCB0' },
   { path: '/admin/quotes', label: 'Quote Requests', icon: '\u2709' },
@@ -151,6 +153,7 @@ export default function App() {
                   <Route path="/admin/suppliers" element={<ManageSuppliers />} />
                   <Route path="/admin/inventory" element={<SupplierInventory />} />
                   <Route path="/admin/product-categories" element={<ManageProductCategories />} />
+                  <Route path="/admin/taxonomy" element={<ManageTaxonomy />} />
                   <Route path="/admin/schedule" element={<AdminSchedule />} />
                   <Route path="/admin/invoices" element={<Invoices />} />
                   <Route path="/admin/quotes" element={<QuoteRequests />} />
