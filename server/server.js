@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Ensure upload directories exist
-const uploadDirs = ['employees', 'services', 'inventory', 'categories', 'imports', 'videos'];
+const uploadDirs = ['employees', 'services', 'inventory', 'imports', 'videos'];
 for (const dir of uploadDirs) {
   const p = join(__dirname, 'uploads', dir);
   if (!existsSync(p)) mkdirSync(p, { recursive: true });
@@ -944,76 +944,14 @@ app.delete('/api/job-openings/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// ─── Product Categories ─────────────────────────────────────────────────────
-
-const categoryUpload = (req, _res, next) => { req.uploadDir = 'categories'; next(); };
-
-app.get('/api/product-categories', (req, res) => {
-  const cats = db.prepare('SELECT * FROM product_categories ORDER BY name').all();
-  res.json(cats);
-});
-
-app.post('/api/product-categories', categoryUpload, upload.single('image'), (req, res) => {
-  const { name, description } = req.body;
-  if (!name) return res.status(400).json({ error: 'Category name is required' });
-
-  const image = req.file ? `/uploads/categories/${req.file.filename}` : null;
-  const result = db.prepare(
-    'INSERT INTO product_categories (name, description, image) VALUES (?, ?, ?)'
-  ).run(name, description || null, image);
-
-  res.status(201).json({ id: result.lastInsertRowid, name, description, image });
-});
-
-app.put('/api/product-categories/:id', categoryUpload, upload.single('image'), (req, res) => {
-  const { id } = req.params;
-  const { name, description } = req.body;
-  if (!name) return res.status(400).json({ error: 'Category name is required' });
-
-  const existing = db.prepare('SELECT image FROM product_categories WHERE id = ?').get(id);
-  if (!existing) return res.status(404).json({ error: 'Category not found' });
-
-  let image = existing.image;
-  if (req.file) {
-    if (existing.image) {
-      try { unlinkSync(join(__dirname, existing.image.replace(/^\//, ''))); } catch { /* ignore */ }
-    }
-    image = `/uploads/categories/${req.file.filename}`;
-  }
-
-  db.prepare(
-    'UPDATE product_categories SET name = ?, description = ?, image = ? WHERE id = ?'
-  ).run(name, description || null, image, id);
-
-  res.json({ success: true, image });
-});
-
-app.delete('/api/product-categories/:id', (req, res) => {
-  const { id } = req.params;
-  const existing = db.prepare('SELECT image FROM product_categories WHERE id = ?').get(id);
-  const result = db.prepare('DELETE FROM product_categories WHERE id = ?').run(id);
-  if (result.changes === 0) return res.status(404).json({ error: 'Category not found' });
-
-  if (existing && existing.image) {
-    try { unlinkSync(join(__dirname, existing.image.replace(/^\//, ''))); } catch { /* ignore */ }
-  }
-
-  // Clear category_id references on inventory items
-  db.prepare('UPDATE supplier_inventory SET category_id = NULL WHERE category_id = ?').run(id);
-
-  res.json({ success: true });
-});
-
 // ─── Public Products ────────────────────────────────────────────────────────
 
 app.get('/api/products', (req, res) => {
   const items = db.prepare(`
-    SELECT si.item_name, si.category, si.category_id, si.unit_cost, si.retail_cost, si.image, si.unit,
-           s.name AS supplier_name,
-           pc.name AS category_name, pc.image AS category_image
+    SELECT si.item_name, si.category, si.unit_cost, si.retail_cost, si.image, si.unit,
+           s.name AS supplier_name
     FROM supplier_inventory si
     JOIN suppliers s ON s.id = si.supplier_id
-    LEFT JOIN product_categories pc ON pc.id = si.category_id
     WHERE si.available = 1
     ORDER BY si.category, si.item_name
   `).all();

@@ -158,13 +158,6 @@ db.exec(`
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
-  CREATE TABLE IF NOT EXISTS product_categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT,
-    image TEXT
-  );
-
   CREATE TABLE IF NOT EXISTS service_images (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     service_id INTEGER NOT NULL REFERENCES services(id) ON DELETE CASCADE,
@@ -238,10 +231,6 @@ if (!invColumns.includes('retail_cost')) {
   db.exec("ALTER TABLE supplier_inventory ADD COLUMN retail_cost REAL");
 }
 
-// Migration: add category_id to supplier_inventory if missing
-if (!invColumns.includes('category_id')) {
-  db.exec("ALTER TABLE supplier_inventory ADD COLUMN category_id INTEGER REFERENCES product_categories(id)");
-}
 if (!invColumns.includes('available')) {
   db.exec("ALTER TABLE supplier_inventory ADD COLUMN available INTEGER NOT NULL DEFAULT 0");
 }
