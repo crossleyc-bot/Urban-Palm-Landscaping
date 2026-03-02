@@ -235,6 +235,10 @@ if (!invColumns.includes('available')) {
   db.exec("ALTER TABLE supplier_inventory ADD COLUMN available INTEGER NOT NULL DEFAULT 0");
 }
 
+if (!invColumns.includes('category_id')) {
+  db.exec("ALTER TABLE supplier_inventory ADD COLUMN category_id INTEGER REFERENCES taxonomy(id)");
+}
+
 // Migration: add new description columns to suppliers if missing
 const supplierColumns = db.prepare("PRAGMA table_info(suppliers)").all().map(c => c.name);
 if (!supplierColumns.includes('operating_hours')) {

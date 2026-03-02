@@ -7,12 +7,13 @@ import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
 
 const PAGE_SIZE = 15;
-const emptyForm = { supplier_id: '', item_name: '', sku: '', category: '', unit: '', unit_cost: '', retail_cost: '', qty_available: '', reorder_point: '', notes: '' };
+const emptyForm = { supplier_id: '', item_name: '', sku: '', category: '', category_id: '', unit: '', unit_cost: '', retail_cost: '', qty_available: '', reorder_point: '', notes: '' };
 
 export default function SupplierInventory() {
   const { addToast } = useToast();
   const [items, setItems] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  const [taxonomyLeaves, setTaxonomyLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -29,8 +30,8 @@ export default function SupplierInventory() {
   const csvRef = useRef();
 
   useEffect(() => {
-    Promise.all([apiGet('/inventory'), apiGet('/suppliers')])
-      .then(([inv, sup]) => { setItems(inv); setSuppliers(sup); })
+    Promise.all([apiGet('/inventory'), apiGet('/suppliers'), apiGet('/taxonomy/leaves')])
+      .then(([inv, sup, leaves]) => { setItems(inv); setSuppliers(sup); setTaxonomyLeaves(leaves); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -71,7 +72,7 @@ export default function SupplierInventory() {
     setEditing(item.id);
     setForm({
       supplier_id: String(item.supplier_id), item_name: item.item_name, sku: item.sku || '',
-      category: item.category || '',
+      category: item.category || '', category_id: item.category_id != null ? String(item.category_id) : '',
       unit: item.unit || '', unit_cost: item.unit_cost ?? '',
       retail_cost: item.retail_cost ?? '', qty_available: item.qty_available ?? '', reorder_point: item.reorder_point ?? '', notes: item.notes || '',
     });
@@ -91,6 +92,7 @@ export default function SupplierInventory() {
     fd.append('item_name', form.item_name);
     fd.append('sku', form.sku);
     fd.append('category', form.category);
+    fd.append('category_id', form.category_id);
     fd.append('unit', form.unit);
     fd.append('unit_cost', form.unit_cost);
     fd.append('retail_cost', form.retail_cost);
@@ -111,6 +113,7 @@ export default function SupplierInventory() {
       setItems(prev => prev.map(i => i.id === id ? {
         ...i, ...form,
         supplier_id: Number(form.supplier_id),
+        category_id: form.category_id ? Number(form.category_id) : null,
         unit_cost: wholesale,
         retail_cost: retail,
         qty_available: form.qty_available !== '' ? Number(form.qty_available) : 0,
@@ -192,7 +195,16 @@ export default function SupplierInventory() {
       </td>
       <td><input className="table-input" value={form.item_name} onChange={e => setForm(f => ({ ...f, item_name: e.target.value }))} placeholder="Item name" /></td>
       <td><input className="table-input" value={form.sku} onChange={e => setForm(f => ({ ...f, sku: e.target.value }))} placeholder="SKU" style={{ width: 90 }} /></td>
-      <td><input className="table-input" value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="Category" style={{ width: 110 }} /></td>
+      <td>
+        <select className="table-select" value={form.category_id} onChange={e => {
+          const id = e.target.value;
+          const leaf = taxonomyLeaves.find(l => String(l.id) === id);
+          setForm(f => ({ ...f, category_id: id, category: leaf ? leaf.name : '' }));
+        }} style={{ width: 140 }}>
+          <option value="">Select...</option>
+          {taxonomyLeaves.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+        </select>
+      </td>
       <td><input className="table-input" value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))} placeholder="ea / pallet" style={{ width: 80 }} /></td>
       <td><input className="table-input" type="number" min="0" step="0.01" value={form.unit_cost} onChange={e => {
         const val = e.target.value;
@@ -264,9 +276,9 @@ export default function SupplierInventory() {
           <option value="">All Suppliers</option>
           {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        <select className="table-select" value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setPage(1); }} style={{ width: 150 }}>
+        <select className="table-select" value={filterCategory} onChange={e => { setFilterCategory(e.target.value); setPage(1); }} style={{ width: 180 }}>
           <option value="">All Categories</option>
-          {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          {taxonomyLeaves.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
         </select>
         {(filterSupplier || filterCategory) && (
           <button className="btn btn-outline btn-sm" onClick={() => { setFilterSupplier(''); setFilterCategory(''); setPage(1); }}>Clear</button>

@@ -42,8 +42,9 @@ export default function Products() {
   const productTaxonomy = useMemo(() => {
     const lookup = {};
     for (const p of products) {
-      if (!p.category) continue;
-      const cat = p.category.toLowerCase();
+      // Prefer taxonomy_name from category_id mapping; fall back to free-text category match
+      const cat = (p.taxonomy_name || p.category || '').toLowerCase();
+      if (!cat) continue;
       for (const [rootName, names] of Object.entries(categoryMatchMap)) {
         if (names.has(cat)) {
           lookup[p.item_name] = rootName;
@@ -147,7 +148,7 @@ export default function Products() {
                     {rootName && <span className="product-category-badge">{rootName}</span>}
                   </div>
                   <div className="product-body">
-                    <h3>{p.item_name}</h3>
+                    <h3>{p.taxonomy_name || p.item_name}</h3>
                     <div className="product-meta">
                       {p.unit && <span className="product-unit">{p.unit}</span>}
                       {p.supplier_name && <span className="product-supplier">by {p.supplier_name}</span>}
