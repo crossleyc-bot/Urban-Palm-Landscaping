@@ -3,35 +3,62 @@ import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
 import './Products.css';
 
-const placeholderImg = (category) => {
-  const icons = {
-    Plants: '\uD83C\uDF3F', Trees: '\uD83C\uDF34', Sod: '\uD83C\uDFD4\uFE0F', Mulch: '\uD83E\uDEB5',
-    Stone: '\uD83E\uDEA8', Pavers: '\uD83E\uDDF1', Irrigation: '\uD83D\uDCA7', Lighting: '\uD83D\uDCA1',
-    Soil: '\uD83C\uDF3B', Fertilizer: '\uD83C\uDF31', Tools: '\uD83D\uDD27',
-  };
-  return icons[category] || '\uD83D\uDCE6';
+const categoryIcons = {
+  'Plants & Greenery': '\uD83C\uDF3F',
+  'Hardscape Materials': '\uD83E\uDDF1',
+  'Soils & Amendments': '\uD83C\uDF31',
+  'Irrigation & Water Management': '\uD83D\uDCA7',
+  'Outdoor Lighting': '\uD83D\uDCA1',
+  'Turf & Sod': '\uD83C\uDFD4\uFE0F',
+  'Maintenance Supplies': '\uD83D\uDD27',
+  'Outdoor Living': '\u2600\uFE0F',
 };
+
+const placeholderIcon = (category) => categoryIcons[category] || '\uD83D\uDCE6';
 
 export default function Products() {
   const [products, setProducts] = useState([]);
-  const [productCategories, setProductCategories] = useState([]);
+  const [taxonomyRoots, setTaxonomyRoots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All');
 
   useEffect(() => {
-    Promise.all([apiGet('/products'), apiGet('/product-categories')])
-      .then(([prods, cats]) => { setProducts(prods); setProductCategories(cats); })
+    Promise.all([apiGet('/products'), apiGet('/taxonomy/roots')])
+      .then(([prods, roots]) => { setProducts(prods); setTaxonomyRoots(roots); })
       .finally(() => setLoading(false));
   }, []);
 
-  const categories = useMemo(() => {
+  // Build a lookup: for each taxonomy root, the set of names that match (root name + all descendants)
+  const categoryMatchMap = useMemo(() => {
+    const map = {};
+    for (const root of taxonomyRoots) {
+      const names = new Set([root.name, ...root.descendant_names].map(n => n.toLowerCase()));
+      map[root.name] = names;
+    }
+    return map;
+  }, [taxonomyRoots]);
+
+  // Derive filter chip categories from product data
+  const filterCategories = useMemo(() => {
     const cats = [...new Set(products.map(p => p.category).filter(Boolean))].sort();
     return ['All', ...cats];
   }, [products]);
 
-  const filtered = activeCategory === 'All'
-    ? products
-    : products.filter(p => p.category === activeCategory);
+  // Filter products: when a taxonomy root is selected, match any product whose
+  // category text matches the root name or any of its descendant names
+  const filtered = useMemo(() => {
+    if (activeCategory === 'All') return products;
+    const matchNames = categoryMatchMap[activeCategory];
+    if (matchNames) {
+      return products.filter(p => p.category && matchNames.has(p.category.toLowerCase()));
+    }
+    // Fallback: exact match on the inventory category text
+    return products.filter(p => p.category === activeCategory);
+  }, [products, activeCategory, categoryMatchMap]);
+
+  const handleCategoryClick = (name) => {
+    setActiveCategory(prev => prev === name ? 'All' : name);
+  };
 
   return (
     <div className="products-page">
@@ -43,8 +70,8 @@ export default function Products() {
         </div>
       </section>
 
-      {/* Product Categories Section */}
-      {productCategories.length > 0 && (
+      {/* Taxonomy Category Cards */}
+      {taxonomyRoots.length > 0 && (
         <section className="section">
           <div className="container">
             <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -52,22 +79,19 @@ export default function Products() {
               <p style={{ color: 'var(--color-text-muted)', maxWidth: 520, margin: '0 auto' }}>Browse our selection of landscaping materials by category.</p>
             </div>
             <div className="product-categories-grid">
-              {productCategories.map(cat => (
+              {taxonomyRoots.map(cat => (
                 <div
                   key={cat.id}
                   className={`product-category-card${activeCategory === cat.name ? ' product-category-card-active' : ''}`}
-                  onClick={() => setActiveCategory(activeCategory === cat.name ? 'All' : cat.name)}
+                  onClick={() => handleCategoryClick(cat.name)}
                 >
-                  <div className="product-category-image">
-                    {cat.image ? (
-                      <img src={cat.image} alt={cat.name} />
-                    ) : (
-                      <div className="product-placeholder">{placeholderImg(cat.name)}</div>
-                    )}
-                    <div className="product-category-overlay">
-                      <h3>{cat.name}</h3>
-                      {cat.description && <p>{cat.description}</p>}
-                    </div>
+                  <div className="product-category-icon">
+                    {placeholderIcon(cat.name)}
+                  </div>
+                  <div className="product-category-info">
+                    <h3>{cat.name}</h3>
+                    {cat.description && <p>{cat.description}</p>}
+                    <span className="product-category-count">{cat.descendant_names.length} sub-categories</span>
                   </div>
                 </div>
               ))}
@@ -76,11 +100,11 @@ export default function Products() {
         </section>
       )}
 
-      <section className="section" style={productCategories.length > 0 ? { paddingTop: 0 } : {}}>
+      <section className="section" style={taxonomyRoots.length > 0 ? { paddingTop: 0 } : {}}>
         <div className="container">
-          {/* Category filter */}
+          {/* Category filter chips */}
           <div className="products-filter">
-            {categories.map(cat => (
+            {filterCategories.map(cat => (
               <button
                 key={cat}
                 className={`filter-chip ${activeCategory === cat ? 'filter-chip-active' : ''}`}
@@ -103,7 +127,7 @@ export default function Products() {
                     {p.image ? (
                       <img src={p.image} alt={p.item_name} />
                     ) : (
-                      <div className="product-placeholder">{placeholderImg(p.category)}</div>
+                      <div className="product-placeholder">{placeholderIcon(p.category)}</div>
                     )}
                     {p.category && <span className="product-category-badge">{p.category}</span>}
                   </div>
