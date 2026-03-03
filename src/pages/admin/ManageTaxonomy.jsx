@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { apiGet, apiPost, apiPut, apiDelete } from '../../api';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { apiGet, apiPostForm, apiPutForm, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
@@ -39,6 +39,7 @@ function TaxonomyNode({
   const hasChildren = node.children.length > 0;
   const isExpanded = expanded[node.id];
   const desc = countDescendants(node);
+  const isLeaf = !hasChildren;
 
   return (
     <>
@@ -68,6 +69,11 @@ function TaxonomyNode({
           >
             {hasChildren ? (isExpanded ? '\u25BC' : '\u25B6') : '\u2022'}
           </button>
+
+          {/* Image thumbnail for leaf nodes */}
+          {isLeaf && node.image && (
+            <img src={node.image} alt="" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--color-border)', flexShrink: 0 }} />
+          )}
 
           {/* Name & description */}
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -129,6 +135,8 @@ export default function ManageTaxonomy() {
   const [adding, setAdding] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [search, setSearch] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const fileRef = useRef();
 
   const load = useCallback(() => {
     apiGet('/taxonomy').then(data => {
@@ -159,12 +167,13 @@ export default function ManageTaxonomy() {
 
   const collapseAll = () => setExpanded({});
 
-  const cancel = () => { setEditing(null); setAdding(false); setForm(emptyForm); };
+  const cancel = () => { setEditing(null); setAdding(false); setForm(emptyForm); setImageFile(null); };
 
   const startAdd = (parentId = null) => {
     setEditing(null);
     setAdding(true);
     setForm({ name: '', description: '', parent_id: parentId });
+    setImageFile(null);
     if (parentId) setExpanded(prev => ({ ...prev, [parentId]: true }));
   };
 
@@ -172,17 +181,28 @@ export default function ManageTaxonomy() {
     setAdding(false);
     setEditing(node.id);
     setForm({ name: node.name, description: node.description || '', parent_id: node.parent_id });
+    setImageFile(null);
+  };
+
+  const buildFormData = () => {
+    const fd = new FormData();
+    fd.append('name', form.name);
+    fd.append('description', form.description);
+    if (form.parent_id != null) fd.append('parent_id', form.parent_id);
+    if (imageFile) fd.append('image', imageFile);
+    return fd;
   };
 
   const saveNew = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      const created = await apiPost('/taxonomy', form);
+      const created = await apiPostForm('/taxonomy', buildFormData());
       setNodes(prev => [...prev, created]);
       if (created.parent_id) setExpanded(prev => ({ ...prev, [created.parent_id]: true }));
       setAdding(false);
       setForm(emptyForm);
+      setImageFile(null);
       addToast('Item added', 'success');
     } catch (err) {
       addToast(err.message || 'Failed to add', 'error');
@@ -193,10 +213,11 @@ export default function ManageTaxonomy() {
     if (!form.name.trim()) return;
     setSaving(true);
     try {
-      const updated = await apiPut(`/taxonomy/${editing}`, form);
+      const updated = await apiPutForm(`/taxonomy/${editing}`, buildFormData());
       setNodes(prev => prev.map(n => n.id === editing ? updated : n));
       setEditing(null);
       setForm(emptyForm);
+      setImageFile(null);
       addToast('Item updated', 'success');
     } catch (err) {
       addToast(err.message || 'Failed to update', 'error');
@@ -247,6 +268,16 @@ export default function ManageTaxonomy() {
       label: '\u00A0\u00A0'.repeat(depths[n.id] || 0) + n.name,
     }));
   })();
+
+  // Check if the current form target is (or will be) a leaf node
+  const isFormLeaf = (() => {
+    if (adding) return true; // new nodes start as leaves
+    if (!editing) return false;
+    return !nodes.some(n => n.parent_id === editing);
+  })();
+
+  // For editing, get existing image
+  const editingImage = editing ? nodes.find(n => n.id === editing)?.image : null;
 
   // Search filtering
   const filteredTree = (() => {
@@ -324,6 +355,28 @@ export default function ManageTaxonomy() {
           style={{ resize: 'vertical' }}
         />
       </div>
+      {/* Image upload — shown for leaf nodes */}
+      {isFormLeaf && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.75rem', maxWidth: 600 }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Category Image</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {(imageFile || editingImage) && (
+              <img
+                src={imageFile ? URL.createObjectURL(imageFile) : editingImage}
+                alt=""
+                style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--color-border)' }}
+              />
+            )}
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => fileRef.current?.click()}>
+              {imageFile ? 'Change Image' : editingImage ? 'Replace Image' : 'Upload Image'}
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setImageFile(e.target.files[0] || null)} />
+            {imageFile && (
+              <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{imageFile.name}</span>
+            )}
+          </div>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
         <button className="btn btn-primary" onClick={onSave} disabled={saving || !form.name.trim()}>
           {saving ? 'Saving...' : saveLabel}
@@ -440,6 +493,7 @@ export default function ManageTaxonomy() {
           The taxonomy organizes landscape products and services into a hierarchical tree.
           Top-level categories represent major domains (e.g. Plants &amp; Greenery, Hardscape Materials),
           while sub-categories provide finer classification (e.g. Trees &gt; Palm Trees).
+          Leaf-level categories can have an associated image that appears on the public products page.
           Deleting a parent will also remove all of its children.
         </p>
       </div>

@@ -709,9 +709,7 @@ app.get('/api/inventory', (req, res) => {
   res.json(items);
 });
 
-const inventoryUpload = (req, _res, next) => { req.uploadDir = 'inventory'; next(); };
-
-app.post('/api/inventory', inventoryUpload, upload.single('image'), (req, res) => {
+app.post('/api/inventory', (req, res) => {
   const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
@@ -723,16 +721,15 @@ app.post('/api/inventory', inventoryUpload, upload.single('image'), (req, res) =
 
   const wholesale = unit_cost != null && unit_cost !== '' ? Number(unit_cost) : null;
   const retail = retail_cost != null && retail_cost !== '' ? Number(retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
-  const image = req.file ? `/uploads/inventory/${req.file.filename}` : null;
   const catId = resolveCategoryId(category_id);
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
   const available = availableRaw === '1' || availableRaw === 1 ? 1 : 0;
   try {
     const result = db.prepare(
-      'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, image, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, available);
+      'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available);
 
-    res.status(201).json({ id: result.lastInsertRowid, supplier_id: suppId, item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal, reorder_point: reorder_point ?? 0, notes, image, available });
+    res.status(201).json({ id: result.lastInsertRowid, supplier_id: suppId, item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal, reorder_point: reorder_point ?? 0, notes, available });
   } catch (err) {
     console.error('POST /api/inventory error:', { supplier_id: suppId, category_id: catId, error: err.message });
     res.status(500).json({ error: err.message || 'Failed to save inventory item' });
@@ -850,21 +847,13 @@ app.post('/api/inventory/import', inventoryImportUpload, upload.single('file'), 
   }
 });
 
-app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res) => {
+app.put('/api/inventory/:id', (req, res) => {
   const { id } = req.params;
   const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
-  const existing = db.prepare('SELECT image FROM supplier_inventory WHERE id = ?').get(id);
+  const existing = db.prepare('SELECT id FROM supplier_inventory WHERE id = ?').get(id);
   if (!existing) return res.status(404).json({ error: 'Inventory item not found' });
-
-  let image = existing.image;
-  if (req.file) {
-    if (existing.image) {
-      try { unlinkSync(join(__dirname, existing.image.replace(/^\//, ''))); } catch { /* ignore */ }
-    }
-    image = `/uploads/inventory/${req.file.filename}`;
-  }
 
   const wholesale = unit_cost != null && unit_cost !== '' ? Number(unit_cost) : null;
   const retail = retail_cost != null && retail_cost !== '' ? Number(retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
@@ -880,11 +869,11 @@ app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res
 
   try {
     const result = db.prepare(
-      'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, category_id = ?, unit = ?, unit_cost = ?, retail_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, image = ?, available = ?, updated_at = datetime(\'now\') WHERE id = ?'
-    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, available, id);
+      'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, category_id = ?, unit = ?, unit_cost = ?, retail_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, available = ?, updated_at = datetime(\'now\') WHERE id = ?'
+    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available, id);
     if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
 
-    res.json({ success: true, image, available });
+    res.json({ success: true, available });
   } catch (err) {
     console.error('PUT /api/inventory/:id error:', { id, supplier_id: suppId, category_id: catId, error: err.message });
     res.status(500).json({ error: err.message || 'Failed to update inventory item' });
@@ -893,14 +882,8 @@ app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res
 
 app.delete('/api/inventory/:id', (req, res) => {
   const { id } = req.params;
-  const existing = db.prepare('SELECT image FROM supplier_inventory WHERE id = ?').get(id);
   const result = db.prepare('DELETE FROM supplier_inventory WHERE id = ?').run(id);
   if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
-
-  if (existing && existing.image) {
-    try { unlinkSync(join(__dirname, existing.image.replace(/^\//, ''))); } catch { /* ignore */ }
-  }
-
   res.json({ success: true });
 });
 
@@ -953,7 +936,7 @@ app.delete('/api/job-openings/:id', (req, res) => {
 app.get('/api/products', (req, res) => {
   // Return taxonomy leaf categories that have at least one active product
   const leaves = db.prepare(`
-    SELECT t.id, t.name, t.parent_id,
+    SELECT t.id, t.name, t.description, t.image, t.parent_id,
            p.name AS parent_name,
            COUNT(si.id) AS product_count,
            MIN(si.retail_cost) AS min_price,
@@ -965,14 +948,6 @@ app.get('/api/products', (req, res) => {
     GROUP BY t.id
     ORDER BY t.name
   `).all();
-
-  // Grab a sample image for each leaf (first available product with an image)
-  for (const leaf of leaves) {
-    const img = db.prepare(
-      'SELECT image FROM supplier_inventory WHERE category_id = ? AND available = 1 AND image IS NOT NULL LIMIT 1'
-    ).get(leaf.id);
-    leaf.image = img?.image || null;
-  }
 
   res.json(leaves);
 });
@@ -1024,7 +999,13 @@ app.get('/api/taxonomy', (_req, res) => {
   res.json(rows);
 });
 
-app.post('/api/taxonomy', (req, res) => {
+const taxonomyUpload = (req, _res, next) => { req.uploadDir = 'taxonomy'; next(); };
+
+// Ensure taxonomy upload directory exists
+const taxUploadDir = join(__dirname, 'uploads', 'taxonomy');
+if (!existsSync(taxUploadDir)) mkdirSync(taxUploadDir, { recursive: true });
+
+app.post('/api/taxonomy', taxonomyUpload, upload.single('image'), (req, res) => {
   const { name, description, parent_id } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
 
@@ -1035,14 +1016,16 @@ app.post('/api/taxonomy', (req, res) => {
     if (!parentExists) return res.status(400).json({ error: 'Invalid parent category' });
   }
 
+  const image = req.file ? `/uploads/taxonomy/${req.file.filename}` : null;
+
   try {
     const maxOrder = db.prepare(
       'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM taxonomy WHERE parent_id IS ?'
     ).get(pid);
 
     const result = db.prepare(
-      "INSERT INTO taxonomy (name, description, parent_id, sort_order) VALUES (?, ?, ?, ?)"
-    ).run(name.trim(), (description || '').trim() || null, pid, maxOrder.next);
+      "INSERT INTO taxonomy (name, description, parent_id, sort_order, image) VALUES (?, ?, ?, ?, ?)"
+    ).run(name.trim(), (description || '').trim() || null, pid, maxOrder.next, image);
 
     const created = db.prepare('SELECT * FROM taxonomy WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(created);
@@ -1051,7 +1034,7 @@ app.post('/api/taxonomy', (req, res) => {
   }
 });
 
-app.put('/api/taxonomy/:id', (req, res) => {
+app.put('/api/taxonomy/:id', taxonomyUpload, upload.single('image'), (req, res) => {
   const { name, description, parent_id } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
 
@@ -1081,13 +1064,23 @@ app.put('/api/taxonomy/:id', (req, res) => {
     }
   }
 
+  const existing = db.prepare('SELECT image FROM taxonomy WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+
+  let image = existing.image;
+  if (req.file) {
+    if (existing.image) {
+      try { unlinkSync(join(__dirname, existing.image.replace(/^\//, ''))); } catch { /* ignore */ }
+    }
+    image = `/uploads/taxonomy/${req.file.filename}`;
+  }
+
   try {
     db.prepare(
-      "UPDATE taxonomy SET name = ?, description = ?, parent_id = ?, updated_at = datetime('now') WHERE id = ?"
-    ).run(name.trim(), (description || '').trim() || null, pid, id);
+      "UPDATE taxonomy SET name = ?, description = ?, parent_id = ?, image = ?, updated_at = datetime('now') WHERE id = ?"
+    ).run(name.trim(), (description || '').trim() || null, pid, image, id);
 
     const updated = db.prepare('SELECT * FROM taxonomy WHERE id = ?').get(id);
-    if (!updated) return res.status(404).json({ error: 'Not found' });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message || 'Failed to update taxonomy node' });
