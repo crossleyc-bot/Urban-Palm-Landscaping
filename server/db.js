@@ -299,4 +299,10 @@ if (invSchema && invSchema.sql.includes('REFERENCES') && !invSchema.sql.includes
   db.pragma('foreign_keys = ON');
 }
 
+// Migration: add image column to taxonomy for leaf-level category images
+const taxColumns = db.prepare("PRAGMA table_info(taxonomy)").all().map(c => c.name);
+if (!taxColumns.includes('image')) {
+  db.exec("ALTER TABLE taxonomy ADD COLUMN image TEXT");
+}
+
 export default db;
