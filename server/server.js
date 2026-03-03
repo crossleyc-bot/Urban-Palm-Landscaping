@@ -811,7 +811,7 @@ app.post('/api/inventory/import', inventoryImportUpload, upload.single('file'), 
     }
 
     const insert = db.prepare(
-      'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO supplier_inventory (supplier_id, item_name, sku, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)'
     );
 
     let imported = 0;
@@ -832,20 +832,17 @@ app.post('/api/inventory/import', inventoryImportUpload, upload.single('file'), 
         const wholesale = row.unit_cost ? Number(row.unit_cost) : null;
         const retail = row.retail_cost ? Number(row.retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
         const qtyVal = row.qty_available ? Number(row.qty_available) : 0;
-        const available = computeAvailable(supplierId, { item_name: row.item_name, sku: row.sku, category: row.category, unit: row.unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal });
 
         insert.run(
           supplierId,
           row.item_name,
           row.sku || null,
-          row.category || null,
           row.unit || null,
           wholesale,
           retail,
           qtyVal,
           row.reorder_point ? Number(row.reorder_point) : 0,
-          row.notes || null,
-          available
+          row.notes || null
         );
         imported++;
       }
