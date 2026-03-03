@@ -736,11 +736,15 @@ app.post('/api/inventory', inventoryUpload, upload.single('image'), (req, res) =
   const catId = category_id != null && category_id !== '' ? Number(category_id) : null;
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
   const available = computeAvailable(Number(supplier_id), { item_name, sku, category, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal });
-  const result = db.prepare(
-    'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, image, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(Number(supplier_id), item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, available);
+  try {
+    const result = db.prepare(
+      'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, image, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(Number(supplier_id), item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, available);
 
-  res.status(201).json({ id: result.lastInsertRowid, supplier_id: Number(supplier_id), item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal, reorder_point: reorder_point ?? 0, notes, image, available });
+    res.status(201).json({ id: result.lastInsertRowid, supplier_id: Number(supplier_id), item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal, reorder_point: reorder_point ?? 0, notes, image, available });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to save inventory item' });
+  }
 });
 
 const inventoryImportUpload = (req, _res, next) => { req.uploadDir = 'imports'; next(); };
@@ -879,12 +883,16 @@ app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
   const available = computeAvailable(Number(supplier_id), { item_name, sku, category, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal });
 
-  const result = db.prepare(
-    'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, category_id = ?, unit = ?, unit_cost = ?, retail_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, image = ?, available = ?, updated_at = datetime(\'now\') WHERE id = ?'
-  ).run(Number(supplier_id), item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, available, id);
-  if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
+  try {
+    const result = db.prepare(
+      'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, category_id = ?, unit = ?, unit_cost = ?, retail_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, image = ?, available = ?, updated_at = datetime(\'now\') WHERE id = ?'
+    ).run(Number(supplier_id), item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, available, id);
+    if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
 
-  res.json({ success: true, image, available });
+    res.json({ success: true, image, available });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to update inventory item' });
+  }
 });
 
 app.delete('/api/inventory/:id', (req, res) => {
