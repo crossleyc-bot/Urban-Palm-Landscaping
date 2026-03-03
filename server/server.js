@@ -1064,6 +1064,12 @@ app.delete('/api/taxonomy/:id', (req, res) => {
 
 // ─── Start ───────────────────────────────────────────────────────────────────
 
+// Global error handler — ensures middleware errors (e.g. multer) return JSON
+app.use((err, _req, res, _next) => {
+  console.error('Unhandled error:', err.message || err);
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`API server running on http://localhost:${PORT}`);
