@@ -689,10 +689,10 @@ app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (
 
 // Compute whether an inventory item should be marked available:
 // supplier must be Active AND all key inventory fields must have a value.
-function computeAvailable(supplierId, { item_name, sku, category, unit, unit_cost, retail_cost, qty_available }) {
+function computeAvailable(supplierId, { item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available }) {
   const supplier = db.prepare('SELECT status FROM suppliers WHERE id = ?').get(supplierId);
   if (!supplier || supplier.status !== 'Active') return 0;
-  if (!item_name || !sku || !category || !unit) return 0;
+  if (!item_name || !sku || (!category && !category_id) || !unit) return 0;
   if (unit_cost == null || retail_cost == null) return 0;
   if (qty_available == null || Number(qty_available) <= 0) return 0;
   return 1;
@@ -735,7 +735,7 @@ app.post('/api/inventory', inventoryUpload, upload.single('image'), (req, res) =
   const image = req.file ? `/uploads/inventory/${req.file.filename}` : null;
   const catId = category_id != null && category_id !== '' ? Number(category_id) : null;
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
-  const available = computeAvailable(Number(supplier_id), { item_name, sku, category, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal });
+  const available = computeAvailable(Number(supplier_id), { item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal });
   try {
     const result = db.prepare(
       'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, image, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
@@ -878,7 +878,7 @@ app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res
   const retail = retail_cost != null && retail_cost !== '' ? Number(retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
   const catId = category_id != null && category_id !== '' ? Number(category_id) : null;
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
-  const available = computeAvailable(Number(supplier_id), { item_name, sku, category, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal });
+  const available = computeAvailable(Number(supplier_id), { item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal });
 
   try {
     const result = db.prepare(

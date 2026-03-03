@@ -120,6 +120,7 @@ export default function SupplierInventory() {
         reorder_point: form.reorder_point !== '' ? Number(form.reorder_point) : 0,
         supplier_name: supplierName(Number(form.supplier_id)),
         image: result.image ?? i.image,
+        available: result.available != null ? result.available : i.available,
       } : i));
       setEditing(null);
       setImageFile(null);
