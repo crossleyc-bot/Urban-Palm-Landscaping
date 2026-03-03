@@ -17,58 +17,48 @@ const categoryIcons = {
 const placeholderIcon = (category) => categoryIcons[category] || '\uD83D\uDCE6';
 
 export default function Products() {
-  const [products, setProducts] = useState([]);
+  const [leaves, setLeaves] = useState([]);
   const [taxonomyRoots, setTaxonomyRoots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All');
 
   useEffect(() => {
     Promise.all([apiGet('/products'), apiGet('/taxonomy/roots')])
-      .then(([prods, roots]) => { setProducts(prods); setTaxonomyRoots(roots); })
+      .then(([lvs, roots]) => { setLeaves(lvs); setTaxonomyRoots(roots); })
       .finally(() => setLoading(false));
   }, []);
 
-  // Build a lookup: for each taxonomy root, the set of names that match (root name + all descendants)
-  const categoryMatchMap = useMemo(() => {
-    const map = {};
+  // Map each leaf to its taxonomy root name
+  const leafToRoot = useMemo(() => {
+    const allDescendants = {};
     for (const root of taxonomyRoots) {
-      const names = new Set([root.name, ...root.descendant_names].map(n => n.toLowerCase()));
-      map[root.name] = names;
-    }
-    return map;
-  }, [taxonomyRoots]);
-
-  // Map each product to its taxonomy root name
-  const productTaxonomy = useMemo(() => {
-    const lookup = {};
-    for (const p of products) {
-      // Prefer taxonomy_name from category_id mapping; fall back to free-text category match
-      const cat = (p.taxonomy_name || p.category || '').toLowerCase();
-      if (!cat) continue;
-      for (const [rootName, names] of Object.entries(categoryMatchMap)) {
-        if (names.has(cat)) {
-          lookup[p.item_name] = rootName;
-          break;
-        }
+      for (const name of [root.name, ...root.descendant_names]) {
+        allDescendants[name.toLowerCase()] = root.name;
       }
     }
-    return lookup;
-  }, [products, categoryMatchMap]);
+    const map = {};
+    for (const leaf of leaves) {
+      const key = (leaf.parent_name || leaf.name || '').toLowerCase();
+      // Try parent name first, then leaf name itself
+      map[leaf.id] = allDescendants[key] || allDescendants[leaf.name.toLowerCase()] || null;
+    }
+    return map;
+  }, [leaves, taxonomyRoots]);
 
-  // Filter chip categories from taxonomy roots (only those with matching products)
+  // Filter chip categories from taxonomy roots (only those with matching leaves)
   const filterCategories = useMemo(() => {
-    const matched = new Set(Object.values(productTaxonomy));
+    const matched = new Set(Object.values(leafToRoot).filter(Boolean));
     const cats = taxonomyRoots
       .filter(r => matched.has(r.name))
       .map(r => r.name);
     return ['All', ...cats];
-  }, [taxonomyRoots, productTaxonomy]);
+  }, [taxonomyRoots, leafToRoot]);
 
-  // Filter products by taxonomy root match
+  // Filter leaves by taxonomy root match
   const filtered = useMemo(() => {
-    if (activeCategory === 'All') return products;
-    return products.filter(p => productTaxonomy[p.item_name] === activeCategory);
-  }, [products, activeCategory, productTaxonomy]);
+    if (activeCategory === 'All') return leaves;
+    return leaves.filter(l => leafToRoot[l.id] === activeCategory);
+  }, [leaves, activeCategory, leafToRoot]);
 
   const handleCategoryClick = (name) => {
     setActiveCategory(prev => prev === name ? 'All' : name);
@@ -88,7 +78,7 @@ export default function Products() {
         <div className="container">
           {loading ? (
             <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '3rem 0' }}>Loading products...</p>
-          ) : products.length === 0 ? (
+          ) : leaves.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem 0' }}>
               <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>&#128230;</div>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>No Products Available</h2>
@@ -142,29 +132,32 @@ export default function Products() {
                 <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '3rem 0' }}>No products available in this category.</p>
               ) : (
                 <div className="products-grid">
-                  {filtered.map((p, i) => {
-                    const rootName = productTaxonomy[p.item_name];
+                  {filtered.map(leaf => {
+                    const rootName = leafToRoot[leaf.id];
                     return (
-                    <div key={i} className="product-card">
-                      <div className="product-image">
-                        {p.image ? (
-                          <img src={p.image} alt={p.item_name} />
-                        ) : (
-                          <div className="product-placeholder">{placeholderIcon(rootName || p.category)}</div>
-                        )}
-                        {rootName && <span className="product-category-badge">{rootName}</span>}
-                      </div>
-                      <div className="product-body">
-                        <h3>{p.taxonomy_name || p.item_name}</h3>
-                        <div className="product-meta">
-                          {p.unit && <span className="product-unit">{p.unit}</span>}
-                          {p.supplier_name && <span className="product-supplier">by {p.supplier_name}</span>}
+                      <div key={leaf.id} className="product-card">
+                        <div className="product-image">
+                          {leaf.image ? (
+                            <img src={leaf.image} alt={leaf.name} />
+                          ) : (
+                            <div className="product-placeholder">{placeholderIcon(rootName || leaf.parent_name)}</div>
+                          )}
+                          {rootName && <span className="product-category-badge">{rootName}</span>}
                         </div>
-                        {(p.retail_cost != null || p.unit_cost != null) && (
-                          <div className="product-price">${Number(p.retail_cost ?? p.unit_cost).toFixed(2)}{p.unit ? ` / ${p.unit}` : ''}</div>
-                        )}
+                        <div className="product-body">
+                          <h3>{leaf.name}</h3>
+                          <div className="product-meta">
+                            <span className="product-unit">{leaf.product_count} product{leaf.product_count !== 1 ? 's' : ''} available</span>
+                          </div>
+                          {leaf.min_price != null && (
+                            <div className="product-price">
+                              {leaf.min_price === leaf.max_price
+                                ? `$${Number(leaf.min_price).toFixed(2)}`
+                                : `$${Number(leaf.min_price).toFixed(2)} – $${Number(leaf.max_price).toFixed(2)}`}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
                     );
                   })}
                 </div>

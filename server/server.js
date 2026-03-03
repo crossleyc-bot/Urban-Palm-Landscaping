@@ -951,26 +951,30 @@ app.delete('/api/job-openings/:id', (req, res) => {
 // ─── Public Products ────────────────────────────────────────────────────────
 
 app.get('/api/products', (req, res) => {
-  const items = db.prepare(`
-    SELECT si.item_name, si.category, si.category_id, si.unit_cost, si.retail_cost, si.image, si.unit,
-           s.name AS supplier_name,
-           t.name AS taxonomy_name
-    FROM supplier_inventory si
-    JOIN suppliers s ON s.id = si.supplier_id
-    LEFT JOIN taxonomy t ON t.id = si.category_id
-    WHERE si.available = 1
-    ORDER BY si.category, si.item_name
+  // Return taxonomy leaf categories that have at least one active product
+  const leaves = db.prepare(`
+    SELECT t.id, t.name, t.parent_id,
+           p.name AS parent_name,
+           COUNT(si.id) AS product_count,
+           MIN(si.retail_cost) AS min_price,
+           MAX(si.retail_cost) AS max_price
+    FROM taxonomy t
+    LEFT JOIN taxonomy p ON p.id = t.parent_id
+    JOIN supplier_inventory si ON si.category_id = t.id AND si.available = 1
+    WHERE NOT EXISTS (SELECT 1 FROM taxonomy c WHERE c.parent_id = t.id)
+    GROUP BY t.id
+    ORDER BY t.name
   `).all();
 
-  // Deduplicate by item_name — pick the first (cheapest or first found) for each unique name
-  const seen = new Map();
-  for (const item of items) {
-    if (!seen.has(item.item_name)) {
-      seen.set(item.item_name, item);
-    }
+  // Grab a sample image for each leaf (first available product with an image)
+  for (const leaf of leaves) {
+    const img = db.prepare(
+      'SELECT image FROM supplier_inventory WHERE category_id = ? AND available = 1 AND image IS NOT NULL LIMIT 1'
+    ).get(leaf.id);
+    leaf.image = img?.image || null;
   }
 
-  res.json(Array.from(seen.values()));
+  res.json(leaves);
 });
 
 // ─── Taxonomy ─────────────────────────────────────────────────────────────────
