@@ -267,4 +267,36 @@ if (!contactColumns.includes('admin_reply')) {
   db.exec("ALTER TABLE contact_messages ADD COLUMN admin_reply TEXT");
 }
 
+// Migration: rebuild supplier_inventory to use ON DELETE SET NULL for category_id FK
+// This prevents "FOREIGN KEY constraint failed" when setting/changing category_id
+const invSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='supplier_inventory'").get();
+if (invSchema && invSchema.sql.includes('REFERENCES') && !invSchema.sql.includes('ON DELETE SET NULL')) {
+  db.pragma('foreign_keys = OFF');
+  db.exec(`
+    CREATE TABLE supplier_inventory_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+      item_name TEXT NOT NULL,
+      sku TEXT,
+      category TEXT,
+      category_id INTEGER REFERENCES taxonomy(id) ON DELETE SET NULL,
+      unit TEXT,
+      unit_cost REAL,
+      retail_cost REAL,
+      qty_available INTEGER DEFAULT 0,
+      reorder_point INTEGER DEFAULT 0,
+      notes TEXT,
+      image TEXT,
+      available INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    INSERT INTO supplier_inventory_new
+      SELECT id, supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, image, available, updated_at
+      FROM supplier_inventory;
+    DROP TABLE supplier_inventory;
+    ALTER TABLE supplier_inventory_new RENAME TO supplier_inventory;
+  `);
+  db.pragma('foreign_keys = ON');
+}
+
 export default db;
