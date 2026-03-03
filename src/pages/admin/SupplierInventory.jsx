@@ -7,7 +7,7 @@ import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
 
 const PAGE_SIZE = 15;
-const emptyForm = { supplier_id: '', item_name: '', sku: '', category: '', category_id: '', unit: '', unit_cost: '', retail_cost: '', qty_available: '', reorder_point: '', notes: '' };
+const emptyForm = { supplier_id: '', item_name: '', sku: '', category: '', category_id: '', unit: '', unit_cost: '', retail_cost: '', qty_available: '', reorder_point: '', notes: '', available: '0' };
 
 export default function SupplierInventory() {
   const { addToast } = useToast();
@@ -75,6 +75,7 @@ export default function SupplierInventory() {
       category: item.category || '', category_id: item.category_id != null ? String(item.category_id) : '',
       unit: item.unit || '', unit_cost: item.unit_cost ?? '',
       retail_cost: item.retail_cost ?? '', qty_available: item.qty_available ?? '', reorder_point: item.reorder_point ?? '', notes: item.notes || '',
+      available: String(item.available ?? 0),
     });
   };
 
@@ -99,6 +100,7 @@ export default function SupplierInventory() {
     fd.append('qty_available', form.qty_available);
     fd.append('reorder_point', form.reorder_point);
     fd.append('notes', form.notes);
+    fd.append('available', form.available);
     if (imageFile) fd.append('image', imageFile);
     return fd;
   };
@@ -120,7 +122,7 @@ export default function SupplierInventory() {
         reorder_point: form.reorder_point !== '' ? Number(form.reorder_point) : 0,
         supplier_name: supplierName(Number(form.supplier_id)),
         image: result.image ?? i.image,
-        available: result.available != null ? result.available : i.available,
+        available: Number(form.available),
       } : i));
       setEditing(null);
       setImageFile(null);
@@ -220,7 +222,12 @@ export default function SupplierInventory() {
       <td><input className="table-input" type="number" min="0" step="0.01" value={form.retail_cost} onChange={e => setForm(f => ({ ...f, retail_cost: e.target.value }))} placeholder="auto" style={{ width: 80 }} /></td>
       <td><input className="table-input" type="number" min="0" value={form.qty_available} onChange={e => setForm(f => ({ ...f, qty_available: e.target.value }))} placeholder="0" style={{ width: 65 }} /></td>
       <td><input className="table-input" type="number" min="0" value={form.reorder_point} onChange={e => setForm(f => ({ ...f, reorder_point: e.target.value }))} placeholder="0" style={{ width: 65 }} /></td>
-      <td></td>
+      <td>
+        <select className="table-select" value={form.available} onChange={e => setForm(f => ({ ...f, available: e.target.value }))} style={{ width: 70 }}>
+          <option value="0">No</option>
+          <option value="1">Yes</option>
+        </select>
+      </td>
       <td>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           <button type="button" className="btn btn-outline btn-sm" onClick={() => fileRef.current?.click()} style={{ fontSize: '0.7rem' }}>{imageFile ? '1 file' : 'Photo'}</button>
