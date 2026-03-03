@@ -84,83 +84,92 @@ export default function Products() {
         </div>
       </section>
 
-      {/* Taxonomy Category Cards */}
-      {taxonomyRoots.length > 0 && (
-        <section className="section">
-          <div className="container">
-            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-              <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Product Categories</h2>
-              <p style={{ color: 'var(--color-text-muted)', maxWidth: 520, margin: '0 auto' }}>Browse our selection of landscaping materials by category.</p>
-            </div>
-            <div className="product-categories-grid">
-              {taxonomyRoots.map(cat => (
-                <div
-                  key={cat.id}
-                  className={`product-category-card${activeCategory === cat.name ? ' product-category-card-active' : ''}`}
-                  onClick={() => handleCategoryClick(cat.name)}
-                >
-                  <div className="product-category-icon">
-                    {placeholderIcon(cat.name)}
-                  </div>
-                  <div className="product-category-info">
-                    <h3>{cat.name}</h3>
-                    {cat.description && <p>{cat.description}</p>}
-                    <span className="product-category-count">{cat.descendant_names.length} sub-categories</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      <section className="section" style={taxonomyRoots.length > 0 ? { paddingTop: 0 } : {}}>
+      <section className="section">
         <div className="container">
-          {/* Category filter chips */}
-          <div className="products-filter">
-            {filterCategories.map(cat => (
-              <button
-                key={cat}
-                className={`filter-chip ${activeCategory === cat ? 'filter-chip-active' : ''}`}
-                onClick={() => setActiveCategory(cat)}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
           {loading ? (
             <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '3rem 0' }}>Loading products...</p>
-          ) : filtered.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '3rem 0' }}>No products available in this category.</p>
+          ) : products.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '4rem 0' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>&#128230;</div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>No Products Available</h2>
+              <p style={{ color: 'var(--color-text-muted)', maxWidth: 480, margin: '0 auto 1.5rem' }}>Our product catalog is being updated. Check back soon for premium landscaping materials from our trusted suppliers.</p>
+              <Link to="/contact" className="btn btn-primary">Contact Us for Materials</Link>
+            </div>
           ) : (
-            <div className="products-grid">
-              {filtered.map((p, i) => {
-                const rootName = productTaxonomy[p.item_name];
-                return (
-                <div key={i} className="product-card">
-                  <div className="product-image">
-                    {p.image ? (
-                      <img src={p.image} alt={p.item_name} />
-                    ) : (
-                      <div className="product-placeholder">{placeholderIcon(rootName || p.category)}</div>
-                    )}
-                    {rootName && <span className="product-category-badge">{rootName}</span>}
+            <>
+              {/* Taxonomy Category Cards */}
+              {taxonomyRoots.length > 0 && (
+                <div>
+                  <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                    <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Product Categories</h2>
+                    <p style={{ color: 'var(--color-text-muted)', maxWidth: 520, margin: '0 auto' }}>Browse our selection of landscaping materials by category.</p>
                   </div>
-                  <div className="product-body">
-                    <h3>{p.taxonomy_name || p.item_name}</h3>
-                    <div className="product-meta">
-                      {p.unit && <span className="product-unit">{p.unit}</span>}
-                      {p.supplier_name && <span className="product-supplier">by {p.supplier_name}</span>}
-                    </div>
-                    {(p.retail_cost != null || p.unit_cost != null) && (
-                      <div className="product-price">${Number(p.retail_cost ?? p.unit_cost).toFixed(2)}{p.unit ? ` / ${p.unit}` : ''}</div>
-                    )}
+                  <div className="product-categories-grid">
+                    {taxonomyRoots.map(cat => (
+                      <div
+                        key={cat.id}
+                        className={`product-category-card${activeCategory === cat.name ? ' product-category-card-active' : ''}`}
+                        onClick={() => handleCategoryClick(cat.name)}
+                      >
+                        <div className="product-category-icon">
+                          {placeholderIcon(cat.name)}
+                        </div>
+                        <div className="product-category-info">
+                          <h3>{cat.name}</h3>
+                          {cat.description && <p>{cat.description}</p>}
+                          <span className="product-category-count">{cat.descendant_names.length} sub-categories</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                );
-              })}
-            </div>
+              )}
+
+              {/* Category filter chips */}
+              <div className="products-filter">
+                {filterCategories.map(cat => (
+                  <button
+                    key={cat}
+                    className={`filter-chip ${activeCategory === cat ? 'filter-chip-active' : ''}`}
+                    onClick={() => setActiveCategory(cat)}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {filtered.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '3rem 0' }}>No products available in this category.</p>
+              ) : (
+                <div className="products-grid">
+                  {filtered.map((p, i) => {
+                    const rootName = productTaxonomy[p.item_name];
+                    return (
+                    <div key={i} className="product-card">
+                      <div className="product-image">
+                        {p.image ? (
+                          <img src={p.image} alt={p.item_name} />
+                        ) : (
+                          <div className="product-placeholder">{placeholderIcon(rootName || p.category)}</div>
+                        )}
+                        {rootName && <span className="product-category-badge">{rootName}</span>}
+                      </div>
+                      <div className="product-body">
+                        <h3>{p.taxonomy_name || p.item_name}</h3>
+                        <div className="product-meta">
+                          {p.unit && <span className="product-unit">{p.unit}</span>}
+                          {p.supplier_name && <span className="product-supplier">by {p.supplier_name}</span>}
+                        </div>
+                        {(p.retail_cost != null || p.unit_cost != null) && (
+                          <div className="product-price">${Number(p.retail_cost ?? p.unit_cost).toFixed(2)}{p.unit ? ` / ${p.unit}` : ''}</div>
+                        )}
+                      </div>
+                    </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>
