@@ -152,11 +152,9 @@ export default function Products() {
                           <div className="product-meta">
                             <span className="product-unit">{leaf.product_count} product{leaf.product_count !== 1 ? 's' : ''} available</span>
                           </div>
-                          {leaf.min_price != null && (
+                          {leaf.max_price != null && (
                             <div className="product-price">
-                              {leaf.min_price === leaf.max_price
-                                ? `$${Number(leaf.min_price).toFixed(2)}`
-                                : `From $${Number(leaf.min_price).toFixed(2)}`}
+                              ${Number(leaf.max_price).toFixed(2)}
                             </div>
                           )}
                         </div>
