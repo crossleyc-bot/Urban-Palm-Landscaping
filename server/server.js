@@ -715,6 +715,12 @@ app.post('/api/inventory', inventoryUpload, upload.single('image'), (req, res) =
   const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
+  // Validate supplier_id references a real supplier
+  const suppId = Number(supplier_id);
+  if (!suppId || !Number.isFinite(suppId)) return res.status(400).json({ error: 'Invalid supplier' });
+  const supplierExists = db.prepare('SELECT 1 FROM suppliers WHERE id = ?').get(suppId);
+  if (!supplierExists) return res.status(400).json({ error: 'Supplier not found' });
+
   const wholesale = unit_cost != null && unit_cost !== '' ? Number(unit_cost) : null;
   const retail = retail_cost != null && retail_cost !== '' ? Number(retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
   const image = req.file ? `/uploads/inventory/${req.file.filename}` : null;
@@ -724,10 +730,11 @@ app.post('/api/inventory', inventoryUpload, upload.single('image'), (req, res) =
   try {
     const result = db.prepare(
       'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, image, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(Number(supplier_id), item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, available);
+    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, available);
 
-    res.status(201).json({ id: result.lastInsertRowid, supplier_id: Number(supplier_id), item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal, reorder_point: reorder_point ?? 0, notes, image, available });
+    res.status(201).json({ id: result.lastInsertRowid, supplier_id: suppId, item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal, reorder_point: reorder_point ?? 0, notes, image, available });
   } catch (err) {
+    console.error('POST /api/inventory error:', { supplier_id: suppId, category_id: catId, error: err.message });
     res.status(500).json({ error: err.message || 'Failed to save inventory item' });
   }
 });
@@ -865,14 +872,21 @@ app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
   const available = availableRaw === '1' || availableRaw === 1 ? 1 : 0;
 
+  // Validate supplier_id references a real supplier
+  const suppId = Number(supplier_id);
+  if (!suppId || !Number.isFinite(suppId)) return res.status(400).json({ error: 'Invalid supplier' });
+  const supplierExists = db.prepare('SELECT 1 FROM suppliers WHERE id = ?').get(suppId);
+  if (!supplierExists) return res.status(400).json({ error: 'Supplier not found' });
+
   try {
     const result = db.prepare(
       'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, category_id = ?, unit = ?, unit_cost = ?, retail_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, image = ?, available = ?, updated_at = datetime(\'now\') WHERE id = ?'
-    ).run(Number(supplier_id), item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, available, id);
+    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, image, available, id);
     if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
 
     res.json({ success: true, image, available });
   } catch (err) {
+    console.error('PUT /api/inventory/:id error:', { id, supplier_id: suppId, category_id: catId, error: err.message });
     res.status(500).json({ error: err.message || 'Failed to update inventory item' });
   }
 });
@@ -1010,28 +1024,45 @@ app.post('/api/taxonomy', (req, res) => {
   const { name, description, parent_id } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
 
-  const maxOrder = db.prepare(
-    'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM taxonomy WHERE parent_id IS ?'
-  ).get(parent_id ?? null);
+  // Validate parent_id exists if provided
+  const pid = parent_id != null && parent_id !== '' ? Number(parent_id) : null;
+  if (pid !== null) {
+    const parentExists = db.prepare('SELECT 1 FROM taxonomy WHERE id = ?').get(pid);
+    if (!parentExists) return res.status(400).json({ error: 'Invalid parent category' });
+  }
 
-  const result = db.prepare(
-    "INSERT INTO taxonomy (name, description, parent_id, sort_order) VALUES (?, ?, ?, ?)"
-  ).run(name.trim(), (description || '').trim() || null, parent_id ?? null, maxOrder.next);
+  try {
+    const maxOrder = db.prepare(
+      'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM taxonomy WHERE parent_id IS ?'
+    ).get(pid);
 
-  const created = db.prepare('SELECT * FROM taxonomy WHERE id = ?').get(result.lastInsertRowid);
-  res.status(201).json(created);
+    const result = db.prepare(
+      "INSERT INTO taxonomy (name, description, parent_id, sort_order) VALUES (?, ?, ?, ?)"
+    ).run(name.trim(), (description || '').trim() || null, pid, maxOrder.next);
+
+    const created = db.prepare('SELECT * FROM taxonomy WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(created);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to create taxonomy node' });
+  }
 });
 
 app.put('/api/taxonomy/:id', (req, res) => {
   const { name, description, parent_id } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
 
-  // Prevent making a node its own parent
   const id = Number(req.params.id);
-  if (parent_id === id) return res.status(400).json({ error: 'A node cannot be its own parent' });
+  const pid = parent_id != null && parent_id !== '' ? Number(parent_id) : null;
 
-  // Prevent making a node a child of its own descendants
-  if (parent_id != null) {
+  // Prevent making a node its own parent
+  if (pid === id) return res.status(400).json({ error: 'A node cannot be its own parent' });
+
+  // Validate parent_id exists if provided
+  if (pid !== null) {
+    const parentExists = db.prepare('SELECT 1 FROM taxonomy WHERE id = ?').get(pid);
+    if (!parentExists) return res.status(400).json({ error: 'Invalid parent category' });
+
+    // Prevent making a node a child of its own descendants
     const descendants = new Set();
     const collectDescendants = (nodeId) => {
       const children = db.prepare('SELECT id FROM taxonomy WHERE parent_id = ?').all(nodeId);
@@ -1041,18 +1072,22 @@ app.put('/api/taxonomy/:id', (req, res) => {
       }
     };
     collectDescendants(id);
-    if (descendants.has(parent_id)) {
+    if (descendants.has(pid)) {
       return res.status(400).json({ error: 'Cannot move a node under its own descendant' });
     }
   }
 
-  db.prepare(
-    "UPDATE taxonomy SET name = ?, description = ?, parent_id = ?, updated_at = datetime('now') WHERE id = ?"
-  ).run(name.trim(), (description || '').trim() || null, parent_id ?? null, id);
+  try {
+    db.prepare(
+      "UPDATE taxonomy SET name = ?, description = ?, parent_id = ?, updated_at = datetime('now') WHERE id = ?"
+    ).run(name.trim(), (description || '').trim() || null, pid, id);
 
-  const updated = db.prepare('SELECT * FROM taxonomy WHERE id = ?').get(id);
-  if (!updated) return res.status(404).json({ error: 'Not found' });
-  res.json(updated);
+    const updated = db.prepare('SELECT * FROM taxonomy WHERE id = ?').get(id);
+    if (!updated) return res.status(404).json({ error: 'Not found' });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to update taxonomy node' });
+  }
 });
 
 app.put('/api/taxonomy/:id/reorder', (req, res) => {
