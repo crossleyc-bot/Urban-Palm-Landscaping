@@ -127,7 +127,7 @@ export default function SupplierInventory() {
       setEditing(null);
       setImageFile(null);
       addToast('Item updated', 'success');
-    } catch { addToast('Failed to update item', 'error'); }
+    } catch (err) { addToast(err.message || 'Failed to update item', 'error'); }
     finally { setSaving(false); }
   };
 
@@ -141,7 +141,7 @@ export default function SupplierInventory() {
       setForm(emptyForm);
       setImageFile(null);
       addToast('Item added', 'success');
-    } catch { addToast('Failed to add item', 'error'); }
+    } catch (err) { addToast(err.message || 'Failed to add item', 'error'); }
     finally { setSaving(false); }
   };
 
