@@ -558,9 +558,6 @@ app.put('/api/suppliers/:id', (req, res) => {
   ).run(name, contact_name || null, email || null, phone || null, address || null, website || null, operating_hours || null, delivery_info || null, delivery_fees || null, public_access || null, notes || null, status || 'Active', id);
   if (result.changes === 0) return res.status(404).json({ error: 'Supplier not found' });
 
-  // Recompute available for all inventory under this supplier
-  recomputeAvailableForSupplier(Number(id));
-
   res.json({ success: true });
 });
 
@@ -687,27 +684,6 @@ app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (
 
 // ─── Supplier Inventory ─────────────────────────────────────────────────────
 
-// Compute whether an inventory item should be marked available:
-// supplier must be Active AND all key inventory fields must have a value.
-function computeAvailable(supplierId, { item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available }) {
-  const supplier = db.prepare('SELECT status FROM suppliers WHERE id = ?').get(supplierId);
-  if (!supplier || supplier.status !== 'Active') return 0;
-  if (!item_name || !sku || (!category && !category_id) || !unit) return 0;
-  if (unit_cost == null || retail_cost == null) return 0;
-  if (qty_available == null || Number(qty_available) <= 0) return 0;
-  return 1;
-}
-
-// Recompute available for all inventory belonging to a given supplier
-function recomputeAvailableForSupplier(supplierId) {
-  const items = db.prepare('SELECT * FROM supplier_inventory WHERE supplier_id = ?').all(supplierId);
-  const update = db.prepare('UPDATE supplier_inventory SET available = ? WHERE id = ?');
-  for (const item of items) {
-    const avail = computeAvailable(supplierId, item);
-    update.run(avail, item.id);
-  }
-}
-
 app.get('/api/suppliers/:supplierId/inventory', (req, res) => {
   const { supplierId } = req.params;
   const items = db.prepare('SELECT * FROM supplier_inventory WHERE supplier_id = ? ORDER BY item_name').all(supplierId);
@@ -727,7 +703,7 @@ app.get('/api/inventory', (req, res) => {
 const inventoryUpload = (req, _res, next) => { req.uploadDir = 'inventory'; next(); };
 
 app.post('/api/inventory', inventoryUpload, upload.single('image'), (req, res) => {
-  const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes } = req.body;
+  const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
   const wholesale = unit_cost != null && unit_cost !== '' ? Number(unit_cost) : null;
@@ -735,7 +711,7 @@ app.post('/api/inventory', inventoryUpload, upload.single('image'), (req, res) =
   const image = req.file ? `/uploads/inventory/${req.file.filename}` : null;
   const catId = category_id != null && category_id !== '' ? Number(category_id) : null;
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
-  const available = computeAvailable(Number(supplier_id), { item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal });
+  const available = availableRaw === '1' || availableRaw === 1 ? 1 : 0;
   try {
     const result = db.prepare(
       'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, image, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
@@ -860,7 +836,7 @@ app.post('/api/inventory/import', inventoryImportUpload, upload.single('file'), 
 
 app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res) => {
   const { id } = req.params;
-  const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes } = req.body;
+  const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
   const existing = db.prepare('SELECT image FROM supplier_inventory WHERE id = ?').get(id);
@@ -878,7 +854,7 @@ app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res
   const retail = retail_cost != null && retail_cost !== '' ? Number(retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
   const catId = category_id != null && category_id !== '' ? Number(category_id) : null;
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
-  const available = computeAvailable(Number(supplier_id), { item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal });
+  const available = availableRaw === '1' || availableRaw === 1 ? 1 : 0;
 
   try {
     const result = db.prepare(
