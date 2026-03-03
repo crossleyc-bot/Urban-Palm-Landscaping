@@ -684,6 +684,15 @@ app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (
 
 // ─── Supplier Inventory ─────────────────────────────────────────────────────
 
+// Safely resolve category_id: returns a valid taxonomy id or null
+function resolveCategoryId(raw) {
+  if (raw == null || raw === '') return null;
+  const id = Number(raw);
+  if (!id || !Number.isFinite(id)) return null;
+  const exists = db.prepare('SELECT 1 FROM taxonomy WHERE id = ?').get(id);
+  return exists ? id : null;
+}
+
 app.get('/api/suppliers/:supplierId/inventory', (req, res) => {
   const { supplierId } = req.params;
   const items = db.prepare('SELECT * FROM supplier_inventory WHERE supplier_id = ? ORDER BY item_name').all(supplierId);
@@ -709,7 +718,7 @@ app.post('/api/inventory', inventoryUpload, upload.single('image'), (req, res) =
   const wholesale = unit_cost != null && unit_cost !== '' ? Number(unit_cost) : null;
   const retail = retail_cost != null && retail_cost !== '' ? Number(retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
   const image = req.file ? `/uploads/inventory/${req.file.filename}` : null;
-  const catId = category_id != null && category_id !== '' ? (Number(category_id) || null) : null;
+  const catId = resolveCategoryId(category_id);
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
   const available = availableRaw === '1' || availableRaw === 1 ? 1 : 0;
   try {
@@ -852,7 +861,7 @@ app.put('/api/inventory/:id', inventoryUpload, upload.single('image'), (req, res
 
   const wholesale = unit_cost != null && unit_cost !== '' ? Number(unit_cost) : null;
   const retail = retail_cost != null && retail_cost !== '' ? Number(retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
-  const catId = category_id != null && category_id !== '' ? (Number(category_id) || null) : null;
+  const catId = resolveCategoryId(category_id);
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
   const available = availableRaw === '1' || availableRaw === 1 ? 1 : 0;
 
