@@ -63,7 +63,7 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 app.post('/api/auth/register', (req, res) => {
-  const { email, password, name, role } = req.body;
+  const { email, password, name } = req.body;
   if (!email || !password || !name) {
     return res.status(400).json({ error: 'Email, password, and name are required' });
   }
@@ -75,10 +75,10 @@ app.post('/api/auth/register', (req, res) => {
 
   const hash = bcrypt.hashSync(password, 10);
   const result = db.prepare('INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)').run(
-    email, hash, name, role || 'customer'
+    email, hash, name, 'customer'
   );
 
-  res.status(201).json({ id: result.lastInsertRowid, email, name, role: role || 'customer' });
+  res.status(201).json({ id: result.lastInsertRowid, email, name, role: 'customer' });
 });
 
 // ─── Site Settings ──────────────────────────────────────────────────────────
