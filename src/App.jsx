@@ -68,7 +68,7 @@ const adminNav = [
 function ProtectedRoute({ allowedRole }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  if (allowedRole && user.role !== allowedRole) return <Navigate to="/" replace />;
+  if (allowedRole && user.role !== allowedRole && user.role !== 'admin') return <Navigate to="/" replace />;
   return <Outlet />;
 }
 
