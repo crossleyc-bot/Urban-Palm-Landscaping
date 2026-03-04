@@ -108,18 +108,6 @@ const orders = [
 for (const o of orders) insertOrder.run(...o);
 
 
-// ─── Contact Messages ───────────────────────────────────────────────────────
-const insertContact = db.prepare('INSERT INTO contact_messages (name, email, phone, service, message, status, admin_reply, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-const contacts = [
-  ['Tom Nguyen', 'tom.nguyen@email.com', '(407) 555-1234', 'Landscape Design', 'Hi, we just bought a new home in Lake Nona and the yard is completely bare. Looking for a full landscape design and installation. Could someone come out for a consultation?', 'Replied', 'Hi Tom! We would love to help with your new home. I have scheduled a free on-site consultation for next Tuesday at 10am. Andrea will walk the property with you. Looking forward to it!', '2026-02-20 09:15:00'],
-  ['Jennifer Park', 'jpark@email.com', '(321) 555-5678', 'Irrigation Systems', 'Our sprinkler system is over 10 years old and we keep getting dry patches. Need someone to assess and possibly replace the whole system. What would that cost roughly?', 'Replied', 'Hi Jennifer, thanks for reaching out. A full assessment is $75 which gets credited toward any work. Replacement systems typically run $800-2,500 depending on property size and zones. I will have Aisha call you to schedule.', '2026-02-21 14:30:00'],
-  ['Robert Kim', 'robert.kim@email.com', null, 'Hardscaping', 'Interested in getting a quote for a paver patio, roughly 400 sq ft, in our backyard in Winter Park. Also considering a small retaining wall. Available weekdays after 3pm.', 'New', null, '2026-02-24 11:45:00'],
-  ['Amanda Foster', 'amanda.foster@email.com', '(407) 555-9012', 'Tree & Shrub Care', 'We have two large oak trees that need trimming — one is growing over the roof and the other is leaning toward the fence. Can you send someone out to take a look?', 'New', null, '2026-02-25 08:20:00'],
-  ['Steve Martinez', 'steve.m@email.com', '(321) 555-3456', 'Seasonal Cleanup', 'Need a one-time cleanup for our rental property in Clermont before new tenants move in on March 15. Overgrown beds, dead plants, general mess. Please send a quote ASAP.', 'New', null, '2026-02-26 10:00:00'],
-  ['Lisa Patel', 'lisa.patel@email.com', null, 'Outdoor Lighting', 'We love the work you did for our neighbors (the Wilsons on Elm Street). Would like to discuss a similar outdoor lighting setup for our front yard and walkway.', 'New', null, '2026-02-26 13:15:00'],
-];
-for (const c of contacts) insertContact.run(...c);
-
 
 // ─── Schedule Requests ──────────────────────────────────────────────────────
 const insertSchedule = db.prepare('INSERT INTO schedule_requests (user_id, service, date, time, frequency, address, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
