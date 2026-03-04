@@ -510,6 +510,26 @@ app.put('/api/quotes/:id/reply', (req, res) => {
   res.json({ success: true });
 });
 
+app.put('/api/quotes/:id', (req, res) => {
+  const { id } = req.params;
+  const { service, property_type, timeline, budget, details, address, status, admin_reply } = req.body;
+  if (!service || !details || !address) return res.status(400).json({ error: 'Service, details, and address are required' });
+
+  const result = db.prepare(
+    "UPDATE quote_requests SET service = ?, property_type = ?, timeline = ?, budget = ?, details = ?, address = ?, status = ?, admin_reply = ? WHERE id = ?"
+  ).run(service, property_type || null, timeline || null, budget || null, details, address, status || 'Pending', admin_reply || null, id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Quote request not found' });
+
+  const updated = db.prepare('SELECT * FROM quote_requests WHERE id = ?').get(id);
+  res.json(updated);
+});
+
+app.delete('/api/quotes/:id', (req, res) => {
+  const result = db.prepare('DELETE FROM quote_requests WHERE id = ?').run(req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Quote request not found' });
+  res.json({ success: true });
+});
+
 // ─── Schedule Requests ───────────────────────────────────────────────────────
 
 app.post('/api/schedule', (req, res) => {
