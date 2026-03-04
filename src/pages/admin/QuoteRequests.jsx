@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { apiGet, apiPut, apiDelete } from '../../api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonTable } from '../../components/ui/Skeleton';
 import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
 
-const QUOTE_STATUSES = ['Pending', 'Replied', 'Approved', 'Declined'];
+const QUOTE_STATUSES = ['Pending', 'Replied', 'Approved', 'Declined', 'Converted'];
 const PROPERTY_TYPES = ['Residential - Small Yard', 'Residential - Large Yard', 'Commercial - Small', 'Commercial - Large'];
 const TIMELINES = ['As soon as possible', 'Within 1-2 weeks', 'Within a month', 'Flexible'];
 const BUDGETS = ['Under $500', '$500 - $1,000', '$1,000 - $5,000', '$5,000+'];
@@ -17,6 +17,7 @@ const statusBadge = (status) => {
     'Replied': 'badge badge-blue',
     'Approved': 'badge badge-green',
     'Declined': 'badge badge-red',
+    'Converted': 'badge badge-purple',
   };
   return map[status] || 'badge badge-gray';
 };
@@ -45,9 +46,11 @@ export default function QuoteRequests() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
+  const [employees, setEmployees] = useState([]);
+
   useEffect(() => {
-    Promise.all([apiGet('/quotes'), apiGet('/services')])
-      .then(([q, s]) => { setQuotes(q); setServices(s); })
+    Promise.all([apiGet('/quotes'), apiGet('/services'), apiGet('/employees')])
+      .then(([q, s, e]) => { setQuotes(q); setServices(s); setEmployees(e.filter(emp => emp.status === 'Active')); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -133,6 +136,39 @@ export default function QuoteRequests() {
       addToast('Quote request deleted', 'success');
     } catch {
       addToast('Failed to delete', 'error');
+    }
+  };
+
+  const [convertModal, setConvertModal] = useState(null);
+  const [convertForm, setConvertForm] = useState({ assignee: '', date: '', amount: '' });
+
+  const openConvert = (quote) => {
+    setConvertModal(quote);
+    setConvertForm({ assignee: '', date: new Date().toISOString().split('T')[0], amount: '' });
+  };
+
+  const doConvert = async () => {
+    if (!convertModal) return;
+    const q = convertModal;
+    try {
+      // Look up user name from quote's user_id
+      const clientName = q.user_id ? `User #${q.user_id}` : 'Walk-in';
+      await apiPost('/jobs', {
+        client: clientName,
+        service: q.service,
+        assignee: convertForm.assignee || 'Unassigned',
+        date: convertForm.date,
+        quote_id: q.id,
+        user_id: q.user_id,
+        address: q.address,
+        amount: convertForm.amount ? Number(convertForm.amount) : null,
+      });
+      setQuotes(prev => prev.map(qt => qt.id === q.id ? { ...qt, status: 'Converted' } : qt));
+      setConvertModal(null);
+      closeModal();
+      addToast('Quote converted to job successfully', 'success');
+    } catch (err) {
+      addToast(err.message || 'Failed to convert to job', 'error');
     }
   };
 
@@ -415,6 +451,9 @@ export default function QuoteRequests() {
               {!editing ? (
                 <>
                   <button className="btn btn-outline" onClick={closeModal}>Close</button>
+                  {(selected.status === 'Approved' || selected.status === 'Replied') && selected.status !== 'Converted' && (
+                    <button className="btn btn-secondary" onClick={() => openConvert(selected)}>Convert to Job</button>
+                  )}
                   <button className="btn btn-primary" onClick={startEdit}>Edit</button>
                 </>
               ) : (
@@ -429,6 +468,44 @@ export default function QuoteRequests() {
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Convert to Job modal */}
+      {convertModal && (
+        <div className="modal-overlay" onClick={() => setConvertModal(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <h3>Convert Quote #{convertModal.id} to Job</h3>
+              <button className="modal-close" onClick={() => setConvertModal(null)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: '1rem', color: 'var(--color-text-muted)' }}>
+                Create a job from this quote for <strong>{convertModal.service}</strong> at {convertModal.address}.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Assignee</label>
+                  <select className="table-input" value={convertForm.assignee} onChange={e => setConvertForm(f => ({ ...f, assignee: e.target.value }))}>
+                    <option value="">Unassigned</option>
+                    {employees.map(e => <option key={e.id} value={e.name}>{e.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Scheduled Date *</label>
+                  <input className="table-input" type="date" value={convertForm.date} onChange={e => setConvertForm(f => ({ ...f, date: e.target.value }))} />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Amount ($)</label>
+                  <input className="table-input" type="number" step="0.01" placeholder="Optional" value={convertForm.amount} onChange={e => setConvertForm(f => ({ ...f, amount: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setConvertModal(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={doConvert} disabled={!convertForm.date}>Create Job</button>
             </div>
           </div>
         </div>
