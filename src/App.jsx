@@ -19,7 +19,6 @@ import Login from './pages/Login';
 
 import CustomerDashboard from './pages/customer/CustomerDashboard';
 import RequestQuote from './pages/customer/RequestQuote';
-import ScheduleService from './pages/customer/ScheduleService';
 import OrderHistory from './pages/customer/OrderHistory';
 import MyQuotes from './pages/customer/MyQuotes';
 import MyJobs from './pages/customer/MyJobs';
@@ -45,7 +44,6 @@ import './App.css';
 const customerNav = [
   { path: '/portal', label: 'Dashboard', icon: '\u2630' },
   { path: '/portal/quote', label: 'Request Quote', icon: '\u2709' },
-  { path: '/portal/schedule', label: 'Schedule Service', icon: '\uD83D\uDCC5' },
   { path: '/portal/quotes', label: 'My Quotes', icon: '\uD83D\uDCDD' },
   { path: '/portal/jobs', label: 'My Jobs', icon: '\uD83D\uDCBC' },
   { path: '/portal/invoices', label: 'My Invoices', icon: '\uD83D\uDCB0' },
@@ -143,7 +141,6 @@ export default function App() {
                 <Route element={<PortalLayout />}>
                   <Route path="/portal" element={<CustomerDashboard />} />
                   <Route path="/portal/quote" element={<RequestQuote />} />
-                  <Route path="/portal/schedule" element={<ScheduleService />} />
                   <Route path="/portal/quotes" element={<MyQuotes />} />
                   <Route path="/portal/jobs" element={<MyJobs />} />
                   <Route path="/portal/invoices" element={<MyInvoices />} />

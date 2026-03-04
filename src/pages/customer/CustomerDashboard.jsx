@@ -214,7 +214,6 @@ export default function CustomerDashboard() {
 
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
         <Link to="/portal/quote" className="btn btn-primary">Request a Quote</Link>
-        <Link to="/portal/schedule" className="btn btn-outline">Schedule Service</Link>
       </div>
     </div>
   );
