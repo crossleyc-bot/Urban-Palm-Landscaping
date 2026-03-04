@@ -44,16 +44,6 @@ db.exec(`
     rating INTEGER NOT NULL
   );
 
-  CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id TEXT UNIQUE NOT NULL,
-    user_id INTEGER REFERENCES users(id),
-    service TEXT NOT NULL,
-    date TEXT NOT NULL,
-    status TEXT NOT NULL,
-    amount REAL
-  );
-
   CREATE TABLE IF NOT EXISTS jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     job_id TEXT UNIQUE NOT NULL,

@@ -326,26 +326,6 @@ app.get('/api/testimonials', (req, res) => {
   res.json(testimonials);
 });
 
-// ─── Orders ──────────────────────────────────────────────────────────────────
-
-app.get('/api/orders', (req, res) => {
-  const userId = req.query.user_id;
-  let orders;
-  if (userId) {
-    orders = db.prepare('SELECT * FROM orders WHERE user_id = ?').all(userId);
-  } else {
-    orders = db.prepare('SELECT * FROM orders').all();
-  }
-  // Map to match frontend field names
-  res.json(orders.map(o => ({
-    id: o.order_id,
-    service: o.service,
-    date: o.date,
-    status: o.status,
-    amount: o.amount,
-  })));
-});
-
 // ─── Jobs ────────────────────────────────────────────────────────────────────
 
 app.get('/api/jobs', (req, res) => {

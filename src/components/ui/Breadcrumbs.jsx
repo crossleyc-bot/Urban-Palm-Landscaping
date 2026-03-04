@@ -5,7 +5,6 @@ const labelMap = {
   admin: 'Admin',
   quote: 'Request Quote',
   schedule: 'Schedule Service',
-  orders: 'Order History',
   jobs: 'Manage Jobs',
   employees: 'Employees',
   invoices: 'Invoices',
