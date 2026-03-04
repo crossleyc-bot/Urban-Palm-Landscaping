@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Ensure upload directories exist
-const uploadDirs = ['employees', 'services', 'inventory', 'imports', 'videos'];
+const uploadDirs = ['employees', 'services', 'inventory', 'imports', 'videos', 'carousel'];
 for (const dir of uploadDirs) {
   const p = join(__dirname, 'uploads', dir);
   if (!existsSync(p)) mkdirSync(p, { recursive: true });
@@ -143,6 +143,62 @@ app.delete('/api/settings/video', (req, res) => {
   res.json({ success: true });
 });
 
+// ─── Hero Carousel Slides ───────────────────────────────────────────────────
+
+const carouselUpload = (req, _res, next) => { req.uploadDir = 'carousel'; next(); };
+
+app.get('/api/hero-slides', (req, res) => {
+  const slides = db.prepare('SELECT * FROM hero_slides ORDER BY sort_order, id').all();
+  res.json(slides);
+});
+
+app.post('/api/hero-slides', carouselUpload, upload.single('image'), (req, res) => {
+  const { badge, headline, subtext, cta_label, cta_link, cta2_label, cta2_link, sort_order } = req.body;
+  if (!req.file) return res.status(400).json({ error: 'Image is required' });
+
+  const image = `/uploads/carousel/${req.file.filename}`;
+  const result = db.prepare(
+    'INSERT INTO hero_slides (image, badge, headline, subtext, cta_label, cta_link, cta2_label, cta2_link, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(image, badge || null, headline || null, subtext || null, cta_label || null, cta_link || null, cta2_label || null, cta2_link || null, Number(sort_order) || 0);
+
+  const slide = db.prepare('SELECT * FROM hero_slides WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json(slide);
+});
+
+app.put('/api/hero-slides/:id', carouselUpload, upload.single('image'), (req, res) => {
+  const { id } = req.params;
+  const existing = db.prepare('SELECT * FROM hero_slides WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'Slide not found' });
+
+  const { badge, headline, subtext, cta_label, cta_link, cta2_label, cta2_link, sort_order, active } = req.body;
+  let image = existing.image;
+  if (req.file) {
+    if (existing.image && existing.image.startsWith('/uploads/carousel/')) {
+      try { unlinkSync(join(__dirname, existing.image.replace(/^\//, ''))); } catch { /* ignore */ }
+    }
+    image = `/uploads/carousel/${req.file.filename}`;
+  }
+
+  db.prepare(
+    'UPDATE hero_slides SET image = ?, badge = ?, headline = ?, subtext = ?, cta_label = ?, cta_link = ?, cta2_label = ?, cta2_link = ?, sort_order = ?, active = ? WHERE id = ?'
+  ).run(image, badge || null, headline || null, subtext || null, cta_label || null, cta_link || null, cta2_label || null, cta2_link || null, Number(sort_order) || 0, active !== undefined ? Number(active) : 1, id);
+
+  const updated = db.prepare('SELECT * FROM hero_slides WHERE id = ?').get(id);
+  res.json(updated);
+});
+
+app.delete('/api/hero-slides/:id', (req, res) => {
+  const existing = db.prepare('SELECT * FROM hero_slides WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Slide not found' });
+
+  if (existing.image && existing.image.startsWith('/uploads/carousel/')) {
+    try { unlinkSync(join(__dirname, existing.image.replace(/^\//, ''))); } catch { /* ignore */ }
+  }
+
+  db.prepare('DELETE FROM hero_slides WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
 // ─── Services ────────────────────────────────────────────────────────────────
 
 const serviceUpload = (req, _res, next) => { req.uploadDir = 'services'; next(); };
@@ -270,40 +326,20 @@ app.get('/api/testimonials', (req, res) => {
   res.json(testimonials);
 });
 
-// ─── Orders ──────────────────────────────────────────────────────────────────
-
-app.get('/api/orders', (req, res) => {
-  const userId = req.query.user_id;
-  let orders;
-  if (userId) {
-    orders = db.prepare('SELECT * FROM orders WHERE user_id = ?').all(userId);
-  } else {
-    orders = db.prepare('SELECT * FROM orders').all();
-  }
-  // Map to match frontend field names
-  res.json(orders.map(o => ({
-    id: o.order_id,
-    service: o.service,
-    date: o.date,
-    status: o.status,
-    amount: o.amount,
-  })));
-});
-
 // ─── Jobs ────────────────────────────────────────────────────────────────────
 
 app.get('/api/jobs', (req, res) => {
   const userId = req.query.user_id;
   let jobs;
   if (userId) {
-    jobs = db.prepare('SELECT * FROM jobs WHERE user_id = ?').all(userId);
+    jobs = db.prepare('SELECT j.*, u.name AS user_name FROM jobs j LEFT JOIN users u ON j.user_id = u.id WHERE j.user_id = ?').all(userId);
   } else {
-    jobs = db.prepare('SELECT * FROM jobs').all();
+    jobs = db.prepare('SELECT j.*, u.name AS user_name FROM jobs j LEFT JOIN users u ON j.user_id = u.id').all();
   }
   res.json(jobs.map(j => ({
     id: j.job_id,
     _id: j.id,
-    client: j.client,
+    client: j.user_name || j.client,
     service: j.service,
     assignee: j.assignee,
     date: j.date,
@@ -556,7 +592,7 @@ app.post('/api/quotes', (req, res) => {
 });
 
 app.get('/api/quotes', (req, res) => {
-  const quotes = db.prepare('SELECT * FROM quote_requests ORDER BY created_at DESC').all();
+  const quotes = db.prepare('SELECT q.*, u.name AS user_name FROM quote_requests q LEFT JOIN users u ON q.user_id = u.id ORDER BY q.created_at DESC').all();
   res.json(quotes);
 });
 
@@ -612,9 +648,9 @@ app.get('/api/schedule', (req, res) => {
   const userId = req.query.user_id;
   let requests;
   if (userId) {
-    requests = db.prepare('SELECT * FROM schedule_requests WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+    requests = db.prepare('SELECT s.*, u.name AS user_name FROM schedule_requests s LEFT JOIN users u ON s.user_id = u.id WHERE s.user_id = ? ORDER BY s.created_at DESC').all(userId);
   } else {
-    requests = db.prepare('SELECT * FROM schedule_requests ORDER BY created_at DESC').all();
+    requests = db.prepare('SELECT s.*, u.name AS user_name FROM schedule_requests s LEFT JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC').all();
   }
   res.json(requests);
 });

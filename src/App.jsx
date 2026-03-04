@@ -19,7 +19,7 @@ import Login from './pages/Login';
 
 import CustomerDashboard from './pages/customer/CustomerDashboard';
 import RequestQuote from './pages/customer/RequestQuote';
-import OrderHistory from './pages/customer/OrderHistory';
+
 import MyQuotes from './pages/customer/MyQuotes';
 import MyJobs from './pages/customer/MyJobs';
 import MyInvoices from './pages/customer/MyInvoices';
@@ -46,7 +46,6 @@ const customerNav = [
   { path: '/portal/quotes', label: 'My Quotes', icon: '\uD83D\uDCDD' },
   { path: '/portal/jobs', label: 'My Jobs', icon: '\uD83D\uDCBC' },
   { path: '/portal/invoices', label: 'My Invoices', icon: '\uD83D\uDCB0' },
-  { path: '/portal/orders', label: 'Order History', icon: '\uD83D\uDCCB' },
 ];
 
 const adminNav = [
@@ -142,7 +141,6 @@ export default function App() {
                   <Route path="/portal/quotes" element={<MyQuotes />} />
                   <Route path="/portal/jobs" element={<MyJobs />} />
                   <Route path="/portal/invoices" element={<MyInvoices />} />
-                  <Route path="/portal/orders" element={<OrderHistory />} />
                 </Route>
               </Route>
 

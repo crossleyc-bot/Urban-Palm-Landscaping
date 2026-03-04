@@ -107,42 +107,6 @@ const orders = [
 ];
 for (const o of orders) insertOrder.run(...o);
 
-// ─── Jobs ───────────────────────────────────────────────────────────────────
-const insertJob = db.prepare('INSERT INTO jobs (job_id, client, service, assignee, date, status) VALUES (?, ?, ?, ?, ?, ?)');
-const jobs = [
-  ['JOB-001', 'Sarah Mitchell', 'Landscape Delivery & Installation', 'James Okoro', '2026-01-15', 'Completed'],
-  ['JOB-002', 'Sarah Mitchell', 'Seasonal Cleanup', 'Kevin Williams', '2026-02-01', 'Completed'],
-  ['JOB-003', 'David Chen', 'Tree & Shrub Care', 'Chad Crossley', '2026-02-05', 'Completed'],
-  ['JOB-004', 'David Chen', 'Landscape Design', 'Andrea Rusch', '2026-02-10', 'Completed'],
-  ['JOB-005', 'Rachel Torres', 'Hardscaping', 'Carlos Rivera', '2026-02-12', 'In Progress'],
-  ['JOB-006', 'Mark Johnson', 'Irrigation Systems', 'Aisha Patel', '2026-02-14', 'In Progress'],
-  ['JOB-007', 'Mark Johnson', 'Lawn Maintenance', 'Tom Bradley', '2026-02-15', 'Scheduled'],
-  ['JOB-008', 'Lisa Wang', 'Landscape Delivery & Installation', 'James Okoro', '2026-02-18', 'Scheduled'],
-  ['JOB-009', 'James Wilson', 'Outdoor Lighting', 'Derek Hall', '2026-02-20', 'Scheduled'],
-  ['JOB-010', 'Emily Davis', 'Landscape Design', 'Andrea Rusch', '2026-02-25', 'Scheduled'],
-  ['JOB-011', 'Sarah Mitchell', 'Hardscaping', 'Carlos Rivera', '2026-03-01', 'Scheduled'],
-  ['JOB-012', 'Rachel Torres', 'Irrigation Systems', 'Aisha Patel', '2026-03-05', 'Scheduled'],
-  ['JOB-013', 'Lisa Wang', 'Seasonal Cleanup', 'Maria Santos', '2026-02-15', 'Completed'],
-  ['JOB-014', 'David Chen', 'Lawn Maintenance', 'Kevin Williams', '2026-02-22', 'Scheduled'],
-];
-for (const j of jobs) insertJob.run(...j);
-
-// ─── Invoices ───────────────────────────────────────────────────────────────
-const insertInvoice = db.prepare('INSERT INTO invoices (inv_id, client, amount, date, due_date, status) VALUES (?, ?, ?, ?, ?, ?)');
-const invoices = [
-  ['INV-001', 'Sarah Mitchell', 1250, '2026-01-15', '2026-02-15', 'Paid'],
-  ['INV-002', 'Sarah Mitchell', 200, '2026-02-01', '2026-03-01', 'Paid'],
-  ['INV-003', 'David Chen', 375, '2026-02-05', '2026-03-05', 'Paid'],
-  ['INV-004', 'David Chen', 750, '2026-02-10', '2026-03-10', 'Pending'],
-  ['INV-005', 'Rachel Torres', 2250, '2026-02-12', '2026-03-12', 'Pending'],
-  ['INV-006', 'Rachel Torres', 2500, '2026-01-20', '2026-02-20', 'Overdue'],
-  ['INV-007', 'Mark Johnson', 850, '2026-02-14', '2026-03-14', 'Pending'],
-  ['INV-008', 'Mark Johnson', 120, '2026-02-15', '2026-03-15', 'Pending'],
-  ['INV-009', 'Lisa Wang', 680, '2026-02-18', '2026-03-18', 'Pending'],
-  ['INV-010', 'Lisa Wang', 200, '2026-02-15', '2026-03-15', 'Paid'],
-  ['INV-011', 'James Wilson', 1200, '2026-02-20', '2026-03-20', 'Pending'],
-];
-for (const i of invoices) insertInvoice.run(...i);
 
 // ─── Contact Messages ───────────────────────────────────────────────────────
 const insertContact = db.prepare('INSERT INTO contact_messages (name, email, phone, service, message, status, admin_reply, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
@@ -156,16 +120,6 @@ const contacts = [
 ];
 for (const c of contacts) insertContact.run(...c);
 
-// ─── Quote Requests ─────────────────────────────────────────────────────────
-const insertQuote = db.prepare('INSERT INTO quote_requests (user_id, service, property_type, timeline, budget, details, address, status, admin_reply, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-const quotes = [
-  [3, 'Hardscaping', 'Residential', '1-3 months', '$5,000 - $10,000', 'Looking to build a paver patio (approx 500 sq ft) with a small fire pit area in the center. Would also like built-in seating along one edge. Prefer travertine pavers in a warm tone.', '4521 Oakwood Dr, Orlando, FL 32801', 'Pending', null, '2026-02-18 10:30:00'],
-  [2, 'Landscape Design', 'Residential', 'ASAP', '$2,000 - $5,000', 'Want to redesign our front yard to improve curb appeal. Current grass is patchy, beds are overgrown. Want a clean, modern look with native Florida plants and fresh sod.', '892 Palm Ave, Winter Park, FL 32789', 'Approved', 'Hi Sarah! Great project. Andrea has reviewed the property photos and drafted a preliminary design. We will email you the concept this week with a detailed quote. Estimated cost is $3,200.', '2026-02-15 16:00:00'],
-  [7, 'Irrigation Systems', 'Residential', '1-3 months', '$1,000 - $2,000', 'New construction home — need a full irrigation system installed for front and back yard. Approximately 0.25 acre lot. Would like smart controller capability and drip lines for garden beds.', '1150 Sorrento Hills Blvd, Sorrento, FL 32776', 'Pending', null, '2026-02-22 09:00:00'],
-  [8, 'Landscape Delivery & Installation', 'Residential', 'Flexible', '$500 - $1,000', 'Need 3 pallets of St. Augustine sod delivered and installed. Back yard only, about 1,500 sq ft. Old grass was killed by chinch bugs and needs to be removed first.', '2200 Sunflower Ct, Ocoee, FL 34761', 'Pending', null, '2026-02-24 14:20:00'],
-  [6, 'Outdoor Lighting', 'Residential', 'ASAP', '$1,000 - $2,000', 'Would like path lighting along our front walkway (about 60 ft) and uplighting on 4 palm trees. Also need a couple of security flood lights on the garage side. Prefer warm white LED.', '330 Magnolia Ln, Windermere, FL 34786', 'Approved', 'Hi Lisa! Derek reviewed your property and put together a lighting plan. We can do the full package for $1,450 including fixtures, wiring, and a smart timer. Available to install next week!', '2026-02-20 11:30:00'],
-];
-for (const q of quotes) insertQuote.run(...q);
 
 // ─── Schedule Requests ──────────────────────────────────────────────────────
 const insertSchedule = db.prepare('INSERT INTO schedule_requests (user_id, service, date, time, frequency, address, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');

@@ -5,6 +5,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonCards, SkeletonTable } from '../../components/ui/Skeleton';
 import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
+import printDocument from '../../utils/printDocument';
 
 const statusBadge = (status) => {
   const map = {
@@ -182,7 +183,22 @@ export default function Invoices() {
                         <td>{inv.dueDate}</td>
                         <td><span className={statusBadge(inv.status)}>{inv.status}</span></td>
                         <td>
-                          <button className="btn btn-outline btn-sm" onClick={() => startEdit(inv)}>Edit</button>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button className="btn btn-outline btn-sm" onClick={() => startEdit(inv)}>Edit</button>
+                            <button className="btn btn-outline btn-sm" onClick={() => printDocument({
+                              title: `Invoice ${inv.id}`,
+                              subtitle: `Client: ${inv.client} \u2022 Issued ${inv.date}`,
+                              fields: [
+                                { label: 'Invoice #', value: inv.id },
+                                { label: 'Client', value: inv.client },
+                                { label: 'Amount', value: `$${inv.amount.toLocaleString()}` },
+                                { label: 'Date Issued', value: inv.date },
+                                { label: 'Due Date', value: inv.dueDate },
+                                { label: 'Job', value: inv.job_id },
+                                { label: 'Status', value: inv.status },
+                              ],
+                            })}>Print</button>
+                          </div>
                         </td>
                       </>
                     )}

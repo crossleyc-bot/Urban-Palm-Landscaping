@@ -44,16 +44,6 @@ db.exec(`
     rating INTEGER NOT NULL
   );
 
-  CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id TEXT UNIQUE NOT NULL,
-    user_id INTEGER REFERENCES users(id),
-    service TEXT NOT NULL,
-    date TEXT NOT NULL,
-    status TEXT NOT NULL,
-    amount REAL
-  );
-
   CREATE TABLE IF NOT EXISTS jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     job_id TEXT UNIQUE NOT NULL,
@@ -182,6 +172,20 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS hero_slides (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    image TEXT NOT NULL,
+    badge TEXT,
+    headline TEXT,
+    subtext TEXT,
+    cta_label TEXT,
+    cta_link TEXT,
+    cta2_label TEXT,
+    cta2_link TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    active INTEGER NOT NULL DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS taxonomy (

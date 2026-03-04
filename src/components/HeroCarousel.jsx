@@ -2,60 +2,68 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import './HeroCarousel.css';
 
+/* Static fallback images bundled in assets/carousel */
 const imageModules = import.meta.glob('../assets/carousel/*.{png,jpg,jpeg,webp}', {
   eager: true,
   import: 'default',
 });
 
-/* Use the polished "after" images for the hero slides */
 const afterImages = Object.entries(imageModules)
   .filter(([path]) => path.includes('after'))
   .sort(([a], [b]) => a.localeCompare(b))
   .map(([, url]) => url);
 
-const slides = [
+const defaultSlides = [
   {
     image: afterImages[0],
     badge: "Residential Landscapes",
     headline: "Transform Your Backyard Into a Living Masterpiece",
     subtext: "Custom design, expert installation, and reliable delivery for Central Florida homes.",
-    cta: { label: "Get Free Consultation", to: "/contact" },
-    ctaSecondary: { label: "View Portfolio", to: "/portfolio" },
+    cta_label: "Get Free Consultation", cta_link: "/contact",
+    cta2_label: "View Portfolio", cta2_link: "/portfolio",
   },
   {
     image: afterImages[1],
     badge: "Commercial Properties",
     headline: "Professional Grounds That Make a Lasting Impression",
     subtext: "Comprehensive commercial landscaping for offices, retail centers, and mixed-use developments.",
-    cta: { label: "Request a Quote", to: "/contact" },
-    ctaSecondary: { label: "Our Services", to: "/services" },
+    cta_label: "Request a Quote", cta_link: "/contact",
+    cta2_label: "Our Services", cta2_link: "/services",
   },
   {
     image: afterImages[2],
     badge: "Design & Build",
     headline: "From Concept to Completion — One Trusted Partner",
     subtext: "Full-service landscape architecture, hardscaping, and planting by our expert team.",
-    cta: { label: "Start Your Project", to: "/contact" },
-    ctaSecondary: { label: "See Our Work", to: "/about" },
+    cta_label: "Start Your Project", cta_link: "/contact",
+    cta2_label: "See Our Work", cta2_link: "/about",
   },
   {
     image: afterImages[3],
     badge: "Delivery & Installation",
     headline: "We Deliver and Install — You Enjoy the Results",
     subtext: "From plants and trees to sod and materials, we handle delivery and professional installation across Central Florida.",
-    cta: { label: "Schedule Service", to: "/contact" },
-    ctaSecondary: { label: "Learn More", to: "/services" },
+    cta_label: "Schedule Service", cta_link: "/contact",
+    cta2_label: "Learn More", cta2_link: "/services",
   },
-];
-
-/* Only use slides where the image resolved successfully */
-const validSlides = slides.filter((s) => s.image);
+].filter((s) => s.image);
 
 export default function HeroCarousel() {
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
-  const total = validSlides.length;
+  const [slides, setSlides] = useState(defaultSlides);
 
+  useEffect(() => {
+    fetch('/api/hero-slides')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        const active = data.filter(s => s.active && s.image);
+        if (active.length > 0) setSlides(active);
+      })
+      .catch(() => { /* keep defaults */ });
+  }, []);
+
+  const total = slides.length;
   const goNext = useCallback(() => setCurrent((c) => (c + 1) % total), [total]);
   const goPrev = useCallback(() => setCurrent((c) => (c - 1 + total) % total), [total]);
 
@@ -64,6 +72,11 @@ export default function HeroCarousel() {
     const id = setInterval(goNext, 6000);
     return () => clearInterval(id);
   }, [paused, goNext, total]);
+
+  // Reset current if it exceeds slide count after API load
+  useEffect(() => {
+    setCurrent(0);
+  }, [slides]);
 
   if (total === 0) return null;
 
@@ -74,25 +87,29 @@ export default function HeroCarousel() {
       onMouseLeave={() => setPaused(false)}
     >
       {/* Slides */}
-      {validSlides.map((slide, i) => (
+      {slides.map((slide, i) => (
         <div
-          key={i}
+          key={slide.id || i}
           className={`hero-slide ${i === current ? 'active' : ''}`}
           aria-hidden={i !== current}
         >
           <img src={slide.image} alt="" className="hero-slide-img" />
           <div className="hero-slide-overlay" />
           <div className="hero-slide-content">
-            <span className="hero-badge">{slide.badge}</span>
-            <h1>{slide.headline}</h1>
-            <p>{slide.subtext}</p>
+            {slide.badge && <span className="hero-badge">{slide.badge}</span>}
+            {slide.headline && <h1>{slide.headline}</h1>}
+            {slide.subtext && <p>{slide.subtext}</p>}
             <div className="hero-actions">
-              <Link to={slide.cta.to} className="btn btn-primary btn-lg">
-                {slide.cta.label}
-              </Link>
-              <Link to={slide.ctaSecondary.to} className="btn btn-outline btn-lg">
-                {slide.ctaSecondary.label}
-              </Link>
+              {slide.cta_label && slide.cta_link && (
+                <Link to={slide.cta_link} className="btn btn-primary btn-lg">
+                  {slide.cta_label}
+                </Link>
+              )}
+              {slide.cta2_label && slide.cta2_link && (
+                <Link to={slide.cta2_link} className="btn btn-outline btn-lg">
+                  {slide.cta2_label}
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -113,7 +130,7 @@ export default function HeroCarousel() {
       {/* Dots */}
       {total > 1 && (
         <div className="hero-dots">
-          {validSlides.map((_, i) => (
+          {slides.map((_, i) => (
             <button
               key={i}
               className={`hero-dot ${i === current ? 'active' : ''}`}

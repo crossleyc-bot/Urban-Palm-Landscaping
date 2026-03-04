@@ -5,6 +5,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonTable } from '../../components/ui/Skeleton';
 import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
+import printDocument from '../../utils/printDocument';
 
 const statusBadge = (status) => {
   const map = {
@@ -137,6 +138,20 @@ export default function MyQuotes() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-outline" onClick={() => setSelected(null)}>Close</button>
+              <button className="btn btn-primary" onClick={() => printDocument({
+                title: `Quote #${selected.id}`,
+                subtitle: `Submitted ${selected.created_at ? new Date(selected.created_at + 'Z').toLocaleDateString() : '\u2014'}`,
+                fields: [
+                  { label: 'Service', value: selected.service },
+                  { label: 'Property Type', value: selected.property_type },
+                  { label: 'Timeline', value: selected.timeline },
+                  { label: 'Budget', value: selected.budget },
+                  { label: 'Address', value: selected.address },
+                  { label: 'Details', value: selected.details },
+                  { label: 'Status', value: selected.status || 'Pending' },
+                ],
+                note: selected.admin_reply ? `Response from Urban Palm:\n${selected.admin_reply}` : undefined,
+              })}>Print PDF</button>
             </div>
           </div>
         </div>
