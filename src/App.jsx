@@ -30,7 +30,6 @@ import ManageEmployees from './pages/admin/ManageEmployees';
 import AdminSchedule from './pages/admin/AdminSchedule';
 import Invoices from './pages/admin/Invoices';
 import QuoteRequests from './pages/admin/QuoteRequests';
-import ScheduleRequests from './pages/admin/ScheduleRequests';
 import ContactMessages from './pages/admin/ContactMessages';
 import ManageServices from './pages/admin/ManageServices';
 import ManageSuppliers from './pages/admin/ManageSuppliers';
@@ -61,7 +60,6 @@ const adminNav = [
   { path: '/admin/schedule', label: 'Schedule', icon: '\uD83D\uDCC5' },
   { path: '/admin/invoices', label: 'Invoices', icon: '\uD83D\uDCB0' },
   { path: '/admin/quotes', label: 'Quote Requests', icon: '\u2709' },
-  { path: '/admin/schedule-requests', label: 'Schedule Requests', icon: '\uD83D\uDCC6' },
   { path: '/admin/messages', label: 'Messages', icon: '\uD83D\uDCAC' },
   { path: '/admin/job-openings', label: 'Job Openings', icon: '\uD83D\uDCCB' },
   { path: '/admin/settings', label: 'Site Settings', icon: '\u2699\uFE0F' },
@@ -160,7 +158,6 @@ export default function App() {
                   <Route path="/admin/schedule" element={<AdminSchedule />} />
                   <Route path="/admin/invoices" element={<Invoices />} />
                   <Route path="/admin/quotes" element={<QuoteRequests />} />
-                  <Route path="/admin/schedule-requests" element={<ScheduleRequests />} />
                   <Route path="/admin/messages" element={<ContactMessages />} />
                   <Route path="/admin/job-openings" element={<ManageJobOpenings />} />
                   <Route path="/admin/settings" element={<SiteSettings />} />
