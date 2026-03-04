@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { apiGet } from '../../api';
+import { apiGet, apiPut } from '../../api';
 import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonTable } from '../../components/ui/Skeleton';
 import Pagination from '../../components/ui/Pagination';
@@ -28,6 +28,17 @@ export default function MyQuotes() {
   const [sortField, setSortField] = useState('created_at');
   const [sortDir, setSortDir] = useState('desc');
   const [selected, setSelected] = useState(null);
+  const [responding, setResponding] = useState(false);
+
+  const respondToQuote = async (quote, newStatus) => {
+    setResponding(true);
+    try {
+      const updated = await apiPut(`/quotes/${quote.id}/respond`, { status: newStatus, user_id: user.id });
+      setQuotes(prev => prev.map(q => q.id === quote.id ? updated : q));
+      setSelected(updated);
+    } catch { /* silently fail */ }
+    finally { setResponding(false); }
+  };
 
   useEffect(() => {
     if (user) {
@@ -138,7 +149,17 @@ export default function MyQuotes() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-outline" onClick={() => setSelected(null)}>Close</button>
-              <button className="btn btn-primary" onClick={() => printDocument({
+              {selected.status === 'Replied' && (
+                <>
+                  <button className="btn btn-outline" style={{ color: '#dc2626', borderColor: '#fca5a5' }} disabled={responding} onClick={() => respondToQuote(selected, 'Declined')}>
+                    {responding ? 'Saving...' : 'Decline'}
+                  </button>
+                  <button className="btn btn-primary" disabled={responding} onClick={() => respondToQuote(selected, 'Approved')}>
+                    {responding ? 'Saving...' : 'Approve Quote'}
+                  </button>
+                </>
+              )}
+              <button className="btn btn-outline" onClick={() => printDocument({
                 title: `Quote #${selected.id}`,
                 subtitle: `Submitted ${selected.created_at ? new Date(selected.created_at + 'Z').toLocaleDateString() : '\u2014'}`,
                 fields: [
