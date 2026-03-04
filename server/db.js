@@ -184,6 +184,20 @@ db.exec(`
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS hero_slides (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    image TEXT NOT NULL,
+    badge TEXT,
+    headline TEXT,
+    subtext TEXT,
+    cta_label TEXT,
+    cta_link TEXT,
+    cta2_label TEXT,
+    cta2_link TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    active INTEGER NOT NULL DEFAULT 1
+  );
+
   CREATE TABLE IF NOT EXISTS taxonomy (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
