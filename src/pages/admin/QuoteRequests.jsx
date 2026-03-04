@@ -5,6 +5,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonTable } from '../../components/ui/Skeleton';
 import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
+import printDocument from '../../utils/printDocument';
 
 const QUOTE_STATUSES = ['Pending', 'Replied', 'Approved', 'Declined', 'Converted'];
 const PROPERTY_TYPES = ['Residential - Small Yard', 'Residential - Large Yard', 'Commercial - Small', 'Commercial - Large'];
@@ -449,6 +450,20 @@ export default function QuoteRequests() {
               {!editing ? (
                 <>
                   <button className="btn btn-outline" onClick={closeModal}>Close</button>
+                  <button className="btn btn-outline" onClick={() => printDocument({
+                    title: `Quote #${selected.id}`,
+                    subtitle: `${selected.user_name ? `Customer: ${selected.user_name} \u2022 ` : ''}Submitted ${selected.created_at ? new Date(selected.created_at + 'Z').toLocaleDateString() : '\u2014'}`,
+                    fields: [
+                      { label: 'Service', value: selected.service },
+                      { label: 'Property Type', value: selected.property_type },
+                      { label: 'Timeline', value: selected.timeline },
+                      { label: 'Budget', value: selected.budget },
+                      { label: 'Address', value: selected.address },
+                      { label: 'Details', value: selected.details },
+                      { label: 'Status', value: selected.status || 'Pending' },
+                    ],
+                    note: selected.admin_reply ? `Admin Reply:\n${selected.admin_reply}` : undefined,
+                  })}>Print PDF</button>
                   {(selected.status === 'Approved' || selected.status === 'Replied') && selected.status !== 'Converted' && (
                     <button className="btn btn-secondary" onClick={() => openConvert(selected)}>Convert to Job</button>
                   )}

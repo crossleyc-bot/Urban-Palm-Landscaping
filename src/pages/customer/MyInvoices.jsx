@@ -5,6 +5,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonTable } from '../../components/ui/Skeleton';
 import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
+import printDocument from '../../utils/printDocument';
 
 const statusBadge = (status) => {
   const map = {
@@ -89,14 +90,15 @@ export default function MyInvoices() {
                 <SortableHeader label="Due Date" field="dueDate" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th>Job</th>
                 <th>Status</th>
+                <th style={{ width: 80 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <SkeletonTable rows={5} cols={6} />
+                <SkeletonTable rows={5} cols={7} />
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan="6">
+                  <td colSpan="7">
                     <EmptyState icon="&#128176;" title="No invoices yet" message="Invoices will appear here after your job is completed." />
                   </td>
                 </tr>
@@ -109,6 +111,20 @@ export default function MyInvoices() {
                     <td>{inv.dueDate}</td>
                     <td style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{inv.job_id || '\u2014'}</td>
                     <td><span className={statusBadge(inv.status)}>{inv.status}</span></td>
+                    <td>
+                      <button className="btn btn-outline btn-sm" onClick={() => printDocument({
+                        title: `Invoice ${inv.id}`,
+                        subtitle: `Issued ${inv.date}`,
+                        fields: [
+                          { label: 'Invoice #', value: inv.id },
+                          { label: 'Amount', value: `$${inv.amount.toLocaleString()}` },
+                          { label: 'Date Issued', value: inv.date },
+                          { label: 'Due Date', value: inv.dueDate },
+                          { label: 'Job', value: inv.job_id },
+                          { label: 'Status', value: inv.status },
+                        ],
+                      })}>Print</button>
+                    </td>
                   </tr>
                 ))
               )}
