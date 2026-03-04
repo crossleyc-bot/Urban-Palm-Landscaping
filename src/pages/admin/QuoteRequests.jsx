@@ -151,10 +151,8 @@ export default function QuoteRequests() {
     if (!convertModal) return;
     const q = convertModal;
     try {
-      // Look up user name from quote's user_id
-      const clientName = q.user_id ? `User #${q.user_id}` : 'Walk-in';
       await apiPost('/jobs', {
-        client: clientName,
+        client: q.user_name || 'Walk-in',
         service: q.service,
         assignee: convertForm.assignee || 'Unassigned',
         date: convertForm.date,

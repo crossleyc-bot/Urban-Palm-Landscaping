@@ -80,7 +80,7 @@ export default function ScheduleRequests() {
     const r = convertModal;
     try {
       await apiPost('/jobs', {
-        client: r.user_id ? `User #${r.user_id}` : 'Walk-in',
+        client: r.user_name || 'Walk-in',
         service: r.service,
         assignee: convertForm.assignee || 'Unassigned',
         date: r.date,

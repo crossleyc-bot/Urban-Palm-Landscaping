@@ -296,14 +296,14 @@ app.get('/api/jobs', (req, res) => {
   const userId = req.query.user_id;
   let jobs;
   if (userId) {
-    jobs = db.prepare('SELECT * FROM jobs WHERE user_id = ?').all(userId);
+    jobs = db.prepare('SELECT j.*, u.name AS user_name FROM jobs j LEFT JOIN users u ON j.user_id = u.id WHERE j.user_id = ?').all(userId);
   } else {
-    jobs = db.prepare('SELECT * FROM jobs').all();
+    jobs = db.prepare('SELECT j.*, u.name AS user_name FROM jobs j LEFT JOIN users u ON j.user_id = u.id').all();
   }
   res.json(jobs.map(j => ({
     id: j.job_id,
     _id: j.id,
-    client: j.client,
+    client: j.user_name || j.client,
     service: j.service,
     assignee: j.assignee,
     date: j.date,
@@ -556,7 +556,7 @@ app.post('/api/quotes', (req, res) => {
 });
 
 app.get('/api/quotes', (req, res) => {
-  const quotes = db.prepare('SELECT * FROM quote_requests ORDER BY created_at DESC').all();
+  const quotes = db.prepare('SELECT q.*, u.name AS user_name FROM quote_requests q LEFT JOIN users u ON q.user_id = u.id ORDER BY q.created_at DESC').all();
   res.json(quotes);
 });
 
@@ -612,9 +612,9 @@ app.get('/api/schedule', (req, res) => {
   const userId = req.query.user_id;
   let requests;
   if (userId) {
-    requests = db.prepare('SELECT * FROM schedule_requests WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+    requests = db.prepare('SELECT s.*, u.name AS user_name FROM schedule_requests s LEFT JOIN users u ON s.user_id = u.id WHERE s.user_id = ? ORDER BY s.created_at DESC').all(userId);
   } else {
-    requests = db.prepare('SELECT * FROM schedule_requests ORDER BY created_at DESC').all();
+    requests = db.prepare('SELECT s.*, u.name AS user_name FROM schedule_requests s LEFT JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC').all();
   }
   res.json(requests);
 });
