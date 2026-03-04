@@ -164,7 +164,7 @@ export default function Home() {
                 <p>{service.description}</p>
                 <div className="service-card-footer">
                   <span className="service-price">{service.price}</span>
-                  <Link to="/contact" className="btn btn-secondary btn-sm">Get Quote</Link>
+                  <Link to="/portal/quote" className="btn btn-secondary btn-sm">Get Quote</Link>
                 </div>
               </div>
             ))}
