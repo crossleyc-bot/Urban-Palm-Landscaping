@@ -305,4 +305,37 @@ if (!taxColumns.includes('image')) {
   db.exec("ALTER TABLE taxonomy ADD COLUMN image TEXT");
 }
 
+// Migration: add workflow linking columns to jobs (quote_id, schedule_id, user_id, address, amount)
+const jobColumns = db.prepare("PRAGMA table_info(jobs)").all().map(c => c.name);
+if (!jobColumns.includes('quote_id')) {
+  db.exec("ALTER TABLE jobs ADD COLUMN quote_id INTEGER REFERENCES quote_requests(id)");
+}
+if (!jobColumns.includes('schedule_id')) {
+  db.exec("ALTER TABLE jobs ADD COLUMN schedule_id INTEGER REFERENCES schedule_requests(id)");
+}
+if (!jobColumns.includes('user_id')) {
+  db.exec("ALTER TABLE jobs ADD COLUMN user_id INTEGER REFERENCES users(id)");
+}
+if (!jobColumns.includes('address')) {
+  db.exec("ALTER TABLE jobs ADD COLUMN address TEXT");
+}
+if (!jobColumns.includes('amount')) {
+  db.exec("ALTER TABLE jobs ADD COLUMN amount REAL");
+}
+
+// Migration: add job_id to invoices for linking
+const invoiceColumns = db.prepare("PRAGMA table_info(invoices)").all().map(c => c.name);
+if (!invoiceColumns.includes('job_id')) {
+  db.exec("ALTER TABLE invoices ADD COLUMN job_id TEXT");
+}
+if (!invoiceColumns.includes('user_id')) {
+  db.exec("ALTER TABLE invoices ADD COLUMN user_id INTEGER REFERENCES users(id)");
+}
+
+// Migration: add status column to schedule_requests
+const schedColumns = db.prepare("PRAGMA table_info(schedule_requests)").all().map(c => c.name);
+if (!schedColumns.includes('status')) {
+  db.exec("ALTER TABLE schedule_requests ADD COLUMN status TEXT NOT NULL DEFAULT 'Pending'");
+}
+
 export default db;

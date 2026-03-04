@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { apiGet, apiPut } from '../../api';
+import { apiGet, apiPost, apiPut } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonTable } from '../../components/ui/Skeleton';
@@ -25,6 +25,11 @@ export default function ManageJobs() {
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState('id');
   const [sortDir, setSortDir] = useState('asc');
+
+  // Invoice generation modal
+  const [invoiceModal, setInvoiceModal] = useState(null);
+  const [invoiceForm, setInvoiceForm] = useState({ amount: '', due_date: '' });
+  const [invoiceSaving, setInvoiceSaving] = useState(false);
 
   useEffect(() => {
     apiGet('/jobs').then(setJobs).finally(() => setLoading(false));
@@ -64,6 +69,32 @@ export default function ManageJobs() {
     }
   };
 
+  const openInvoiceModal = (job) => {
+    setInvoiceModal(job);
+    const dueDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+    setInvoiceForm({ amount: job.amount || '', due_date: dueDate });
+  };
+
+  const generateInvoice = async () => {
+    if (!invoiceModal) return;
+    setInvoiceSaving(true);
+    try {
+      await apiPost('/invoices', {
+        client: invoiceModal.client,
+        amount: Number(invoiceForm.amount),
+        job_id: invoiceModal.id,
+        user_id: invoiceModal.user_id,
+        due_date: invoiceForm.due_date,
+      });
+      setInvoiceModal(null);
+      addToast('Invoice generated successfully', 'success');
+    } catch (err) {
+      addToast(err.message || 'Failed to generate invoice', 'error');
+    } finally {
+      setInvoiceSaving(false);
+    }
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -93,16 +124,18 @@ export default function ManageJobs() {
                 <SortableHeader label="Service" field="service" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <SortableHeader label="Assignee" field="assignee" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <SortableHeader label="Date" field="date" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                <th>Amount</th>
                 <th>Status</th>
+                <th>Source</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <SkeletonTable rows={5} cols={7} />
+                <SkeletonTable rows={5} cols={9} />
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan="7">
+                  <td colSpan="9">
                     <EmptyState icon="&#128188;" title="No jobs found" message={filter !== 'All' ? `No ${filter.toLowerCase()} jobs.` : 'Jobs will appear here once created.'} />
                   </td>
                 </tr>
@@ -114,7 +147,11 @@ export default function ManageJobs() {
                     <td>{job.service}</td>
                     <td>{job.assignee}</td>
                     <td>{job.date}</td>
+                    <td>{job.amount ? `$${Number(job.amount).toLocaleString()}` : '\u2014'}</td>
                     <td><span className={statusBadge(job.status)}>{job.status}</span></td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                      {job.quote_id ? `Quote #${job.quote_id}` : job.schedule_id ? `Schedule #${job.schedule_id}` : '\u2014'}
+                    </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.25rem' }}>
                         {job.status === 'Scheduled' && (
@@ -127,6 +164,11 @@ export default function ManageJobs() {
                             Complete
                           </button>
                         )}
+                        {job.status === 'Completed' && (
+                          <button className="btn btn-primary btn-sm" onClick={() => openInvoiceModal(job)}>
+                            Invoice
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -137,6 +179,39 @@ export default function ManageJobs() {
         </div>
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
+
+      {/* Generate Invoice modal */}
+      {invoiceModal && (
+        <div className="modal-overlay" onClick={() => setInvoiceModal(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+            <div className="modal-header">
+              <h3>Generate Invoice for {invoiceModal.id}</h3>
+              <button className="modal-close" onClick={() => setInvoiceModal(null)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: '1rem', color: 'var(--color-text-muted)' }}>
+                Create an invoice for <strong>{invoiceModal.client}</strong> &mdash; {invoiceModal.service}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Amount ($) *</label>
+                  <input className="table-input" type="number" step="0.01" value={invoiceForm.amount} onChange={e => setInvoiceForm(f => ({ ...f, amount: e.target.value }))} />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Due Date *</label>
+                  <input className="table-input" type="date" value={invoiceForm.due_date} onChange={e => setInvoiceForm(f => ({ ...f, due_date: e.target.value }))} />
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setInvoiceModal(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={generateInvoice} disabled={invoiceSaving || !invoiceForm.amount || !invoiceForm.due_date}>
+                {invoiceSaving ? 'Creating...' : 'Create Invoice'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

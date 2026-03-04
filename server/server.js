@@ -293,15 +293,53 @@ app.get('/api/orders', (req, res) => {
 // ─── Jobs ────────────────────────────────────────────────────────────────────
 
 app.get('/api/jobs', (req, res) => {
-  const jobs = db.prepare('SELECT * FROM jobs').all();
+  const userId = req.query.user_id;
+  let jobs;
+  if (userId) {
+    jobs = db.prepare('SELECT * FROM jobs WHERE user_id = ?').all(userId);
+  } else {
+    jobs = db.prepare('SELECT * FROM jobs').all();
+  }
   res.json(jobs.map(j => ({
     id: j.job_id,
+    _id: j.id,
     client: j.client,
     service: j.service,
     assignee: j.assignee,
     date: j.date,
     status: j.status,
+    quote_id: j.quote_id,
+    schedule_id: j.schedule_id,
+    user_id: j.user_id,
+    address: j.address,
+    amount: j.amount,
   })));
+});
+
+app.post('/api/jobs', (req, res) => {
+  const { client, service, assignee, date, status, quote_id, schedule_id, user_id, address, amount } = req.body;
+  if (!client || !service || !date) {
+    return res.status(400).json({ error: 'Client, service, and date are required' });
+  }
+
+  const last = db.prepare("SELECT job_id FROM jobs ORDER BY id DESC LIMIT 1").get();
+  const nextNum = last ? parseInt(last.job_id.replace('JOB-', ''), 10) + 1 : 1;
+  const jobId = `JOB-${String(nextNum).padStart(3, '0')}`;
+
+  db.prepare(
+    'INSERT INTO jobs (job_id, client, service, assignee, date, status, quote_id, schedule_id, user_id, address, amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(jobId, client, service, assignee || 'Unassigned', date, status || 'Scheduled', quote_id || null, schedule_id || null, user_id || null, address || null, amount || null);
+
+  // Update quote status to Converted if linked
+  if (quote_id) {
+    db.prepare("UPDATE quote_requests SET status = 'Converted' WHERE id = ?").run(quote_id);
+  }
+  // Update schedule request status to Converted if linked
+  if (schedule_id) {
+    db.prepare("UPDATE schedule_requests SET status = 'Converted' WHERE id = ?").run(schedule_id);
+  }
+
+  res.status(201).json({ id: jobId, client, service, assignee: assignee || 'Unassigned', date, status: status || 'Scheduled', quote_id, schedule_id, user_id, address, amount });
 });
 
 app.put('/api/jobs/:jobId/status', (req, res) => {
@@ -317,14 +355,14 @@ app.put('/api/jobs/:jobId/status', (req, res) => {
 
 app.put('/api/jobs/:jobId', (req, res) => {
   const { jobId } = req.params;
-  const { client, service, assignee, date, status } = req.body;
-  if (!client || !service || !assignee || !date) {
-    return res.status(400).json({ error: 'Client, service, assignee, and date are required' });
+  const { client, service, assignee, date, status, address, amount } = req.body;
+  if (!client || !service || !date) {
+    return res.status(400).json({ error: 'Client, service, and date are required' });
   }
 
   const result = db.prepare(
-    'UPDATE jobs SET client = ?, service = ?, assignee = ?, date = ?, status = ? WHERE job_id = ?'
-  ).run(client, service, assignee, date, status || 'Scheduled', jobId);
+    'UPDATE jobs SET client = ?, service = ?, assignee = ?, date = ?, status = ?, address = ?, amount = ? WHERE job_id = ?'
+  ).run(client, service, assignee || 'Unassigned', date, status || 'Scheduled', address || null, amount || null, jobId);
   if (result.changes === 0) return res.status(404).json({ error: 'Job not found' });
 
   res.json({ success: true });
@@ -420,7 +458,13 @@ app.delete('/api/employees/:empId', (req, res) => {
 // ─── Invoices ────────────────────────────────────────────────────────────────
 
 app.get('/api/invoices', (req, res) => {
-  const invoices = db.prepare('SELECT * FROM invoices').all();
+  const userId = req.query.user_id;
+  let invoices;
+  if (userId) {
+    invoices = db.prepare('SELECT * FROM invoices WHERE user_id = ?').all(userId);
+  } else {
+    invoices = db.prepare('SELECT * FROM invoices').all();
+  }
   res.json(invoices.map(i => ({
     id: i.inv_id,
     client: i.client,
@@ -428,7 +472,26 @@ app.get('/api/invoices', (req, res) => {
     date: i.date,
     dueDate: i.due_date,
     status: i.status,
+    job_id: i.job_id,
+    user_id: i.user_id,
   })));
+});
+
+app.post('/api/invoices', (req, res) => {
+  const { client, amount, date, due_date, status, job_id, user_id } = req.body;
+  if (!client || amount == null) return res.status(400).json({ error: 'Client and amount are required' });
+
+  const last = db.prepare("SELECT inv_id FROM invoices ORDER BY id DESC LIMIT 1").get();
+  const nextNum = last ? parseInt(last.inv_id.replace('INV-', ''), 10) + 1 : 1;
+  const invId = `INV-${String(nextNum).padStart(3, '0')}`;
+  const invoiceDate = date || new Date().toISOString().split('T')[0];
+  const dueDate = due_date || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+
+  db.prepare(
+    'INSERT INTO invoices (inv_id, client, amount, date, due_date, status, job_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(invId, client, amount, invoiceDate, dueDate, status || 'Pending', job_id || null, user_id || null);
+
+  res.status(201).json({ id: invId, client, amount, date: invoiceDate, dueDate, status: status || 'Pending', job_id, user_id });
 });
 
 app.put('/api/invoices/:invId', (req, res) => {
@@ -546,8 +609,33 @@ app.post('/api/schedule', (req, res) => {
 });
 
 app.get('/api/schedule', (req, res) => {
-  const requests = db.prepare('SELECT * FROM schedule_requests ORDER BY created_at DESC').all();
+  const userId = req.query.user_id;
+  let requests;
+  if (userId) {
+    requests = db.prepare('SELECT * FROM schedule_requests WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+  } else {
+    requests = db.prepare('SELECT * FROM schedule_requests ORDER BY created_at DESC').all();
+  }
   res.json(requests);
+});
+
+app.put('/api/schedule/:id', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  if (!status) return res.status(400).json({ error: 'Status is required' });
+
+  const result = db.prepare('UPDATE schedule_requests SET status = ? WHERE id = ?').run(status, id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Schedule request not found' });
+
+  res.json({ success: true });
+});
+
+// Customer-facing quotes (filtered by user)
+app.get('/api/my-quotes', (req, res) => {
+  const userId = req.query.user_id;
+  if (!userId) return res.status(400).json({ error: 'user_id is required' });
+  const quotes = db.prepare('SELECT * FROM quote_requests WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+  res.json(quotes);
 });
 
 // ─── Suppliers ──────────────────────────────────────────────────────────────
