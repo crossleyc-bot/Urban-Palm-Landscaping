@@ -342,4 +342,51 @@ if (!schedColumns.includes('status')) {
   db.exec("ALTER TABLE schedule_requests ADD COLUMN status TEXT NOT NULL DEFAULT 'Pending'");
 }
 
+// Seed default hero carousel slides if table is empty
+const slideCount = db.prepare('SELECT COUNT(*) as cnt FROM hero_slides').get();
+if (slideCount.cnt === 0) {
+  const insertSlide = db.prepare(`
+    INSERT INTO hero_slides (image, badge, headline, subtext, cta_label, cta_link, cta2_label, cta2_link, sort_order, active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+  `);
+  const defaultSlides = [
+    {
+      image: '/uploads/carousel/10_traditional-after.png',
+      badge: 'Residential Landscapes',
+      headline: 'Transform Your Backyard Into a Living Masterpiece',
+      subtext: 'Custom design, expert installation, and reliable delivery for Central Florida homes.',
+      cta_label: 'Get Free Consultation', cta_link: '/contact',
+      cta2_label: 'View Portfolio', cta2_link: '/portfolio',
+    },
+    {
+      image: '/uploads/carousel/2_backyard-after.png',
+      badge: 'Commercial Properties',
+      headline: 'Professional Grounds That Make a Lasting Impression',
+      subtext: 'Comprehensive commercial landscaping for offices, retail centers, and mixed-use developments.',
+      cta_label: 'Request a Quote', cta_link: '/contact',
+      cta2_label: 'Our Services', cta2_link: '/services',
+    },
+    {
+      image: '/uploads/carousel/4_commercial-after.png',
+      badge: 'Design & Build',
+      headline: 'From Concept to Completion — One Trusted Partner',
+      subtext: 'Full-service landscape architecture, hardscaping, and planting by our expert team.',
+      cta_label: 'Start Your Project', cta_link: '/contact',
+      cta2_label: 'See Our Work', cta2_link: '/about',
+    },
+    {
+      image: '/uploads/carousel/6_midcentury-after.png',
+      badge: 'Delivery & Installation',
+      headline: 'We Deliver and Install — You Enjoy the Results',
+      subtext: 'From plants and trees to sod and materials, we handle delivery and professional installation across Central Florida.',
+      cta_label: 'Schedule Service', cta_link: '/contact',
+      cta2_label: 'Learn More', cta2_link: '/services',
+    },
+  ];
+  for (let i = 0; i < defaultSlides.length; i++) {
+    const s = defaultSlides[i];
+    insertSlide.run(s.image, s.badge, s.headline, s.subtext, s.cta_label, s.cta_link, s.cta2_label, s.cta2_link, i);
+  }
+}
+
 export default db;
