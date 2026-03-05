@@ -596,6 +596,22 @@ app.get('/api/quotes', (req, res) => {
   res.json(quotes);
 });
 
+// Customer approve / decline a quote they own
+app.put('/api/quotes/:id/respond', (req, res) => {
+  const { id } = req.params;
+  const { status, user_id } = req.body;
+  if (!['Approved', 'Declined'].includes(status)) return res.status(400).json({ error: 'Status must be Approved or Declined' });
+  if (!user_id) return res.status(400).json({ error: 'user_id is required' });
+
+  const quote = db.prepare('SELECT * FROM quote_requests WHERE id = ?').get(id);
+  if (!quote) return res.status(404).json({ error: 'Quote not found' });
+  if (quote.user_id !== Number(user_id)) return res.status(403).json({ error: 'Not authorized' });
+
+  db.prepare('UPDATE quote_requests SET status = ? WHERE id = ?').run(status, id);
+  const updated = db.prepare('SELECT * FROM quote_requests WHERE id = ?').get(id);
+  res.json(updated);
+});
+
 app.put('/api/quotes/:id/reply', (req, res) => {
   const { id } = req.params;
   const { admin_reply, status } = req.body;
