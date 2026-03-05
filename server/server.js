@@ -510,6 +510,9 @@ app.get('/api/invoices', (req, res) => {
     status: i.status,
     job_id: i.job_id,
     user_id: i.user_id,
+    paid_date: i.paid_date || null,
+    payment_method: i.payment_method || null,
+    transaction_id: i.transaction_id || null,
   })));
 });
 
@@ -541,6 +544,32 @@ app.put('/api/invoices/:invId', (req, res) => {
   if (result.changes === 0) return res.status(404).json({ error: 'Invoice not found' });
 
   res.json({ success: true });
+});
+
+app.post('/api/invoices/:invId/pay', (req, res) => {
+  const { invId } = req.params;
+  const { card_last4, card_brand } = req.body;
+
+  const invoice = db.prepare('SELECT * FROM invoices WHERE inv_id = ?').get(invId);
+  if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+  if (invoice.status === 'Paid') return res.status(400).json({ error: 'Invoice is already paid' });
+
+  if (!card_last4) return res.status(400).json({ error: 'Payment details are required' });
+
+  const transactionId = 'TXN-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+  const paidDate = new Date().toISOString().split('T')[0];
+  const paymentMethod = `${card_brand || 'Card'} ending in ${card_last4}`;
+
+  db.prepare(
+    'UPDATE invoices SET status = ?, paid_date = ?, payment_method = ?, transaction_id = ? WHERE inv_id = ?'
+  ).run('Paid', paidDate, paymentMethod, transactionId, invId);
+
+  res.json({
+    success: true,
+    transaction_id: transactionId,
+    paid_date: paidDate,
+    payment_method: paymentMethod,
+  });
 });
 
 // ─── Contact Messages ────────────────────────────────────────────────────────
