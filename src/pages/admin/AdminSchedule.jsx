@@ -4,15 +4,6 @@ import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
 
-const days = ['Mon 2/16', 'Tue 2/17', 'Wed 2/18', 'Thu 2/19', 'Fri 2/20'];
-const dateMap = {
-  '2026-02-16': 'Mon 2/16',
-  '2026-02-17': 'Tue 2/17',
-  '2026-02-18': 'Wed 2/18',
-  '2026-02-19': 'Thu 2/19',
-  '2026-02-20': 'Fri 2/20',
-};
-
 const statusColor = {
   'Completed': '#dcfce7',
   'In Progress': '#dbeafe',
@@ -21,6 +12,42 @@ const statusColor = {
 
 const JOB_STATUSES = ['Scheduled', 'In Progress', 'Completed'];
 
+function getMonday(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function getWeekDays(monday) {
+  const days = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    days.push(d);
+  }
+  return days;
+}
+
+function formatDayLabel(date) {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return `${dayNames[date.getDay()]} ${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function toDateString(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function isCurrentWeek(monday) {
+  const today = getMonday(new Date());
+  return toDateString(monday) === toDateString(today);
+}
+
 export default function AdminSchedule() {
   const { addToast } = useToast();
   const [jobs, setJobs] = useState([]);
@@ -28,12 +55,33 @@ export default function AdminSchedule() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
 
   useEffect(() => {
     apiGet('/jobs').then(setJobs).finally(() => setLoading(false));
   }, []);
 
-  const scheduledJobs = jobs.filter(j => dateMap[j.date]);
+  const weekDays = getWeekDays(weekStart);
+  const weekDateStrings = weekDays.map(toDateString);
+  const scheduledJobs = jobs.filter(j => weekDateStrings.includes(j.date));
+
+  const prevWeek = () => {
+    setWeekStart(prev => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() - 7);
+      return d;
+    });
+  };
+
+  const nextWeek = () => {
+    setWeekStart(prev => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() + 7);
+      return d;
+    });
+  };
+
+  const goToday = () => setWeekStart(getMonday(new Date()));
 
   const startEdit = (job) => {
     setEditing(job.id);
@@ -69,6 +117,8 @@ export default function AdminSchedule() {
     }
   };
 
+  const weekLabel = `${formatDayLabel(weekDays[0])} – ${formatDayLabel(weekDays[4])}, ${weekDays[0].getFullYear()}`;
+
   if (loading) {
     return (
       <div>
@@ -90,22 +140,35 @@ export default function AdminSchedule() {
         <p>Overview of jobs scheduled for this week.</p>
       </div>
 
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+        <button className="btn btn-outline btn-sm" onClick={prevWeek} aria-label="Previous week">&#8249; Prev</button>
+        {!isCurrentWeek(weekStart) && (
+          <button className="btn btn-outline btn-sm" onClick={goToday}>Today</button>
+        )}
+        <button className="btn btn-outline btn-sm" onClick={nextWeek} aria-label="Next week">Next &#8250;</button>
+        <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-text)' }}>{weekLabel}</span>
+      </div>
+
       <div className="card">
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${days.length}, 1fr)`, gap: '0.75rem', overflowX: 'auto' }}>
-          {days.map(day => {
-            const dayJobs = scheduledJobs.filter(j => dateMap[j.date] === day);
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${weekDays.length}, 1fr)`, gap: '0.75rem', overflowX: 'auto' }}>
+          {weekDays.map(day => {
+            const dayStr = toDateString(day);
+            const dayJobs = scheduledJobs.filter(j => j.date === dayStr);
+            const label = formatDayLabel(day);
+            const todayStr = toDateString(new Date());
+            const isToday = dayStr === todayStr;
             return (
-              <div key={day}>
+              <div key={dayStr}>
                 <div style={{
                   textAlign: 'center',
                   padding: '0.5rem',
                   fontWeight: 600,
                   fontSize: '0.85rem',
-                  color: 'var(--color-text)',
-                  borderBottom: '2px solid var(--color-border)',
+                  color: isToday ? 'var(--color-primary)' : 'var(--color-text)',
+                  borderBottom: `2px solid ${isToday ? 'var(--color-primary)' : 'var(--color-border)'}`,
                   marginBottom: '0.5rem',
                 }}>
-                  {day}
+                  {label}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {dayJobs.length > 0 ? dayJobs.map(job => (
