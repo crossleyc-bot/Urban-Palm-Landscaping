@@ -377,6 +377,25 @@ app.get('/api/testimonials', (req, res) => {
   res.json(testimonials);
 });
 
+app.post('/api/testimonials', (req, res) => {
+  const { name, text, rating } = req.body;
+  if (!name || !text || !rating) return res.status(400).json({ error: 'Name, text, and rating are required' });
+  const result = db.prepare('INSERT INTO testimonials (name, text, rating) VALUES (?, ?, ?)').run(name, text, Number(rating));
+  res.status(201).json({ id: result.lastInsertRowid, name, text, rating: Number(rating) });
+});
+
+app.put('/api/testimonials/:id', (req, res) => {
+  const { name, text, rating } = req.body;
+  if (!name || !text || !rating) return res.status(400).json({ error: 'Name, text, and rating are required' });
+  db.prepare('UPDATE testimonials SET name = ?, text = ?, rating = ? WHERE id = ?').run(name, text, Number(rating), req.params.id);
+  res.json({ id: Number(req.params.id), name, text, rating: Number(rating) });
+});
+
+app.delete('/api/testimonials/:id', (req, res) => {
+  db.prepare('DELETE FROM testimonials WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
 // ─── Jobs ────────────────────────────────────────────────────────────────────
 
 app.get('/api/jobs', (req, res) => {

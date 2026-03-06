@@ -44,6 +44,7 @@ const SupplierInventory = lazy(() => import('./pages/admin/SupplierInventory'));
 const ManageJobOpenings = lazy(() => import('./pages/admin/ManageJobOpenings'));
 const ManageTaxonomy = lazy(() => import('./pages/admin/ManageTaxonomy'));
 const ManageResources = lazy(() => import('./pages/admin/ManageResources'));
+const ManageTestimonials = lazy(() => import('./pages/admin/ManageTestimonials'));
 const SiteSettings = lazy(() => import('./pages/admin/SiteSettings'));
 
 import './App.css';
@@ -68,6 +69,7 @@ const adminNav = [
   { path: '/admin/invoices', label: 'Invoices', icon: '\uD83D\uDCB0' },
   { path: '/admin/quotes', label: 'Quote Requests', icon: '\u2709' },
   { path: '/admin/messages', label: 'Messages', icon: '\uD83D\uDCAC' },
+  { path: '/admin/testimonials', label: 'Testimonials', icon: '\u2B50' },
   { path: '/admin/resources', label: 'Resources', icon: '\uD83D\uDCDA' },
   { path: '/admin/job-openings', label: 'Job Openings', icon: '\uD83D\uDCCB' },
   { path: '/admin/settings', label: 'Site Settings', icon: '\u2699\uFE0F' },
@@ -179,6 +181,7 @@ export default function App() {
                   <Route path="/admin/invoices" element={<Invoices />} />
                   <Route path="/admin/quotes" element={<QuoteRequests />} />
                   <Route path="/admin/messages" element={<ContactMessages />} />
+                  <Route path="/admin/testimonials" element={<ManageTestimonials />} />
                   <Route path="/admin/resources" element={<ManageResources />} />
                   <Route path="/admin/job-openings" element={<ManageJobOpenings />} />
                   <Route path="/admin/settings" element={<SiteSettings />} />

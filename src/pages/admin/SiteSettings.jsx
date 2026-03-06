@@ -38,6 +38,13 @@ export default function SiteSettings() {
   const [videoSubtitle, setVideoSubtitle] = useState('');
   const fileRef = useRef();
 
+  // Contact info settings
+  const [contactAddress1, setContactAddress1] = useState('');
+  const [contactAddress2, setContactAddress2] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactSaving, setContactSaving] = useState(false);
+
   // Stripe settings
   const [stripePublishableKey, setStripePublishableKey] = useState('');
   const [stripeSecretKey, setStripeSecretKey] = useState('');
@@ -60,6 +67,10 @@ export default function SiteSettings() {
       setVideoUrl(s.welcome_video_url || '');
       setVideoTitle(s.welcome_video_title || '');
       setVideoSubtitle(s.welcome_video_subtitle || '');
+      setContactAddress1(s.contact_address_1 || '25546 High Hampton Circle');
+      setContactAddress2(s.contact_address_2 || 'Sorrento, FL 32776');
+      setContactPhone(s.contact_phone || '(321) 231-2094');
+      setContactEmail(s.contact_email || 'info@urbanpalmlandscaping.com');
       setStripePublishableKey(s.stripe_publishable_key || '');
       setStripeSecretKey(s.stripe_secret_key ? '••••••••' : '');
       setStripeKeysLoaded(!!s.stripe_secret_key);
@@ -412,6 +423,59 @@ export default function SiteSettings() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* ── Contact Information ── */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>Contact Information</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem', lineHeight: 1.6 }}>
+          Update the address, phone, and email shown in the website footer.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: 600 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div style={fieldGap}>
+              <label style={labelStyle}>Address Line 1</label>
+              <input className="table-input" value={contactAddress1} onChange={e => setContactAddress1(e.target.value)} placeholder="123 Main Street" />
+            </div>
+            <div style={fieldGap}>
+              <label style={labelStyle}>Address Line 2</label>
+              <input className="table-input" value={contactAddress2} onChange={e => setContactAddress2(e.target.value)} placeholder="City, ST 12345" />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div style={fieldGap}>
+              <label style={labelStyle}>Phone</label>
+              <input className="table-input" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="(555) 123-4567" />
+            </div>
+            <div style={fieldGap}>
+              <label style={labelStyle}>Email</label>
+              <input className="table-input" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="info@example.com" />
+            </div>
+          </div>
+        </div>
+        <button
+          className="btn btn-primary"
+          style={{ marginTop: '1rem' }}
+          disabled={contactSaving}
+          onClick={async () => {
+            setContactSaving(true);
+            try {
+              await apiPut('/settings', {
+                contact_address_1: contactAddress1.trim(),
+                contact_address_2: contactAddress2.trim(),
+                contact_phone: contactPhone.trim(),
+                contact_email: contactEmail.trim(),
+              });
+              addToast('Contact info saved', 'success');
+            } catch {
+              addToast('Failed to save contact info', 'error');
+            } finally {
+              setContactSaving(false);
+            }
+          }}
+        >
+          {contactSaving ? 'Saving...' : 'Save Contact Info'}
+        </button>
       </div>
 
       {/* ── Stripe / Payment Settings ── */}

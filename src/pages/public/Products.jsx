@@ -140,7 +140,7 @@ export default function Products() {
                       <div key={leaf.id} className="product-card">
                         <div className="product-image">
                           {leaf.image ? (
-                            <img src={leaf.image} alt={leaf.name} />
+                            <img src={leaf.image} alt={leaf.name} loading="lazy" />
                           ) : (
                             <div className="product-placeholder">{placeholderIcon(rootName || leaf.parent_name)}</div>
                           )}

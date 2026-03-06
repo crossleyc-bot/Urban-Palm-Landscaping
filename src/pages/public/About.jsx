@@ -106,7 +106,7 @@ export default function About() {
             {teamMembers.map((member) => (
               <div key={member.id} className="team-card">
                 {member.image ? (
-                  <img src={member.image} alt={member.name} className="team-photo" />
+                  <img src={member.image} alt={member.name} className="team-photo" loading="lazy" />
                 ) : (
                   <div className="team-avatar">
                     {member.name.split(' ').map(n => n[0]).join('')}

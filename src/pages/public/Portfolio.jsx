@@ -73,7 +73,7 @@ export default function Portfolio() {
                               onClick={() => openLightbox(pair.image_before, `${service.name} before`)}
                             >
                               <span className="portfolio-ba-label">Before</span>
-                              <img src={pair.image_before} alt={`${service.name} before`} />
+                              <img src={pair.image_before} alt={`${service.name} before`} loading="lazy" />
                               <div className="portfolio-ba-zoom">&#x2922;</div>
                             </div>
                           )}
@@ -83,7 +83,7 @@ export default function Portfolio() {
                               onClick={() => openLightbox(pair.image_after, `${service.name} after`)}
                             >
                               <span className="portfolio-ba-label portfolio-ba-label-after">After</span>
-                              <img src={pair.image_after} alt={`${service.name} after`} />
+                              <img src={pair.image_after} alt={`${service.name} after`} loading="lazy" />
                               <div className="portfolio-ba-zoom">&#x2922;</div>
                             </div>
                           )}
@@ -106,6 +106,7 @@ export default function Portfolio() {
             src={lightbox.src}
             alt={lightbox.alt}
             className="portfolio-lightbox-img"
+            loading="lazy"
             onClick={e => e.stopPropagation()}
           />
         </div>

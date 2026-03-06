@@ -48,7 +48,7 @@ export default function BeforeAfterCarousel() {
 
         <div className="carousel-single">
           <div className="carousel-image-wrapper">
-            <img src={slide.img} alt={slide.name} className="carousel-img" />
+            <img src={slide.img} alt={slide.name} className="carousel-img" loading="lazy" />
           </div>
         </div>
 

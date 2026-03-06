@@ -92,7 +92,7 @@ export default function Resources() {
                             />
                           </div>
                         ) : r.thumbnail ? (
-                          <img src={r.thumbnail} alt={r.title} />
+                          <img src={r.thumbnail} alt={r.title} loading="lazy" />
                         ) : (
                           <div className="resource-placeholder">
                             <span>{typeIcon[r.type] || '\uD83D\uDCDD'}</span>
