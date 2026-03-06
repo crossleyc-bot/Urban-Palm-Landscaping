@@ -296,7 +296,7 @@ export default function ManageResources() {
               {/* Actions */}
               <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
                 <button
-                  className={`btn btn-sm ${r.published ? 'btn-outline' : 'btn-secondary'}`}
+                  className={`btn btn-sm ${r.published ? 'btn-outline' : 'btn-primary'}`}
                   onClick={() => togglePublished(r)}
                   style={{ minWidth: 32 }}
                 >
