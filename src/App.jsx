@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -7,39 +8,47 @@ import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import Sidebar from './components/layout/Sidebar';
 import Breadcrumbs from './components/ui/Breadcrumbs';
+import ErrorBoundary from './components/ErrorBoundary';
+import ScrollToTop from './components/ScrollToTop';
+import BackToTop from './components/BackToTop';
 import NotFound from './pages/NotFound';
+import Spinner from './components/ui/Spinner';
 
-import Home from './pages/public/Home';
-import Services from './pages/public/Services';
-import About from './pages/public/About';
-import Contact from './pages/public/Contact';
-import Portfolio from './pages/public/Portfolio';
-import Careers from './pages/public/Careers';
-import Products from './pages/public/Products';
-import Resources from './pages/public/Resources';
-import Login from './pages/Login';
+// Lazy-loaded public pages
+const Home = lazy(() => import('./pages/public/Home'));
+const Services = lazy(() => import('./pages/public/Services'));
+const About = lazy(() => import('./pages/public/About'));
+const Contact = lazy(() => import('./pages/public/Contact'));
+const Portfolio = lazy(() => import('./pages/public/Portfolio'));
+const Careers = lazy(() => import('./pages/public/Careers'));
+const Products = lazy(() => import('./pages/public/Products'));
+const Resources = lazy(() => import('./pages/public/Resources'));
+const Login = lazy(() => import('./pages/Login'));
 
-import CustomerDashboard from './pages/customer/CustomerDashboard';
-import RequestQuote from './pages/customer/RequestQuote';
+// Lazy-loaded customer pages
+const CustomerDashboard = lazy(() => import('./pages/customer/CustomerDashboard'));
+const RequestQuote = lazy(() => import('./pages/customer/RequestQuote'));
+const MyQuotes = lazy(() => import('./pages/customer/MyQuotes'));
+const MyJobs = lazy(() => import('./pages/customer/MyJobs'));
+const MyInvoices = lazy(() => import('./pages/customer/MyInvoices'));
+const MyAccount = lazy(() => import('./pages/customer/MyAccount'));
 
-import MyQuotes from './pages/customer/MyQuotes';
-import MyJobs from './pages/customer/MyJobs';
-import MyInvoices from './pages/customer/MyInvoices';
-
-import AdminDashboard from './pages/admin/AdminDashboard';
-import ManageJobs from './pages/admin/ManageJobs';
-import ManageEmployees from './pages/admin/ManageEmployees';
-import AdminSchedule from './pages/admin/AdminSchedule';
-import Invoices from './pages/admin/Invoices';
-import QuoteRequests from './pages/admin/QuoteRequests';
-import ContactMessages from './pages/admin/ContactMessages';
-import ManageServices from './pages/admin/ManageServices';
-import ManageSuppliers from './pages/admin/ManageSuppliers';
-import SupplierInventory from './pages/admin/SupplierInventory';
-import ManageJobOpenings from './pages/admin/ManageJobOpenings';
-import ManageTaxonomy from './pages/admin/ManageTaxonomy';
-import ManageResources from './pages/admin/ManageResources';
-import SiteSettings from './pages/admin/SiteSettings';
+// Lazy-loaded admin pages
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const ManageJobs = lazy(() => import('./pages/admin/ManageJobs'));
+const ManageEmployees = lazy(() => import('./pages/admin/ManageEmployees'));
+const AdminSchedule = lazy(() => import('./pages/admin/AdminSchedule'));
+const Invoices = lazy(() => import('./pages/admin/Invoices'));
+const QuoteRequests = lazy(() => import('./pages/admin/QuoteRequests'));
+const ContactMessages = lazy(() => import('./pages/admin/ContactMessages'));
+const ManageServices = lazy(() => import('./pages/admin/ManageServices'));
+const ManageSuppliers = lazy(() => import('./pages/admin/ManageSuppliers'));
+const SupplierInventory = lazy(() => import('./pages/admin/SupplierInventory'));
+const ManageJobOpenings = lazy(() => import('./pages/admin/ManageJobOpenings'));
+const ManageTaxonomy = lazy(() => import('./pages/admin/ManageTaxonomy'));
+const ManageResources = lazy(() => import('./pages/admin/ManageResources'));
+const ManageTestimonials = lazy(() => import('./pages/admin/ManageTestimonials'));
+const SiteSettings = lazy(() => import('./pages/admin/SiteSettings'));
 
 import './App.css';
 
@@ -49,6 +58,7 @@ const customerNav = [
   { path: '/portal/quotes', label: 'My Quotes', icon: '\uD83D\uDCDD' },
   { path: '/portal/jobs', label: 'My Jobs', icon: '\uD83D\uDCBC' },
   { path: '/portal/invoices', label: 'My Invoices', icon: '\uD83D\uDCB0' },
+  { path: '/portal/account', label: 'My Account', icon: '\uD83D\uDC64' },
 ];
 
 const adminNav = [
@@ -63,6 +73,7 @@ const adminNav = [
   { path: '/admin/invoices', label: 'Invoices', icon: '\uD83D\uDCB0' },
   { path: '/admin/quotes', label: 'Quote Requests', icon: '\u2709' },
   { path: '/admin/messages', label: 'Messages', icon: '\uD83D\uDCAC' },
+  { path: '/admin/testimonials', label: 'Testimonials', icon: '\u2B50' },
   { path: '/admin/resources', label: 'Resources', icon: '\uD83D\uDCDA' },
   { path: '/admin/job-openings', label: 'Job Openings', icon: '\uD83D\uDCCB' },
   { path: '/admin/settings', label: 'Site Settings', icon: '\u2699\uFE0F' },
@@ -79,7 +90,9 @@ function AnimatedOutlet() {
   const location = useLocation();
   return (
     <div className="page-animate" key={location.pathname}>
-      <Outlet />
+      <Suspense fallback={<Spinner />}>
+        <Outlet />
+      </Suspense>
     </div>
   );
 }
@@ -134,7 +147,10 @@ export default function App() {
         <AuthProvider>
           <SiteSettingsProvider>
           <ToastProvider>
+            <ErrorBoundary>
             <Header />
+            <ScrollToTop />
+            <BackToTop />
             <Routes>
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<Home />} />
@@ -155,6 +171,7 @@ export default function App() {
                   <Route path="/portal/quotes" element={<MyQuotes />} />
                   <Route path="/portal/jobs" element={<MyJobs />} />
                   <Route path="/portal/invoices" element={<MyInvoices />} />
+                  <Route path="/portal/account" element={<MyAccount />} />
                 </Route>
               </Route>
 
@@ -171,6 +188,7 @@ export default function App() {
                   <Route path="/admin/invoices" element={<Invoices />} />
                   <Route path="/admin/quotes" element={<QuoteRequests />} />
                   <Route path="/admin/messages" element={<ContactMessages />} />
+                  <Route path="/admin/testimonials" element={<ManageTestimonials />} />
                   <Route path="/admin/resources" element={<ManageResources />} />
                   <Route path="/admin/job-openings" element={<ManageJobOpenings />} />
                   <Route path="/admin/settings" element={<SiteSettings />} />
@@ -179,6 +197,7 @@ export default function App() {
 
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </ErrorBoundary>
           </ToastProvider>
           </SiteSettingsProvider>
         </AuthProvider>

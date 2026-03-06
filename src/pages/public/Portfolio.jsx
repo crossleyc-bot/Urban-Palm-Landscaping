@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
+import SEO from '../../components/SEO';
 import './Portfolio.css';
 
 export default function Portfolio() {
@@ -40,6 +41,7 @@ export default function Portfolio() {
 
   return (
     <div className="portfolio-page">
+      <SEO title="Landscaping Portfolio & Before-After Gallery" description="See real transformation results from our landscaping projects across Central Florida. Browse before-and-after photos of landscape designs." path="/portfolio" />
       <section className="page-hero">
         <div className="container">
           <span className="hero-badge">Portfolio</span>
@@ -71,7 +73,7 @@ export default function Portfolio() {
                               onClick={() => openLightbox(pair.image_before, `${service.name} before`)}
                             >
                               <span className="portfolio-ba-label">Before</span>
-                              <img src={pair.image_before} alt={`${service.name} before`} />
+                              <img src={pair.image_before} alt={`${service.name} before`} loading="lazy" />
                               <div className="portfolio-ba-zoom">&#x2922;</div>
                             </div>
                           )}
@@ -81,7 +83,7 @@ export default function Portfolio() {
                               onClick={() => openLightbox(pair.image_after, `${service.name} after`)}
                             >
                               <span className="portfolio-ba-label portfolio-ba-label-after">After</span>
-                              <img src={pair.image_after} alt={`${service.name} after`} />
+                              <img src={pair.image_after} alt={`${service.name} after`} loading="lazy" />
                               <div className="portfolio-ba-zoom">&#x2922;</div>
                             </div>
                           )}
@@ -104,6 +106,7 @@ export default function Portfolio() {
             src={lightbox.src}
             alt={lightbox.alt}
             className="portfolio-lightbox-img"
+            loading="lazy"
             onClick={e => e.stopPropagation()}
           />
         </div>

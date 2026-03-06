@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
+import SEO from '../../components/SEO';
 import './About.css';
 
 export default function About() {
@@ -12,6 +13,7 @@ export default function About() {
 
   return (
     <div className="about-page">
+      <SEO title="About Us" description="Learn our story: from word-of-mouth referrals to Central Florida's premier full-service landscaping company. Meet our certified team." path="/about" />
       <section className="page-hero">
         <div className="container">
           <span className="hero-badge">Central Florida &bull; Growing Every Day</span>
@@ -104,7 +106,7 @@ export default function About() {
             {teamMembers.map((member) => (
               <div key={member.id} className="team-card">
                 {member.image ? (
-                  <img src={member.image} alt={member.name} className="team-photo" />
+                  <img src={member.image} alt={member.name} className="team-photo" loading="lazy" />
                 ) : (
                   <div className="team-avatar">
                     {member.name.split(' ').map(n => n[0]).join('')}

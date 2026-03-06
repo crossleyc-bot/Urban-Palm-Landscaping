@@ -25,6 +25,7 @@ export default function ManageJobs() {
   const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState('id');
   const [sortDir, setSortDir] = useState('asc');
+  const [search, setSearch] = useState('');
 
   // Invoice generation modal
   const [invoiceModal, setInvoiceModal] = useState(null);
@@ -35,7 +36,18 @@ export default function ManageJobs() {
     apiGet('/jobs').then(setJobs).finally(() => setLoading(false));
   }, []);
 
-  const filtered = filter === 'All' ? jobs : jobs.filter(j => j.status === filter);
+  const searchFiltered = jobs.filter(j => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      (j.client || '').toLowerCase().includes(s) ||
+      (j.service || '').toLowerCase().includes(s) ||
+      (j.assignee || '').toLowerCase().includes(s) ||
+      (j.status || '').toLowerCase().includes(s)
+    );
+  });
+
+  const filtered = filter === 'All' ? searchFiltered : searchFiltered.filter(j => j.status === filter);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -115,6 +127,15 @@ export default function ManageJobs() {
       </div>
 
       <div className="card">
+        <div style={{ marginBottom: '1rem' }}>
+          <input
+            className="table-input"
+            placeholder="Search jobs by client, service, or status..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ maxWidth: 400 }}
+          />
+        </div>
         <div className="table-container">
           <table>
             <thead>

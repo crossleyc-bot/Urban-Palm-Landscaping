@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
 import HeroCarousel from '../../components/HeroCarousel';
+import SEO from '../../components/SEO';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 import './Home.css';
 
 function getEmbedUrl(url) {
@@ -19,9 +21,11 @@ function isDirectVideo(url) {
 }
 
 export default function Home() {
+  const { settings } = useSiteSettings();
   const [services, setServices] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
   const [welcomeVideo, setWelcomeVideo] = useState(null);
+  const phone = settings.contact_phone || '(321) 231-2094';
 
   useEffect(() => {
     apiGet('/services').then(setServices);
@@ -39,6 +43,7 @@ export default function Home() {
 
   return (
     <div className="home">
+      <SEO title="Full-Service Landscaping in Central Florida" description="Professional landscape design, installation, and delivery services for residential and commercial properties in Orlando, Winter Park, and Central Florida." path="/" />
       {/* Hero Carousel */}
       <HeroCarousel />
 
@@ -243,7 +248,7 @@ export default function Home() {
           <p>Contact us today for a free on-site consultation and detailed estimate. No obligation, no pressure.</p>
           <div className="cta-actions">
             <Link to="/contact" className="btn btn-primary btn-lg">Get Free Consultation</Link>
-            <a href="tel:3212312094" className="btn btn-outline btn-lg cta-phone-btn">Call (321) 231-2094</a>
+            <a href={`tel:${phone.replace(/\D/g, '')}`} className="btn btn-outline btn-lg cta-phone-btn">Call {phone}</a>
           </div>
         </div>
       </section>

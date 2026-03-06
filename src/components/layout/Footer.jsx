@@ -1,14 +1,26 @@
 import { Link } from 'react-router-dom';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 import './Footer.css';
 
 export default function Footer() {
+  const { settings } = useSiteSettings();
+
+  const address1 = settings.contact_address_1 || '25546 High Hampton Circle';
+  const address2 = settings.contact_address_2 || 'Sorrento, FL 32776';
+  const phone = settings.contact_phone || '(321) 231-2094';
+  const email = settings.contact_email || 'info@urbanpalmlandscaping.com';
+  const facebook = settings.social_facebook || '';
+  const instagram = settings.social_instagram || '';
+  const youtube = settings.social_youtube || '';
+  const hasSocial = facebook || instagram || youtube;
+
   return (
     <footer className="footer">
       <div className="footer-container">
         <div className="footer-grid">
           <div className="footer-brand">
             <div className="footer-logo">
-              <img src="/logo.png" alt="Urban Palm Landscaping" className="footer-logo-img" />
+              <img src="/logo.png" alt="Urban Palm Landscaping" className="footer-logo-img" loading="lazy" />
               Urban Palm
             </div>
             <p>Professional landscaping services that bring your outdoor vision to life.</p>
@@ -35,15 +47,23 @@ export default function Footer() {
 
           <div className="footer-links">
             <h4>Contact</h4>
-            <p>25546 High Hampton Circle</p>
-            <p>Sorrento, FL 32776</p>
-            <p>(321) 231-2094</p>
-            <p>info@urbanpalmlandscaping.com</p>
+            <p>{address1}</p>
+            <p>{address2}</p>
+            <p><a href={`tel:${phone.replace(/\D/g, '')}`}>{phone}</a></p>
+            <p><a href={`mailto:${email}`}>{email}</a></p>
           </div>
         </div>
 
+        {hasSocial && (
+          <div className="footer-social">
+            {facebook && <a href={facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook">Facebook</a>}
+            {instagram && <a href={instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram">Instagram</a>}
+            {youtube && <a href={youtube} target="_blank" rel="noopener noreferrer" aria-label="YouTube">YouTube</a>}
+          </div>
+        )}
+
         <div className="footer-bottom">
-          <p>&copy; 2026 Urban Palm Landscaping. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Urban Palm Landscaping. All rights reserved.</p>
         </div>
       </div>
     </footer>

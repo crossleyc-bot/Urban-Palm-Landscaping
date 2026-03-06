@@ -58,6 +58,7 @@ export default function ManageEmployees() {
   const [imagePreview, setImagePreview] = useState(null);
   const [saving, setSaving] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     apiGet('/employees').then(setEmployees).finally(() => setLoading(false));
@@ -73,14 +74,26 @@ export default function ManageEmployees() {
     setPage(1);
   };
 
+  const searchFiltered = employees.filter(e => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      (e.name || '').toLowerCase().includes(s) ||
+      (e.role || '').toLowerCase().includes(s) ||
+      (e.email || '').toLowerCase().includes(s) ||
+      (e.phone || '').toLowerCase().includes(s) ||
+      (e.status || '').toLowerCase().includes(s)
+    );
+  });
+
   const sorted = useMemo(() => {
-    return [...employees].sort((a, b) => {
+    return [...searchFiltered].sort((a, b) => {
       const aVal = a[sortField] ?? '';
       const bVal = b[sortField] ?? '';
       const cmp = typeof aVal === 'number' ? aVal - bVal : String(aVal).localeCompare(String(bVal));
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [employees, sortField, sortDir]);
+  }, [searchFiltered, sortField, sortDir]);
 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -207,6 +220,15 @@ export default function ManageEmployees() {
       )}
 
       <div className="card">
+        <div style={{ marginBottom: '1rem' }}>
+          <input
+            className="table-input"
+            placeholder="Search employees by name, role, or status..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ maxWidth: 400 }}
+          />
+        </div>
         <div className="table-container">
           <table>
             <thead>

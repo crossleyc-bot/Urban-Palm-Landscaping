@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import Stripe from 'stripe';
@@ -50,7 +52,46 @@ const videoUpload = multer({
 });
 
 const app = express();
-app.use(cors());
+
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
+
+// CORS with whitelist
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'http://localhost:3000',
+];
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+}));
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+app.use('/api/', apiLimiter);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: 'Too many login attempts, please try again later.' },
+});
+app.use('/api/auth/', authLimiter);
+
 app.use(express.json());
 app.use('/uploads', express.static(join(__dirname, 'uploads')));
 
@@ -87,6 +128,37 @@ app.post('/api/auth/register', (req, res) => {
   );
 
   res.status(201).json({ id: result.lastInsertRowid, email, name, role: 'customer' });
+});
+
+// ─── Account ────────────────────────────────────────────────────────────────
+
+app.put('/api/account/password', (req, res) => {
+  const { user_id, current_password, new_password } = req.body;
+  if (!user_id || !current_password || !new_password) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+  if (new_password.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  }
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(user_id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (!bcrypt.compareSync(current_password, user.password_hash)) {
+    return res.status(401).json({ error: 'Current password is incorrect' });
+  }
+  const hash = bcrypt.hashSync(new_password, 10);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, user_id);
+  res.json({ success: true });
+});
+
+app.put('/api/account/profile', (req, res) => {
+  const { user_id, name, email } = req.body;
+  if (!user_id || !name || !email) {
+    return res.status(400).json({ error: 'Name and email are required' });
+  }
+  const existing = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, user_id);
+  if (existing) return res.status(400).json({ error: 'Email already in use' });
+  db.prepare('UPDATE users SET name = ?, email = ? WHERE id = ?').run(name, email, user_id);
+  res.json({ id: user_id, name, email });
 });
 
 // ─── Site Settings ──────────────────────────────────────────────────────────
@@ -334,6 +406,25 @@ app.get('/api/team', (req, res) => {
 app.get('/api/testimonials', (req, res) => {
   const testimonials = db.prepare('SELECT * FROM testimonials').all();
   res.json(testimonials);
+});
+
+app.post('/api/testimonials', (req, res) => {
+  const { name, text, rating } = req.body;
+  if (!name || !text || !rating) return res.status(400).json({ error: 'Name, text, and rating are required' });
+  const result = db.prepare('INSERT INTO testimonials (name, text, rating) VALUES (?, ?, ?)').run(name, text, Number(rating));
+  res.status(201).json({ id: result.lastInsertRowid, name, text, rating: Number(rating) });
+});
+
+app.put('/api/testimonials/:id', (req, res) => {
+  const { name, text, rating } = req.body;
+  if (!name || !text || !rating) return res.status(400).json({ error: 'Name, text, and rating are required' });
+  db.prepare('UPDATE testimonials SET name = ?, text = ?, rating = ? WHERE id = ?').run(name, text, Number(rating), req.params.id);
+  res.json({ id: Number(req.params.id), name, text, rating: Number(rating) });
+});
+
+app.delete('/api/testimonials/:id', (req, res) => {
+  db.prepare('DELETE FROM testimonials WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
 });
 
 // ─── Jobs ────────────────────────────────────────────────────────────────────
