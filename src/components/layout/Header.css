@@ -8,6 +8,36 @@
   transition: background-color 0.3s, border-color 0.3s;
 }
 
+.header-topbar {
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.header-topbar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.45rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.header-topbar .btn {
+  background: #fff;
+  color: var(--color-primary);
+  border: none;
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.9rem;
+}
+
+.header-topbar .btn:hover {
+  background: #f0fdf4;
+}
+
 .header-container {
   max-width: 1200px;
   margin: 0 auto;
