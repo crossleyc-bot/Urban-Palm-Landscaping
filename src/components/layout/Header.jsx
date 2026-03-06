@@ -12,6 +12,12 @@ export default function Header() {
 
   return (
     <header className="header">
+      <div className="header-topbar">
+        <div className="header-topbar-inner">
+          <span>Same Day Quotes &mdash; Fast, free estimates for your landscaping project</span>
+          <Link to="/portal/quote" className="btn btn-primary btn-sm">Get a Quote</Link>
+        </div>
+      </div>
       <div className="header-container">
         <Link to="/" className="logo">
           <img src="/logo.png" alt="Urban Palm Landscaping" className="logo-img" />
