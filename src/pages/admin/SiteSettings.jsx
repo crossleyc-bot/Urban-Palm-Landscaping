@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { apiGet, apiPut, apiPostForm, apiPutForm, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
+import { useSiteSettings, PAGE_KEYS } from '../../context/SiteSettingsContext';
 import Spinner from '../../components/ui/Spinner';
 
 function isEmbeddable(url) {
@@ -26,8 +27,11 @@ const emptySlide = { badge: '', headline: '', subtext: '', cta_label: '', cta_li
 
 export default function SiteSettings() {
   const { addToast } = useToast();
+  const { refresh: refreshSiteSettings } = useSiteSettings();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pageVisibility, setPageVisibility] = useState({});
+  const [pageVisSaving, setPageVisSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
   const [videoTitle, setVideoTitle] = useState('');
@@ -59,6 +63,10 @@ export default function SiteSettings() {
       setStripePublishableKey(s.stripe_publishable_key || '');
       setStripeSecretKey(s.stripe_secret_key ? '••••••••' : '');
       setStripeKeysLoaded(!!s.stripe_secret_key);
+      // Initialize page visibility (default to '1' for all)
+      const vis = {};
+      for (const p of PAGE_KEYS) vis[p.key] = s[p.key] !== '0' ? '1' : '0';
+      setPageVisibility(vis);
       setSlides(sl);
     }).finally(() => setLoading(false));
   }, []);
@@ -475,6 +483,61 @@ export default function SiteSettings() {
             </span>
           )}
         </div>
+      </div>
+
+      {/* ── Page Visibility ── */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>Page Visibility</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem', lineHeight: 1.6 }}>
+          Control which pages are visible to visitors. Hidden pages will be removed from the navigation and redirect to the homepage.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.5rem', marginBottom: '1rem' }}>
+          {PAGE_KEYS.map(p => (
+            <label
+              key={p.key}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.6rem 0.75rem',
+                border: '1px solid var(--color-border)',
+                borderRadius: 8,
+                cursor: 'pointer',
+                background: pageVisibility[p.key] === '1' ? 'var(--color-surface)' : 'var(--color-bg-secondary)',
+                opacity: pageVisibility[p.key] === '1' ? 1 : 0.6,
+                transition: 'opacity 0.2s, background 0.2s',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={pageVisibility[p.key] === '1'}
+                onChange={e => setPageVisibility(prev => ({ ...prev, [p.key]: e.target.checked ? '1' : '0' }))}
+              />
+              <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>{p.label}</span>
+              <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{p.path}</span>
+            </label>
+          ))}
+        </div>
+
+        <button
+          className="btn btn-primary"
+          disabled={pageVisSaving}
+          onClick={async () => {
+            setPageVisSaving(true);
+            try {
+              await apiPut('/settings', pageVisibility);
+              refreshSiteSettings();
+              addToast('Page visibility saved', 'success');
+            } catch {
+              addToast('Failed to save page visibility', 'error');
+            } finally {
+              setPageVisSaving(false);
+            }
+          }}
+        >
+          {pageVisSaving ? 'Saving...' : 'Save Page Visibility'}
+        </button>
       </div>
 
       {/* ── Slide Editor Modal ── */}

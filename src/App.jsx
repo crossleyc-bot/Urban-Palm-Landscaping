@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { SiteSettingsProvider, useSiteSettings } from './context/SiteSettingsContext';
 import { ToastProvider } from './components/ui/Toast';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -83,6 +84,14 @@ function AnimatedOutlet() {
   );
 }
 
+function PageGuard({ children }) {
+  const location = useLocation();
+  const { isPageVisible, loaded } = useSiteSettings();
+  if (!loaded) return null;
+  if (!isPageVisible(location.pathname)) return <Navigate to="/" replace />;
+  return children;
+}
+
 function PortalLayout() {
   return (
     <div className="app-layout">
@@ -123,18 +132,19 @@ export default function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
+          <SiteSettingsProvider>
           <ToastProvider>
             <Header />
             <Routes>
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<Home />} />
-                <Route path="/services" element={<Services />} />
-                <Route path="/portfolio" element={<Portfolio />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/careers" element={<Careers />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/resources" element={<Resources />} />
+                <Route path="/services" element={<PageGuard><Services /></PageGuard>} />
+                <Route path="/portfolio" element={<PageGuard><Portfolio /></PageGuard>} />
+                <Route path="/about" element={<PageGuard><About /></PageGuard>} />
+                <Route path="/contact" element={<PageGuard><Contact /></PageGuard>} />
+                <Route path="/careers" element={<PageGuard><Careers /></PageGuard>} />
+                <Route path="/products" element={<PageGuard><Products /></PageGuard>} />
+                <Route path="/resources" element={<PageGuard><Resources /></PageGuard>} />
                 <Route path="/login" element={<Login />} />
               </Route>
 
@@ -170,6 +180,7 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ToastProvider>
+          </SiteSettingsProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>
