@@ -342,6 +342,18 @@ if (!schedColumns.includes('status')) {
   db.exec("ALTER TABLE schedule_requests ADD COLUMN status TEXT NOT NULL DEFAULT 'Pending'");
 }
 
+// Migration: add payment tracking columns to invoices
+const invPayColumns = db.prepare("PRAGMA table_info(invoices)").all().map(c => c.name);
+if (!invPayColumns.includes('paid_date')) {
+  db.exec("ALTER TABLE invoices ADD COLUMN paid_date TEXT");
+}
+if (!invPayColumns.includes('payment_method')) {
+  db.exec("ALTER TABLE invoices ADD COLUMN payment_method TEXT");
+}
+if (!invPayColumns.includes('transaction_id')) {
+  db.exec("ALTER TABLE invoices ADD COLUMN transaction_id TEXT");
+}
+
 // Seed default hero carousel slides if table is empty
 const slideCount = db.prepare('SELECT COUNT(*) as cnt FROM hero_slides').get();
 if (slideCount.cnt === 0) {

@@ -34,6 +34,12 @@ export default function SiteSettings() {
   const [videoSubtitle, setVideoSubtitle] = useState('');
   const fileRef = useRef();
 
+  // Stripe settings
+  const [stripePublishableKey, setStripePublishableKey] = useState('');
+  const [stripeSecretKey, setStripeSecretKey] = useState('');
+  const [stripeKeysSaving, setStripeKeysSaving] = useState(false);
+  const [stripeKeysLoaded, setStripeKeysLoaded] = useState(false);
+
   // Hero carousel state
   const [slides, setSlides] = useState([]);
   const [slideModal, setSlideModal] = useState(null); // null = closed, 'new' or slide object
@@ -50,6 +56,9 @@ export default function SiteSettings() {
       setVideoUrl(s.welcome_video_url || '');
       setVideoTitle(s.welcome_video_title || '');
       setVideoSubtitle(s.welcome_video_subtitle || '');
+      setStripePublishableKey(s.stripe_publishable_key || '');
+      setStripeSecretKey(s.stripe_secret_key ? '••••••••' : '');
+      setStripeKeysLoaded(!!s.stripe_secret_key);
       setSlides(sl);
     }).finally(() => setLoading(false));
   }, []);
@@ -393,6 +402,77 @@ export default function SiteSettings() {
             <button className="btn btn-outline" style={{ color: '#dc2626', borderColor: '#fca5a5' }} onClick={handleRemoveVideo}>
               Remove Video
             </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Stripe / Payment Settings ── */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>Payment Settings (Stripe)</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem', lineHeight: 1.6 }}>
+          Enter your Stripe API keys to enable online invoice payments. You can find these in your{' '}
+          <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>
+            Stripe Dashboard
+          </a>. Use <strong>test keys</strong> (starting with <code>pk_test_</code> / <code>sk_test_</code>) for development.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: 600 }}>
+          <div style={fieldGap}>
+            <label style={labelStyle}>Publishable Key</label>
+            <input
+              className="table-input"
+              value={stripePublishableKey}
+              onChange={e => setStripePublishableKey(e.target.value)}
+              placeholder="pk_test_..."
+              style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+            />
+          </div>
+          <div style={fieldGap}>
+            <label style={labelStyle}>Secret Key</label>
+            <input
+              className="table-input"
+              type="password"
+              value={stripeSecretKey}
+              onChange={e => setStripeSecretKey(e.target.value)}
+              onFocus={() => { if (stripeSecretKey === '••••••••') setStripeSecretKey(''); }}
+              placeholder="sk_test_..."
+              style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+            />
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+              The secret key is stored securely and never exposed to the browser.
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1rem' }}>
+          <button
+            className="btn btn-primary"
+            disabled={stripeKeysSaving}
+            onClick={async () => {
+              setStripeKeysSaving(true);
+              try {
+                const payload = { stripe_publishable_key: stripePublishableKey.trim() };
+                // Only send secret key if it was actually changed
+                if (stripeSecretKey && stripeSecretKey !== '••••••••') {
+                  payload.stripe_secret_key = stripeSecretKey.trim();
+                }
+                await apiPut('/settings', payload);
+                setStripeKeysLoaded(!!stripePublishableKey.trim());
+                if (stripeSecretKey && stripeSecretKey !== '••••••••') setStripeSecretKey('••••••••');
+                addToast('Stripe keys saved', 'success');
+              } catch {
+                addToast('Failed to save Stripe keys', 'error');
+              } finally {
+                setStripeKeysSaving(false);
+              }
+            }}
+          >
+            {stripeKeysSaving ? 'Saving...' : 'Save Stripe Keys'}
+          </button>
+          {stripeKeysLoaded && (
+            <span style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 500 }}>
+              &#10003; Stripe is configured
+            </span>
           )}
         </div>
       </div>

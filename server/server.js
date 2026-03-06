@@ -2,10 +2,18 @@ import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
+import Stripe from 'stripe';
 import { fileURLToPath } from 'url';
 import { dirname, join, extname } from 'path';
 import { existsSync, mkdirSync, unlinkSync, readFileSync } from 'fs';
 import db from './db.js';
+
+// ─── Stripe helper ───────────────────────────────────────────────────────────
+function getStripeInstance() {
+  const row = db.prepare("SELECT value FROM site_settings WHERE key = 'stripe_secret_key'").get();
+  if (!row || !row.value) return null;
+  return new Stripe(row.value);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -510,6 +518,9 @@ app.get('/api/invoices', (req, res) => {
     status: i.status,
     job_id: i.job_id,
     user_id: i.user_id,
+    paid_date: i.paid_date || null,
+    payment_method: i.payment_method || null,
+    transaction_id: i.transaction_id || null,
   })));
 });
 
@@ -541,6 +552,76 @@ app.put('/api/invoices/:invId', (req, res) => {
   if (result.changes === 0) return res.status(404).json({ error: 'Invoice not found' });
 
   res.json({ success: true });
+});
+
+// ─── Stripe public key (no auth required) ───────────────────────────────────
+app.get('/api/stripe/public-key', (_req, res) => {
+  const row = db.prepare("SELECT value FROM site_settings WHERE key = 'stripe_publishable_key'").get();
+  res.json({ publishableKey: row ? row.value : null });
+});
+
+// ─── Create Stripe PaymentIntent ─────────────────────────────────────────────
+app.post('/api/invoices/:invId/create-payment-intent', async (req, res) => {
+  const { invId } = req.params;
+
+  const invoice = db.prepare('SELECT * FROM invoices WHERE inv_id = ?').get(invId);
+  if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+  if (invoice.status === 'Paid') return res.status(400).json({ error: 'Invoice is already paid' });
+
+  const stripe = getStripeInstance();
+  if (!stripe) return res.status(500).json({ error: 'Stripe is not configured. Ask the admin to add Stripe API keys in Site Settings.' });
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(invoice.amount * 100), // cents
+      currency: 'usd',
+      metadata: { inv_id: invId },
+      description: `Invoice ${invId} - Urban Palm Landscaping`,
+    });
+    res.json({ clientSecret: paymentIntent.client_secret });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Confirm payment (after Stripe succeeds on the client) ───────────────────
+app.post('/api/invoices/:invId/confirm-payment', async (req, res) => {
+  const { invId } = req.params;
+  const { payment_intent_id } = req.body;
+
+  const invoice = db.prepare('SELECT * FROM invoices WHERE inv_id = ?').get(invId);
+  if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+  if (invoice.status === 'Paid') return res.status(400).json({ error: 'Invoice is already paid' });
+  if (!payment_intent_id) return res.status(400).json({ error: 'Payment intent ID is required' });
+
+  const stripe = getStripeInstance();
+  if (!stripe) return res.status(500).json({ error: 'Stripe is not configured' });
+
+  try {
+    const pi = await stripe.paymentIntents.retrieve(payment_intent_id);
+    if (pi.status !== 'succeeded') return res.status(400).json({ error: `Payment not completed. Status: ${pi.status}` });
+
+    const paidDate = new Date().toISOString().split('T')[0];
+    const charge = pi.latest_charge && typeof pi.latest_charge === 'object' ? pi.latest_charge : null;
+    let paymentMethod = 'Card';
+    if (charge && charge.payment_method_details && charge.payment_method_details.card) {
+      const card = charge.payment_method_details.card;
+      paymentMethod = `${card.brand || 'Card'} ending in ${card.last4}`;
+    }
+
+    db.prepare(
+      'UPDATE invoices SET status = ?, paid_date = ?, payment_method = ?, transaction_id = ? WHERE inv_id = ?'
+    ).run('Paid', paidDate, paymentMethod, pi.id, invId);
+
+    res.json({
+      success: true,
+      transaction_id: pi.id,
+      paid_date: paidDate,
+      payment_method: paymentMethod,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ─── Contact Messages ────────────────────────────────────────────────────────
