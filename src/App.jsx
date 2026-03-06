@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'rea
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SiteSettingsProvider, useSiteSettings } from './context/SiteSettingsContext';
+import { CartProvider } from './context/CartContext';
 import { ToastProvider } from './components/ui/Toast';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
@@ -23,6 +24,8 @@ const Portfolio = lazy(() => import('./pages/public/Portfolio'));
 const Careers = lazy(() => import('./pages/public/Careers'));
 const Products = lazy(() => import('./pages/public/Products'));
 const Resources = lazy(() => import('./pages/public/Resources'));
+const Cart = lazy(() => import('./pages/public/Cart'));
+const Checkout = lazy(() => import('./pages/public/Checkout'));
 const Login = lazy(() => import('./pages/Login'));
 
 // Lazy-loaded customer pages
@@ -32,6 +35,7 @@ const MyQuotes = lazy(() => import('./pages/customer/MyQuotes'));
 const MyJobs = lazy(() => import('./pages/customer/MyJobs'));
 const MyInvoices = lazy(() => import('./pages/customer/MyInvoices'));
 const MyAccount = lazy(() => import('./pages/customer/MyAccount'));
+const MyOrders = lazy(() => import('./pages/customer/MyOrders'));
 
 // Lazy-loaded admin pages
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -57,6 +61,7 @@ const customerNav = [
   { path: '/portal/quote', label: 'Request Quote', icon: '\u2709' },
   { path: '/portal/quotes', label: 'My Quotes', icon: '\uD83D\uDCDD' },
   { path: '/portal/jobs', label: 'My Jobs', icon: '\uD83D\uDCBC' },
+  { path: '/portal/orders', label: 'My Orders', icon: '\uD83D\uDED2' },
   { path: '/portal/invoices', label: 'My Invoices', icon: '\uD83D\uDCB0' },
   { path: '/portal/account', label: 'My Account', icon: '\uD83D\uDC64' },
 ];
@@ -146,6 +151,7 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <SiteSettingsProvider>
+          <CartProvider>
           <ToastProvider>
             <ErrorBoundary>
             <Header />
@@ -161,6 +167,8 @@ export default function App() {
                 <Route path="/careers" element={<PageGuard><Careers /></PageGuard>} />
                 <Route path="/products" element={<PageGuard><Products /></PageGuard>} />
                 <Route path="/resources" element={<PageGuard><Resources /></PageGuard>} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
                 <Route path="/login" element={<Login />} />
               </Route>
 
@@ -170,6 +178,7 @@ export default function App() {
                   <Route path="/portal/quote" element={<RequestQuote />} />
                   <Route path="/portal/quotes" element={<MyQuotes />} />
                   <Route path="/portal/jobs" element={<MyJobs />} />
+                  <Route path="/portal/orders" element={<MyOrders />} />
                   <Route path="/portal/invoices" element={<MyInvoices />} />
                   <Route path="/portal/account" element={<MyAccount />} />
                 </Route>
@@ -199,6 +208,7 @@ export default function App() {
             </Routes>
             </ErrorBoundary>
           </ToastProvider>
+          </CartProvider>
           </SiteSettingsProvider>
         </AuthProvider>
       </ThemeProvider>

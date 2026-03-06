@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import './Header.css';
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const { itemCount } = useCart();
   const { isPageVisible } = useSiteSettings();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -71,6 +73,14 @@ export default function Header() {
             )}
           </div>
         </nav>
+
+        <Link to="/cart" className="header-cart" aria-label="Shopping cart">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+          </svg>
+          {itemCount > 0 && <span className="header-cart-badge">{itemCount}</span>}
+        </Link>
 
         <div className="header-actions">
           {user ? (
