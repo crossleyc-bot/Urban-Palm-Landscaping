@@ -130,6 +130,37 @@ app.post('/api/auth/register', (req, res) => {
   res.status(201).json({ id: result.lastInsertRowid, email, name, role: 'customer' });
 });
 
+// ─── Account ────────────────────────────────────────────────────────────────
+
+app.put('/api/account/password', (req, res) => {
+  const { user_id, current_password, new_password } = req.body;
+  if (!user_id || !current_password || !new_password) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+  if (new_password.length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  }
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(user_id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (!bcrypt.compareSync(current_password, user.password_hash)) {
+    return res.status(401).json({ error: 'Current password is incorrect' });
+  }
+  const hash = bcrypt.hashSync(new_password, 10);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, user_id);
+  res.json({ success: true });
+});
+
+app.put('/api/account/profile', (req, res) => {
+  const { user_id, name, email } = req.body;
+  if (!user_id || !name || !email) {
+    return res.status(400).json({ error: 'Name and email are required' });
+  }
+  const existing = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, user_id);
+  if (existing) return res.status(400).json({ error: 'Email already in use' });
+  db.prepare('UPDATE users SET name = ?, email = ? WHERE id = ?').run(name, email, user_id);
+  res.json({ id: user_id, name, email });
+});
+
 // ─── Site Settings ──────────────────────────────────────────────────────────
 
 app.get('/api/settings', (req, res) => {

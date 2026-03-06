@@ -8,6 +8,8 @@ export default function AdminDashboard() {
   const [jobs, setJobs] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [quotes, setQuotes] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,12 +17,16 @@ export default function AdminDashboard() {
       apiGet('/jobs').then(setJobs),
       apiGet('/employees').then(setEmployees),
       apiGet('/invoices').then(setInvoices),
+      apiGet('/quotes').then(setQuotes),
+      apiGet('/contact-messages').then(setMessages),
     ]).finally(() => setLoading(false));
   }, []);
 
   const activeJobs = jobs.filter(j => j.status !== 'Completed').length;
   const activeEmployees = employees.filter(e => e.status === 'Active').length;
   const pendingInvoices = invoices.filter(i => i.status === 'Pending').length;
+  const pendingQuotes = quotes.filter(q => q.status === 'Pending').length;
+  const newMessages = messages.filter(m => m.status === 'New').length;
   const revenue = invoices
     .filter(i => i.status === 'Paid')
     .reduce((sum, i) => sum + i.amount, 0);
@@ -54,6 +60,14 @@ export default function AdminDashboard() {
             <div className="stat-label">Revenue (Paid)</div>
             <div className="stat-value">${revenue.toLocaleString()}</div>
             <div className="stat-sub">This month</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">Pending Quotes</div>
+            <div className="stat-value">{pendingQuotes}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-label">New Messages</div>
+            <div className="stat-value">{newMessages}</div>
           </div>
         </div>
       )}

@@ -4,10 +4,12 @@ import { useToast } from '../../components/ui/Toast';
 import Spinner from '../../components/ui/Spinner';
 import useFormValidation from '../../hooks/useFormValidation';
 import SEO from '../../components/SEO';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 import './Contact.css';
 
 export default function Contact() {
   const { addToast } = useToast();
+  const { settings } = useSiteSettings();
   const [services, setServices] = useState([]);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -120,15 +122,15 @@ export default function Contact() {
                 <h3>Get In Touch</h3>
                 <div className="contact-detail">
                   <strong>Address</strong>
-                  <p>25546 High Hampton Circle<br />Sorrento, FL 32776</p>
+                  <p>{settings.contact_address_1 || '25546 High Hampton Circle'}<br />{settings.contact_address_2 || 'Sorrento, FL 32776'}</p>
                 </div>
                 <div className="contact-detail">
                   <strong>Phone</strong>
-                  <p>(321) 231-2094</p>
+                  <p>{settings.contact_phone || '(321) 231-2094'}</p>
                 </div>
                 <div className="contact-detail">
                   <strong>Email</strong>
-                  <p>info@urbanpalmlandscaping.com</p>
+                  <p>{settings.contact_email || 'info@urbanpalmlandscaping.com'}</p>
                 </div>
                 <div className="contact-detail">
                   <strong>Hours</strong>

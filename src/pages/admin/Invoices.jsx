@@ -30,12 +30,24 @@ export default function Invoices() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     apiGet('/invoices').then(setInvoices).finally(() => setLoading(false));
   }, []);
 
-  const filtered = filter === 'All' ? invoices : invoices.filter(i => i.status === filter);
+  const searchFiltered = invoices.filter(i => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return (
+      (i.client || '').toLowerCase().includes(s) ||
+      (i.id || '').toString().toLowerCase().includes(s) ||
+      (i.status || '').toLowerCase().includes(s) ||
+      String(i.amount || '').includes(s)
+    );
+  });
+
+  const filtered = filter === 'All' ? searchFiltered : searchFiltered.filter(i => i.status === filter);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -131,6 +143,15 @@ export default function Invoices() {
       </div>
 
       <div className="card">
+        <div style={{ marginBottom: '1rem' }}>
+          <input
+            className="table-input"
+            placeholder="Search invoices by client, amount, or status..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ maxWidth: 400 }}
+          />
+        </div>
         <div className="table-container">
           <table>
             <thead>

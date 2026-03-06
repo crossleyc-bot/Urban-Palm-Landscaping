@@ -9,6 +9,10 @@ export default function Footer() {
   const address2 = settings.contact_address_2 || 'Sorrento, FL 32776';
   const phone = settings.contact_phone || '(321) 231-2094';
   const email = settings.contact_email || 'info@urbanpalmlandscaping.com';
+  const facebook = settings.social_facebook || '';
+  const instagram = settings.social_instagram || '';
+  const youtube = settings.social_youtube || '';
+  const hasSocial = facebook || instagram || youtube;
 
   return (
     <footer className="footer">
@@ -49,6 +53,14 @@ export default function Footer() {
             <p><a href={`mailto:${email}`}>{email}</a></p>
           </div>
         </div>
+
+        {hasSocial && (
+          <div className="footer-social">
+            {facebook && <a href={facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook">Facebook</a>}
+            {instagram && <a href={instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram">Instagram</a>}
+            {youtube && <a href={youtube} target="_blank" rel="noopener noreferrer" aria-label="YouTube">YouTube</a>}
+          </div>
+        )}
 
         <div className="footer-bottom">
           <p>&copy; {new Date().getFullYear()} Urban Palm Landscaping. All rights reserved.</p>

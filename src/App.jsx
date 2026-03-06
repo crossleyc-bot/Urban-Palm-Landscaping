@@ -9,6 +9,8 @@ import Footer from './components/layout/Footer';
 import Sidebar from './components/layout/Sidebar';
 import Breadcrumbs from './components/ui/Breadcrumbs';
 import ErrorBoundary from './components/ErrorBoundary';
+import ScrollToTop from './components/ScrollToTop';
+import BackToTop from './components/BackToTop';
 import NotFound from './pages/NotFound';
 import Spinner from './components/ui/Spinner';
 
@@ -29,6 +31,7 @@ const RequestQuote = lazy(() => import('./pages/customer/RequestQuote'));
 const MyQuotes = lazy(() => import('./pages/customer/MyQuotes'));
 const MyJobs = lazy(() => import('./pages/customer/MyJobs'));
 const MyInvoices = lazy(() => import('./pages/customer/MyInvoices'));
+const MyAccount = lazy(() => import('./pages/customer/MyAccount'));
 
 // Lazy-loaded admin pages
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -55,6 +58,7 @@ const customerNav = [
   { path: '/portal/quotes', label: 'My Quotes', icon: '\uD83D\uDCDD' },
   { path: '/portal/jobs', label: 'My Jobs', icon: '\uD83D\uDCBC' },
   { path: '/portal/invoices', label: 'My Invoices', icon: '\uD83D\uDCB0' },
+  { path: '/portal/account', label: 'My Account', icon: '\uD83D\uDC64' },
 ];
 
 const adminNav = [
@@ -145,6 +149,8 @@ export default function App() {
           <ToastProvider>
             <ErrorBoundary>
             <Header />
+            <ScrollToTop />
+            <BackToTop />
             <Routes>
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<Home />} />
@@ -165,6 +171,7 @@ export default function App() {
                   <Route path="/portal/quotes" element={<MyQuotes />} />
                   <Route path="/portal/jobs" element={<MyJobs />} />
                   <Route path="/portal/invoices" element={<MyInvoices />} />
+                  <Route path="/portal/account" element={<MyAccount />} />
                 </Route>
               </Route>
 

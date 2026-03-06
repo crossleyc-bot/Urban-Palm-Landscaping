@@ -44,6 +44,10 @@ export default function SiteSettings() {
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactSaving, setContactSaving] = useState(false);
+  const [socialFacebook, setSocialFacebook] = useState('');
+  const [socialInstagram, setSocialInstagram] = useState('');
+  const [socialYoutube, setSocialYoutube] = useState('');
+  const [socialSaving, setSocialSaving] = useState(false);
 
   // Stripe settings
   const [stripePublishableKey, setStripePublishableKey] = useState('');
@@ -71,6 +75,9 @@ export default function SiteSettings() {
       setContactAddress2(s.contact_address_2 || 'Sorrento, FL 32776');
       setContactPhone(s.contact_phone || '(321) 231-2094');
       setContactEmail(s.contact_email || 'info@urbanpalmlandscaping.com');
+      setSocialFacebook(s.social_facebook || '');
+      setSocialInstagram(s.social_instagram || '');
+      setSocialYoutube(s.social_youtube || '');
       setStripePublishableKey(s.stripe_publishable_key || '');
       setStripeSecretKey(s.stripe_secret_key ? '••••••••' : '');
       setStripeKeysLoaded(!!s.stripe_secret_key);
@@ -475,6 +482,50 @@ export default function SiteSettings() {
           }}
         >
           {contactSaving ? 'Saving...' : 'Save Contact Info'}
+        </button>
+      </div>
+
+      {/* ── Social Media Links ── */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>Social Media Links</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem', lineHeight: 1.6 }}>
+          Add your social media profile URLs. Leave empty to hide from the footer.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: 600 }}>
+          <div style={fieldGap}>
+            <label style={labelStyle}>Facebook URL</label>
+            <input className="table-input" value={socialFacebook} onChange={e => setSocialFacebook(e.target.value)} placeholder="https://facebook.com/yourpage" />
+          </div>
+          <div style={fieldGap}>
+            <label style={labelStyle}>Instagram URL</label>
+            <input className="table-input" value={socialInstagram} onChange={e => setSocialInstagram(e.target.value)} placeholder="https://instagram.com/yourpage" />
+          </div>
+          <div style={fieldGap}>
+            <label style={labelStyle}>YouTube URL</label>
+            <input className="table-input" value={socialYoutube} onChange={e => setSocialYoutube(e.target.value)} placeholder="https://youtube.com/@yourchannel" />
+          </div>
+        </div>
+        <button
+          className="btn btn-primary"
+          style={{ marginTop: '1rem' }}
+          disabled={socialSaving}
+          onClick={async () => {
+            setSocialSaving(true);
+            try {
+              await apiPut('/settings', {
+                social_facebook: socialFacebook.trim(),
+                social_instagram: socialInstagram.trim(),
+                social_youtube: socialYoutube.trim(),
+              });
+              addToast('Social links saved', 'success');
+            } catch {
+              addToast('Failed to save social links', 'error');
+            } finally {
+              setSocialSaving(false);
+            }
+          }}
+        >
+          {socialSaving ? 'Saving...' : 'Save Social Links'}
         </button>
       </div>
 
