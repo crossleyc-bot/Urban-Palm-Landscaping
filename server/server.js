@@ -267,6 +267,19 @@ app.put('/api/hero-slides/:id', carouselUpload, upload.single('image'), (req, re
   res.json(updated);
 });
 
+app.patch('/api/hero-slides/:id', (req, res) => {
+  const { id } = req.params;
+  const existing = db.prepare('SELECT * FROM hero_slides WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'Slide not found' });
+
+  const { active } = req.body;
+  if (active === undefined) return res.status(400).json({ error: 'Nothing to update' });
+
+  db.prepare('UPDATE hero_slides SET active = ? WHERE id = ?').run(Number(active), id);
+  const updated = db.prepare('SELECT * FROM hero_slides WHERE id = ?').get(id);
+  res.json(updated);
+});
+
 app.delete('/api/hero-slides/:id', (req, res) => {
   const existing = db.prepare('SELECT * FROM hero_slides WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Slide not found' });

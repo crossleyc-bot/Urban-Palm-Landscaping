@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { apiGet, apiPut, apiPostForm, apiPutForm, apiDelete } from '../../api';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { apiGet, apiPut, apiPatch, apiPostForm, apiPutForm, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import { useSiteSettings, PAGE_KEYS } from '../../context/SiteSettingsContext';
 import Spinner from '../../components/ui/Spinner';
@@ -63,6 +63,12 @@ export default function SiteSettings() {
   const [slideSaving, setSlideSaving] = useState(false);
   const slideFileRef = useRef();
 
+  // Memoize object URL for slide image preview and revoke on cleanup
+  const slideImagePreview = useMemo(() => slideImage ? URL.createObjectURL(slideImage) : null, [slideImage]);
+  useEffect(() => {
+    return () => { if (slideImagePreview) URL.revokeObjectURL(slideImagePreview); };
+  }, [slideImagePreview]);
+
   useEffect(() => {
     Promise.all([
       apiGet('/settings'),
@@ -98,8 +104,8 @@ export default function SiteSettings() {
         welcome_video_subtitle: videoSubtitle.trim(),
       });
       addToast('Settings saved', 'success');
-    } catch {
-      addToast('Failed to save settings', 'error');
+    } catch (err) {
+      addToast(err.message || 'Failed to save settings', 'error');
     } finally {
       setSaving(false);
     }
@@ -128,8 +134,8 @@ export default function SiteSettings() {
       await apiDelete('/settings/video');
       setVideoUrl('');
       addToast('Video removed', 'success');
-    } catch {
-      addToast('Failed to remove video', 'error');
+    } catch (err) {
+      addToast(err.message || 'Failed to remove video', 'error');
     }
   };
 
@@ -191,21 +197,11 @@ export default function SiteSettings() {
   const toggleSlide = async (slide) => {
     const newActive = slide.active ? 0 : 1;
     try {
-      const fd = new FormData();
-      fd.append('badge', slide.badge || '');
-      fd.append('headline', slide.headline || '');
-      fd.append('subtext', slide.subtext || '');
-      fd.append('cta_label', slide.cta_label || '');
-      fd.append('cta_link', slide.cta_link || '');
-      fd.append('cta2_label', slide.cta2_label || '');
-      fd.append('cta2_link', slide.cta2_link || '');
-      fd.append('sort_order', slide.sort_order ?? 0);
-      fd.append('active', newActive);
-      const updated = await apiPutForm(`/hero-slides/${slide.id}`, fd);
+      const updated = await apiPatch(`/hero-slides/${slide.id}`, { active: newActive });
       setSlides(prev => prev.map(s => s.id === updated.id ? updated : s));
       addToast(newActive ? 'Slide enabled' : 'Slide disabled', 'success');
-    } catch {
-      addToast('Failed to update slide', 'error');
+    } catch (err) {
+      addToast(err.message || 'Failed to update slide', 'error');
     }
   };
 
@@ -215,8 +211,8 @@ export default function SiteSettings() {
       await apiDelete(`/hero-slides/${slide.id}`);
       setSlides(prev => prev.filter(s => s.id !== slide.id));
       addToast('Slide deleted', 'success');
-    } catch {
-      addToast('Failed to delete slide', 'error');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete slide', 'error');
     }
   };
 
@@ -311,7 +307,7 @@ export default function SiteSettings() {
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
                   <button
-                    className={`btn btn-sm ${slide.active ? 'btn-outline' : 'btn-secondary'}`}
+                    className={`btn btn-sm ${slide.active ? 'btn-outline' : 'btn-primary'}`}
                     onClick={() => toggleSlide(slide)}
                     title={slide.active ? 'Disable' : 'Enable'}
                     style={{ minWidth: 32 }}
@@ -474,8 +470,8 @@ export default function SiteSettings() {
                 contact_email: contactEmail.trim(),
               });
               addToast('Contact info saved', 'success');
-            } catch {
-              addToast('Failed to save contact info', 'error');
+            } catch (err) {
+              addToast(err.message || 'Failed to save contact info', 'error');
             } finally {
               setContactSaving(false);
             }
@@ -518,8 +514,8 @@ export default function SiteSettings() {
                 social_youtube: socialYoutube.trim(),
               });
               addToast('Social links saved', 'success');
-            } catch {
-              addToast('Failed to save social links', 'error');
+            } catch (err) {
+              addToast(err.message || 'Failed to save social links', 'error');
             } finally {
               setSocialSaving(false);
             }
@@ -583,8 +579,8 @@ export default function SiteSettings() {
                 setStripeKeysLoaded(!!stripePublishableKey.trim());
                 if (stripeSecretKey && stripeSecretKey !== '••••••••') setStripeSecretKey('••••••••');
                 addToast('Stripe keys saved', 'success');
-              } catch {
-                addToast('Failed to save Stripe keys', 'error');
+              } catch (err) {
+                addToast(err.message || 'Failed to save Stripe keys', 'error');
               } finally {
                 setStripeKeysSaving(false);
               }
@@ -644,8 +640,8 @@ export default function SiteSettings() {
               await apiPut('/settings', pageVisibility);
               refreshSiteSettings();
               addToast('Page visibility saved', 'success');
-            } catch {
-              addToast('Failed to save page visibility', 'error');
+            } catch (err) {
+              addToast(err.message || 'Failed to save page visibility', 'error');
             } finally {
               setPageVisSaving(false);
             }
@@ -671,7 +667,7 @@ export default function SiteSettings() {
                   {(slideImage || (slideModal !== 'new' && slideModal.image)) && (
                     <div style={{ width: 160, height: 90, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--color-border)', flexShrink: 0, background: '#0a1f12' }}>
                       <img
-                        src={slideImage ? URL.createObjectURL(slideImage) : slideModal.image}
+                        src={slideImagePreview || slideModal.image}
                         alt=""
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                       />
