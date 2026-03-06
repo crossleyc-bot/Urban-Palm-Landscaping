@@ -204,8 +204,8 @@ export default function SiteSettings() {
       const updated = await apiPutForm(`/hero-slides/${slide.id}`, fd);
       setSlides(prev => prev.map(s => s.id === updated.id ? updated : s));
       addToast(newActive ? 'Slide enabled' : 'Slide disabled', 'success');
-    } catch {
-      addToast('Failed to update slide', 'error');
+    } catch (err) {
+      addToast(err.message || 'Failed to update slide', 'error');
     }
   };
 
@@ -311,7 +311,7 @@ export default function SiteSettings() {
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
                   <button
-                    className={`btn btn-sm ${slide.active ? 'btn-outline' : 'btn-secondary'}`}
+                    className={`btn btn-sm ${slide.active ? 'btn-outline' : 'btn-primary'}`}
                     onClick={() => toggleSlide(slide)}
                     title={slide.active ? 'Disable' : 'Enable'}
                     style={{ minWidth: 32 }}
