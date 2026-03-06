@@ -143,6 +143,7 @@ export default function Products() {
                             <div className="product-placeholder">{placeholderIcon(rootName || leaf.parent_name)}</div>
                           )}
                           {rootName && <span className="product-category-badge">{rootName}</span>}
+                          {leaf.has_sale ? <span className="product-sale-badge">Sale</span> : null}
                         </div>
                         <div className="product-body">
                           <h3>{leaf.name}</h3>
@@ -154,7 +155,16 @@ export default function Products() {
                           </div>
                           {leaf.max_price != null && (
                             <div className="product-price">
-                              ${Number(leaf.max_price).toFixed(2)}
+                              {leaf.has_sale && leaf.min_sale_price != null ? (
+                                <>
+                                  <span style={{ textDecoration: 'line-through', color: 'var(--color-text-muted)', fontSize: '0.85rem', marginRight: '0.4rem' }}>
+                                    ${Number(leaf.max_price).toFixed(2)}
+                                  </span>
+                                  <span style={{ color: '#dc2626' }}>${Number(leaf.min_sale_price).toFixed(2)}</span>
+                                </>
+                              ) : (
+                                `$${Number(leaf.max_price).toFixed(2)}`
+                              )}
                             </div>
                           )}
                         </div>

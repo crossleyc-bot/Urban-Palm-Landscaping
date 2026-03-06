@@ -188,6 +188,18 @@ db.exec(`
     active INTEGER NOT NULL DEFAULT 1
   );
 
+  CREATE TABLE IF NOT EXISTS resources (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'article',
+    url TEXT,
+    description TEXT,
+    thumbnail TEXT,
+    published INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE TABLE IF NOT EXISTS taxonomy (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -199,8 +211,25 @@ db.exec(`
   );
 `);
 
-// Migration: add before/after image columns to services if missing
+// Migration: add sale columns to services
 const svcColumns = db.prepare("PRAGMA table_info(services)").all().map(c => c.name);
+if (!svcColumns.includes('on_sale')) {
+  db.exec("ALTER TABLE services ADD COLUMN on_sale INTEGER NOT NULL DEFAULT 0");
+}
+if (!svcColumns.includes('sale_label')) {
+  db.exec("ALTER TABLE services ADD COLUMN sale_label TEXT");
+}
+
+// Migration: add sale columns to supplier_inventory
+const invSaleColumns = db.prepare("PRAGMA table_info(supplier_inventory)").all().map(c => c.name);
+if (!invSaleColumns.includes('on_sale')) {
+  db.exec("ALTER TABLE supplier_inventory ADD COLUMN on_sale INTEGER NOT NULL DEFAULT 0");
+}
+if (!invSaleColumns.includes('sale_price')) {
+  db.exec("ALTER TABLE supplier_inventory ADD COLUMN sale_price REAL");
+}
+
+// Migration: add before/after image columns to services if missing
 if (!svcColumns.includes('image_before')) {
   db.exec("ALTER TABLE services ADD COLUMN image_before TEXT");
 }

@@ -131,6 +131,20 @@
   font-size: 0.9rem;
 }
 
+.sale-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 /* Process section */
 .process-section {
   background: var(--color-bg-secondary);
