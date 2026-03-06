@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 import './Header.css';
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const { isPageVisible } = useSiteSettings();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -35,13 +37,19 @@ export default function Header() {
 
         <nav className={`main-nav ${menuOpen ? 'main-nav-open' : ''}`}>
           <Link to="/" className={isActive('/')} onClick={() => setMenuOpen(false)}>Home</Link>
-          <Link to="/services" className={isActive('/services')} onClick={() => setMenuOpen(false)}>Services</Link>
-          <Link to="/products" className={isActive('/products')} onClick={() => setMenuOpen(false)}>Products</Link>
-          <Link to="/portfolio" className={isActive('/portfolio')} onClick={() => setMenuOpen(false)}>Portfolio</Link>
-          <Link to="/resources" className={isActive('/resources')} onClick={() => setMenuOpen(false)}>Resources</Link>
-          <Link to="/about" className={isActive('/about')} onClick={() => setMenuOpen(false)}>About</Link>
-          <Link to="/careers" className={isActive('/careers')} onClick={() => setMenuOpen(false)}>Careers</Link>
-          <Link to="/contact" className={isActive('/contact')} onClick={() => setMenuOpen(false)}>Contact</Link>
+          {[
+            { path: '/services', label: 'Services' },
+            { path: '/products', label: 'Products' },
+            { path: '/portfolio', label: 'Portfolio' },
+            { path: '/resources', label: 'Resources' },
+            { path: '/about', label: 'About' },
+            { path: '/careers', label: 'Careers' },
+            { path: '/contact', label: 'Contact' },
+          ].filter(link => isPageVisible(link.path)).map(link => (
+            <Link key={link.path} to={link.path} className={isActive(link.path)} onClick={() => setMenuOpen(false)}>
+              {link.label}
+            </Link>
+          ))}
 
           <div className="nav-actions-mobile">
             {user ? (
