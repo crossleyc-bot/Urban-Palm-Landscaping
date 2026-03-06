@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useAuth } from '../../context/AuthContext';
 import { apiGet, apiPost } from '../../api';
 import EmptyState from '../../components/ui/EmptyState';
@@ -18,50 +20,64 @@ const statusBadge = (status) => {
 
 const PAGE_SIZE = 10;
 
-function detectCardBrand(number) {
-  const n = number.replace(/\s/g, '');
-  if (/^4/.test(n)) return 'Visa';
-  if (/^5[1-5]/.test(n) || /^2[2-7]/.test(n)) return 'Mastercard';
-  if (/^3[47]/.test(n)) return 'Amex';
-  if (/^6(?:011|5)/.test(n)) return 'Discover';
-  return 'Card';
+// Cache the stripe promise so it's only loaded once
+let stripePromiseCache = null;
+function getStripePromise() {
+  if (!stripePromiseCache) {
+    stripePromiseCache = apiGet('/stripe/public-key').then(({ publishableKey }) => {
+      if (!publishableKey) return null;
+      return loadStripe(publishableKey);
+    });
+  }
+  return stripePromiseCache;
 }
 
-function formatCardNumber(value) {
-  const digits = value.replace(/\D/g, '').slice(0, 16);
-  return digits.replace(/(.{4})/g, '$1 ').trim();
-}
+const CARD_ELEMENT_OPTIONS = {
+  style: {
+    base: {
+      fontSize: '16px',
+      color: '#1a1a2e',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      '::placeholder': { color: '#94a3b8' },
+    },
+    invalid: { color: '#dc2626' },
+  },
+};
 
-function formatExpiry(value) {
-  const digits = value.replace(/\D/g, '').slice(0, 4);
-  if (digits.length > 2) return digits.slice(0, 2) + '/' + digits.slice(2);
-  return digits;
-}
-
-function PaymentModal({ invoice, onClose, onSuccess }) {
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiry, setExpiry] = useState('');
-  const [cvv, setCvv] = useState('');
-  const [cardName, setCardName] = useState('');
+function StripePaymentForm({ invoice, onClose, onSuccess }) {
+  const stripe = useStripe();
+  const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
-
-  const digits = cardNumber.replace(/\s/g, '');
-  const brand = detectCardBrand(digits);
-  const expiryParts = expiry.split('/');
-  const isValid = digits.length >= 15 && expiryParts.length === 2 && expiryParts[0].length === 2 && expiryParts[1].length === 2 && cvv.length >= 3 && cardName.trim().length > 0;
+  const [cardComplete, setCardComplete] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isValid) return;
+    if (!stripe || !elements) return;
     setSubmitting(true);
     setError('');
+
     try {
-      const result = await apiPost(`/invoices/${invoice.id}/pay`, {
-        card_last4: digits.slice(-4),
-        card_brand: brand,
+      // 1. Create PaymentIntent on the server
+      const { clientSecret } = await apiPost(`/invoices/${invoice.id}/create-payment-intent`, {});
+
+      // 2. Confirm the payment with Stripe
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: { card: elements.getElement(CardElement) },
       });
+
+      if (stripeError) {
+        setError(stripeError.message);
+        setSubmitting(false);
+        return;
+      }
+
+      // 3. Tell our server the payment succeeded
+      const result = await apiPost(`/invoices/${invoice.id}/confirm-payment`, {
+        payment_intent_id: paymentIntent.id,
+      });
+
       setSuccess(result);
       onSuccess(invoice.id, result);
     } catch (err) {
@@ -84,7 +100,7 @@ function PaymentModal({ invoice, onClose, onSuccess }) {
             <div style={{ background: 'var(--color-bg-secondary)', borderRadius: 8, padding: '1rem', marginBottom: '1.5rem', textAlign: 'left', fontSize: '0.9rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--color-text-muted)' }}>Transaction ID</span>
-                <span style={{ fontWeight: 500, fontFamily: 'monospace' }}>{success.transaction_id}</span>
+                <span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '0.8rem' }}>{success.transaction_id}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--color-text-muted)' }}>Payment Method</span>
@@ -123,79 +139,86 @@ function PaymentModal({ invoice, onClose, onSuccess }) {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Name on Card</label>
-              <input
-                className="form-input"
-                type="text"
-                placeholder="John Smith"
-                value={cardName}
-                onChange={e => setCardName(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Card Number</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  className="form-input"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="4242 4242 4242 4242"
-                  value={cardNumber}
-                  onChange={e => setCardNumber(formatCardNumber(e.target.value))}
-                  maxLength={19}
-                  required
-                />
-                {digits.length >= 4 && (
-                  <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-                    {brand}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="form-group">
-                <label className="form-label">Expiry</label>
-                <input
-                  className="form-input"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="MM/YY"
-                  value={expiry}
-                  onChange={e => setExpiry(formatExpiry(e.target.value))}
-                  maxLength={5}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">CVV</label>
-                <input
-                  className="form-input"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="123"
-                  value={cvv}
-                  onChange={e => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  maxLength={4}
-                  required
+              <label className="form-label">Card Details</label>
+              <div style={{
+                border: '1px solid var(--color-border)',
+                borderRadius: 8,
+                padding: '0.75rem 1rem',
+                background: 'var(--color-surface)',
+              }}>
+                <CardElement
+                  options={CARD_ELEMENT_OPTIONS}
+                  onChange={(e) => setCardComplete(e.complete)}
                 />
               </div>
             </div>
 
-            {error && <p style={{ color: '#dc2626', fontSize: '0.9rem', marginTop: '0.5rem' }}>{error}</p>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Payments secured by Stripe. Your card details never touch our servers.
+            </div>
+
+            {error && <p style={{ color: '#dc2626', fontSize: '0.9rem', marginTop: '0.75rem' }}>{error}</p>}
           </div>
 
           <div className="modal-footer">
             <button type="button" className="btn btn-outline" onClick={onClose} disabled={submitting}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={!isValid || submitting}>
+            <button type="submit" className="btn btn-primary" disabled={!stripe || !cardComplete || submitting}>
               {submitting ? 'Processing...' : `Pay $${invoice.amount.toLocaleString()}`}
             </button>
           </div>
         </form>
       </div>
     </div>
+  );
+}
+
+function PaymentModal({ invoice, onClose, onSuccess }) {
+  const [stripePromise, setStripePromise] = useState(null);
+  const [stripeError, setStripeError] = useState(false);
+
+  useEffect(() => {
+    getStripePromise().then(sp => {
+      if (!sp) setStripeError(true);
+      setStripePromise(sp);
+    });
+  }, []);
+
+  if (stripeError) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+          <div className="modal-header">
+            <h2>Payment Unavailable</h2>
+            <button className="modal-close" onClick={onClose}>&times;</button>
+          </div>
+          <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+            <p style={{ color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+              Online payments are not configured yet. Please contact the business to arrange payment.
+            </p>
+            <button className="btn btn-outline" onClick={onClose}>Close</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stripePromise) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+            Loading payment form...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Elements stripe={stripePromise}>
+      <StripePaymentForm invoice={invoice} onClose={onClose} onSuccess={onSuccess} />
+    </Elements>
   );
 }
 
