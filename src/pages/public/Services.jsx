@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
+import SEO from '../../components/SEO';
 import './Services.css';
 
 export default function Services() {
@@ -12,6 +13,7 @@ export default function Services() {
 
   return (
     <div className="services-page">
+      <SEO title="Landscaping Services in Central Florida" description="Explore our comprehensive landscaping services including design, hardscaping, irrigation, and material delivery. Serving Orlando, Winter Park, and surrounding areas." path="/services" />
       <section className="page-hero">
         <div className="container">
           <span className="hero-badge">Professional Landscaping</span>

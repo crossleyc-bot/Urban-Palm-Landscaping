@@ -3,6 +3,7 @@ import { apiGet, apiPost } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import Spinner from '../../components/ui/Spinner';
 import useFormValidation from '../../hooks/useFormValidation';
+import SEO from '../../components/SEO';
 import './Contact.css';
 
 export default function Contact() {
@@ -51,6 +52,7 @@ export default function Contact() {
 
   return (
     <div className="contact-page">
+      <SEO title="Contact Us - Free Consultation & Estimates" description="Get in touch with Urban Palm for a free consultation and estimate. Call (321) 231-2094 or fill out our contact form." path="/contact" />
       <section className="page-hero">
         <div className="container">
           <span className="hero-badge">Free Estimates &bull; No Obligation</span>

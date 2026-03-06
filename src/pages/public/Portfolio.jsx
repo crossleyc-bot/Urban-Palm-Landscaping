@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
+import SEO from '../../components/SEO';
 import './Portfolio.css';
 
 export default function Portfolio() {
@@ -40,6 +41,7 @@ export default function Portfolio() {
 
   return (
     <div className="portfolio-page">
+      <SEO title="Landscaping Portfolio & Before-After Gallery" description="See real transformation results from our landscaping projects across Central Florida. Browse before-and-after photos of landscape designs." path="/portfolio" />
       <section className="page-hero">
         <div className="container">
           <span className="hero-badge">Portfolio</span>

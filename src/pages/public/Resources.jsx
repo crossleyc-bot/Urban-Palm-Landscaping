@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
+import SEO from '../../components/SEO';
 import './Resources.css';
 
 function getEmbedUrl(url) {
@@ -36,6 +37,7 @@ export default function Resources() {
 
   return (
     <div className="resources-page">
+      <SEO title="Landscaping Tips, Guides & Videos" description="Learn landscaping best practices through our collection of articles, video guides, and expert tips for maintaining your outdoor spaces." path="/resources" />
       <section className="page-hero">
         <div className="container">
           <span className="hero-badge">Learn &amp; Grow</span>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
 import HeroCarousel from '../../components/HeroCarousel';
+import SEO from '../../components/SEO';
 import './Home.css';
 
 function getEmbedUrl(url) {
@@ -39,6 +40,7 @@ export default function Home() {
 
   return (
     <div className="home">
+      <SEO title="Full-Service Landscaping in Central Florida" description="Professional landscape design, installation, and delivery services for residential and commercial properties in Orlando, Winter Park, and Central Florida." path="/" />
       {/* Hero Carousel */}
       <HeroCarousel />
 

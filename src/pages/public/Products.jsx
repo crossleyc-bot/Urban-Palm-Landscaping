@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
+import SEO from '../../components/SEO';
 import './Products.css';
 
 const categoryIcons = {
@@ -66,6 +67,7 @@ export default function Products() {
 
   return (
     <div className="products-page">
+      <SEO title="Quality Landscaping Materials & Products" description="Browse our selection of premium landscaping materials from trusted local suppliers. Plants, hardscapes, irrigation, lighting, and more." path="/products" />
       <section className="page-hero">
         <div className="container">
           <span className="hero-badge">Quality Materials &bull; Central Florida</span>

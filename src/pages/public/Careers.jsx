@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
+import SEO from '../../components/SEO';
 import './Careers.css';
 
 export default function Careers() {
@@ -14,6 +15,7 @@ export default function Careers() {
 
   return (
     <div className="careers-page">
+      <SEO title="Careers - Join Our Growing Team" description="Join Urban Palm's team! We're hiring landscapers and team members in Central Florida. Competitive pay, growth opportunities, and great team culture." path="/careers" />
       <section className="page-hero">
         <div className="container">
           <span className="hero-badge">Join Our Team</span>
