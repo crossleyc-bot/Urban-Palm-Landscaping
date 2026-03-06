@@ -38,6 +38,24 @@
   background: #f0fdf4;
 }
 
+.topbar-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.topbar-phone {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.topbar-phone:hover {
+  text-decoration: underline;
+}
+
 .header-container {
   max-width: 1200px;
   margin: 0 auto;
