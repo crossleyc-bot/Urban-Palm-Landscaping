@@ -7,7 +7,7 @@ import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
 
 const PAGE_SIZE = 15;
-const emptyForm = { supplier_id: '', item_name: '', sku: '', category: '', category_id: '', unit: '', unit_cost: '', retail_cost: '', qty_available: '', reorder_point: '', notes: '', available: '0' };
+const emptyForm = { supplier_id: '', item_name: '', sku: '', category: '', category_id: '', unit: '', unit_cost: '', retail_cost: '', qty_available: '', reorder_point: '', notes: '', available: '0', on_sale: '0', sale_price: '' };
 
 export default function SupplierInventory() {
   const { addToast } = useToast();
@@ -70,6 +70,7 @@ export default function SupplierInventory() {
       unit: item.unit || '', unit_cost: item.unit_cost ?? '',
       retail_cost: item.retail_cost ?? '', qty_available: item.qty_available ?? '', reorder_point: item.reorder_point ?? '', notes: item.notes || '',
       available: String(item.available ?? 0),
+      on_sale: String(item.on_sale ?? 0), sale_price: item.sale_price ?? '',
     });
   };
 
@@ -94,6 +95,8 @@ export default function SupplierInventory() {
     reorder_point: form.reorder_point,
     notes: form.notes,
     available: form.available,
+    on_sale: form.on_sale,
+    sale_price: form.sale_price,
   });
 
   const saveEdit = async (id) => {
@@ -217,6 +220,17 @@ export default function SupplierInventory() {
         </select>
       </td>
       <td>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <select className="table-select" value={form.on_sale} onChange={e => setForm(f => ({ ...f, on_sale: e.target.value }))} style={{ width: 60 }}>
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+          </select>
+          {form.on_sale === '1' && (
+            <input className="table-input" type="number" min="0" step="0.01" value={form.sale_price} onChange={e => setForm(f => ({ ...f, sale_price: e.target.value }))} placeholder="$" style={{ width: 60 }} />
+          )}
+        </div>
+      </td>
+      <td>
         <div style={{ display: 'flex', gap: '0.25rem' }}>
           <button className="btn btn-primary btn-sm" onClick={onSave} disabled={saving || !form.supplier_id || !form.item_name.trim()}>{saveLabel}</button>
           <button className="btn btn-outline btn-sm" onClick={cancel}>Cancel</button>
@@ -298,13 +312,14 @@ export default function SupplierInventory() {
                 <SortableHeader label="Qty" field="qty_available" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th>Reorder</th>
                 <SortableHeader label="Available" field="available" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
+                <th>Sale</th>
                 <th style={{ width: '140px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginated.length === 0 && !adding ? (
                 <tr>
-                  <td colSpan="11">
+                  <td colSpan="12">
                     <EmptyState icon="&#128230;" title="No inventory items" message={suppliers.length === 0 ? 'Add a supplier first, then add inventory items.' : 'Add your first inventory item to get started.'} />
                   </td>
                 </tr>
@@ -331,6 +346,13 @@ export default function SupplierInventory() {
                             <span className={`badge ${item.available ? 'badge-green' : 'badge-yellow'}`}>
                               {item.available ? 'Yes' : 'No'}
                             </span>
+                          </td>
+                          <td>
+                            {item.on_sale ? (
+                              <span className="badge badge-red" style={{ fontSize: '0.7rem' }}>
+                                {item.sale_price != null ? `$${Number(item.sale_price).toFixed(2)}` : 'SALE'}
+                              </span>
+                            ) : '\u2014'}
                           </td>
                           <td>
                             <div style={{ display: 'flex', gap: '0.25rem' }}>

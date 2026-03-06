@@ -15,6 +15,7 @@ import Contact from './pages/public/Contact';
 import Portfolio from './pages/public/Portfolio';
 import Careers from './pages/public/Careers';
 import Products from './pages/public/Products';
+import Resources from './pages/public/Resources';
 import Login from './pages/Login';
 
 import CustomerDashboard from './pages/customer/CustomerDashboard';
@@ -36,6 +37,7 @@ import ManageSuppliers from './pages/admin/ManageSuppliers';
 import SupplierInventory from './pages/admin/SupplierInventory';
 import ManageJobOpenings from './pages/admin/ManageJobOpenings';
 import ManageTaxonomy from './pages/admin/ManageTaxonomy';
+import ManageResources from './pages/admin/ManageResources';
 import SiteSettings from './pages/admin/SiteSettings';
 
 import './App.css';
@@ -60,6 +62,7 @@ const adminNav = [
   { path: '/admin/invoices', label: 'Invoices', icon: '\uD83D\uDCB0' },
   { path: '/admin/quotes', label: 'Quote Requests', icon: '\u2709' },
   { path: '/admin/messages', label: 'Messages', icon: '\uD83D\uDCAC' },
+  { path: '/admin/resources', label: 'Resources', icon: '\uD83D\uDCDA' },
   { path: '/admin/job-openings', label: 'Job Openings', icon: '\uD83D\uDCCB' },
   { path: '/admin/settings', label: 'Site Settings', icon: '\u2699\uFE0F' },
 ];
@@ -131,6 +134,7 @@ export default function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/careers" element={<Careers />} />
                 <Route path="/products" element={<Products />} />
+                <Route path="/resources" element={<Resources />} />
                 <Route path="/login" element={<Login />} />
               </Route>
 
@@ -157,6 +161,7 @@ export default function App() {
                   <Route path="/admin/invoices" element={<Invoices />} />
                   <Route path="/admin/quotes" element={<QuoteRequests />} />
                   <Route path="/admin/messages" element={<ContactMessages />} />
+                  <Route path="/admin/resources" element={<ManageResources />} />
                   <Route path="/admin/job-openings" element={<ManageJobOpenings />} />
                   <Route path="/admin/settings" element={<SiteSettings />} />
                 </Route>

@@ -4,7 +4,7 @@ import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
 
-const emptyForm = { name: '', description: '', price: '', icon: '' };
+const emptyForm = { name: '', description: '', price: '', icon: '', on_sale: '0', sale_label: '' };
 
 const thumbStyle = {
   width: 120, height: 80, objectFit: 'cover', borderRadius: 8,
@@ -113,7 +113,7 @@ export default function ManageServices() {
   const startEdit = (svc) => {
     setAdding(false);
     setEditing(svc.id);
-    setForm({ name: svc.name, description: svc.description || '', price: svc.price || '', icon: svc.icon || '' });
+    setForm({ name: svc.name, description: svc.description || '', price: svc.price || '', icon: svc.icon || '', on_sale: String(svc.on_sale ?? 0), sale_label: svc.sale_label || '' });
     setBeforeFile(null); setAfterFile(null);
     setBeforePreview(svc.image_before || null);
     setAfterPreview(svc.image_after || null);
@@ -135,6 +135,8 @@ export default function ManageServices() {
     fd.append('description', form.description);
     fd.append('price', form.price);
     fd.append('icon', form.icon);
+    fd.append('on_sale', form.on_sale);
+    fd.append('sale_label', form.sale_label);
     if (beforeFile) fd.append('image_before', beforeFile);
     if (afterFile) fd.append('image_after', afterFile);
     return fd;
@@ -226,6 +228,18 @@ export default function ManageServices() {
         <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Description</label>
         <textarea className="table-input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Describe the service..." rows={3} style={{ resize: 'vertical' }} />
       </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.85rem' }}>
+          <input type="checkbox" checked={form.on_sale === '1'} onChange={e => setForm(f => ({ ...f, on_sale: e.target.checked ? '1' : '0' }))} />
+          On Sale
+        </label>
+        {form.on_sale === '1' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Sale Label</label>
+            <input className="table-input" value={form.sale_label} onChange={e => setForm(f => ({ ...f, sale_label: e.target.value }))} placeholder="e.g. 20% Off, Spring Special" style={{ width: 200 }} />
+          </div>
+        )}
+      </div>
       <div style={{ marginTop: '1rem' }}>
         <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.5rem' }}>Primary Before &amp; After</label>
         <div style={{ display: 'flex', gap: '2rem' }}>
@@ -282,7 +296,14 @@ export default function ManageServices() {
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>{svc.name}</div>
                       <div style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', lineHeight: 1.5 }}>{svc.description || 'No description'}</div>
-                      <div style={{ fontWeight: 500, color: 'var(--color-primary)', fontSize: '0.9rem', marginTop: '0.5rem' }}>{svc.price || '\u2014'}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        <span style={{ fontWeight: 500, color: 'var(--color-primary)', fontSize: '0.9rem' }}>{svc.price || '\u2014'}</span>
+                        {svc.on_sale ? (
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, background: '#dc2626', color: '#fff', padding: '0.15rem 0.5rem', borderRadius: 4 }}>
+                            {svc.sale_label || 'SALE'}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>

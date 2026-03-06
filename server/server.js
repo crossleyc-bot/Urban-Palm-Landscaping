@@ -223,23 +223,25 @@ app.get('/api/services', (req, res) => {
 });
 
 app.post('/api/services', serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
-  const { name, description, price, icon } = req.body;
+  const { name, description, price, icon, on_sale, sale_label } = req.body;
   if (!name) return res.status(400).json({ error: 'Service name is required' });
 
   const imageBefore = req.files?.image_before?.[0] ? `/uploads/services/${req.files.image_before[0].filename}` : null;
   const imageAfter = req.files?.image_after?.[0] ? `/uploads/services/${req.files.image_after[0].filename}` : null;
+  const saleFlag = on_sale === '1' || on_sale === 1 ? 1 : 0;
 
   const result = db.prepare(
-    'INSERT INTO services (name, description, price, icon, image_before, image_after) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(name, description || null, price || null, icon || null, imageBefore, imageAfter);
+    'INSERT INTO services (name, description, price, icon, image_before, image_after, on_sale, sale_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(name, description || null, price || null, icon || null, imageBefore, imageAfter, saleFlag, sale_label || null);
 
   res.status(201).json({ id: result.lastInsertRowid, name, description, price, icon, image_before: imageBefore, image_after: imageAfter });
 });
 
 app.put('/api/services/:id', serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
   const { id } = req.params;
-  const { name, description, price, icon } = req.body;
+  const { name, description, price, icon, on_sale, sale_label } = req.body;
   if (!name) return res.status(400).json({ error: 'Service name is required' });
+  const saleFlag = on_sale === '1' || on_sale === 1 ? 1 : 0;
 
   const existing = db.prepare('SELECT image_before, image_after FROM services WHERE id = ?').get(id);
   if (!existing) return res.status(404).json({ error: 'Service not found' });
@@ -261,8 +263,8 @@ app.put('/api/services/:id', serviceUpload, upload.fields([{ name: 'image_before
   }
 
   db.prepare(
-    'UPDATE services SET name = ?, description = ?, price = ?, icon = ?, image_before = ?, image_after = ? WHERE id = ?'
-  ).run(name, description || null, price || null, icon || null, imageBefore, imageAfter, id);
+    'UPDATE services SET name = ?, description = ?, price = ?, icon = ?, image_before = ?, image_after = ?, on_sale = ?, sale_label = ? WHERE id = ?'
+  ).run(name, description || null, price || null, icon || null, imageBefore, imageAfter, saleFlag, sale_label || null, id);
 
   res.json({ success: true, image_before: imageBefore, image_after: imageAfter });
 });
@@ -951,7 +953,7 @@ app.get('/api/inventory', (req, res) => {
 });
 
 app.post('/api/inventory', (req, res) => {
-  const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw } = req.body;
+  const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw, on_sale: onSaleRaw, sale_price: salePriceRaw } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
   // Validate supplier_id references a real supplier
@@ -965,12 +967,14 @@ app.post('/api/inventory', (req, res) => {
   const catId = resolveCategoryId(category_id);
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
   const available = availableRaw === '1' || availableRaw === 1 ? 1 : 0;
+  const onSale = onSaleRaw === '1' || onSaleRaw === 1 ? 1 : 0;
+  const salePrice = salePriceRaw != null && salePriceRaw !== '' ? Number(salePriceRaw) : null;
   try {
     const result = db.prepare(
-      'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available);
+      'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available, on_sale, sale_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available, onSale, salePrice);
 
-    res.status(201).json({ id: result.lastInsertRowid, supplier_id: suppId, item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal, reorder_point: reorder_point ?? 0, notes, available });
+    res.status(201).json({ id: result.lastInsertRowid, supplier_id: suppId, item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal, reorder_point: reorder_point ?? 0, notes, available, on_sale: onSale, sale_price: salePrice });
   } catch (err) {
     console.error('POST /api/inventory error:', { supplier_id: suppId, category_id: catId, error: err.message });
     res.status(500).json({ error: err.message || 'Failed to save inventory item' });
@@ -1090,7 +1094,7 @@ app.post('/api/inventory/import', inventoryImportUpload, upload.single('file'), 
 
 app.put('/api/inventory/:id', (req, res) => {
   const { id } = req.params;
-  const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw } = req.body;
+  const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw, on_sale: onSaleRaw, sale_price: salePriceRaw } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
   const existing = db.prepare('SELECT id FROM supplier_inventory WHERE id = ?').get(id);
@@ -1101,6 +1105,8 @@ app.put('/api/inventory/:id', (req, res) => {
   const catId = resolveCategoryId(category_id);
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
   const available = availableRaw === '1' || availableRaw === 1 ? 1 : 0;
+  const onSale = onSaleRaw === '1' || onSaleRaw === 1 ? 1 : 0;
+  const salePrice = salePriceRaw != null && salePriceRaw !== '' ? Number(salePriceRaw) : null;
 
   // Validate supplier_id references a real supplier
   const suppId = Number(supplier_id);
@@ -1110,11 +1116,11 @@ app.put('/api/inventory/:id', (req, res) => {
 
   try {
     const result = db.prepare(
-      'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, category_id = ?, unit = ?, unit_cost = ?, retail_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, available = ?, updated_at = datetime(\'now\') WHERE id = ?'
-    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available, id);
+      'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, category_id = ?, unit = ?, unit_cost = ?, retail_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, available = ?, on_sale = ?, sale_price = ?, updated_at = datetime(\'now\') WHERE id = ?'
+    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available, onSale, salePrice, id);
     if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
 
-    res.json({ success: true, available });
+    res.json({ success: true, available, on_sale: onSale, sale_price: salePrice });
   } catch (err) {
     console.error('PUT /api/inventory/:id error:', { id, supplier_id: suppId, category_id: catId, error: err.message });
     res.status(500).json({ error: err.message || 'Failed to update inventory item' });
@@ -1181,7 +1187,9 @@ app.get('/api/products', (req, res) => {
            p.name AS parent_name,
            COUNT(si.id) AS product_count,
            MIN(si.retail_cost) AS min_price,
-           MAX(si.retail_cost) AS max_price
+           MAX(si.retail_cost) AS max_price,
+           MAX(si.on_sale) AS has_sale,
+           MIN(CASE WHEN si.on_sale = 1 THEN si.sale_price ELSE NULL END) AS min_sale_price
     FROM taxonomy t
     LEFT JOIN taxonomy p ON p.id = t.parent_id
     JOIN supplier_inventory si ON si.category_id = t.id AND si.available = 1
@@ -1341,6 +1349,73 @@ app.delete('/api/taxonomy/:id', (req, res) => {
 
   // CASCADE will delete children automatically
   db.prepare('DELETE FROM taxonomy WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
+// ─── Resources ───────────────────────────────────────────────────────────────
+
+const resourceUpload = (req, _res, next) => { req.uploadDir = 'resources'; next(); };
+
+// Ensure resources upload dir exists
+const resourcesDir = join(__dirname, 'uploads', 'resources');
+if (!existsSync(resourcesDir)) mkdirSync(resourcesDir, { recursive: true });
+
+app.get('/api/resources', (req, res) => {
+  const resources = db.prepare('SELECT * FROM resources ORDER BY sort_order, created_at DESC').all();
+  res.json(resources);
+});
+
+app.get('/api/resources/published', (_req, res) => {
+  const resources = db.prepare('SELECT * FROM resources WHERE published = 1 ORDER BY sort_order, created_at DESC').all();
+  res.json(resources);
+});
+
+app.post('/api/resources', resourceUpload, upload.single('thumbnail'), (req, res) => {
+  const { title, type, url, description, published, sort_order } = req.body;
+  if (!title) return res.status(400).json({ error: 'Title is required' });
+
+  const thumbnail = req.file ? `/uploads/resources/${req.file.filename}` : null;
+  const pub = published === '0' ? 0 : 1;
+
+  const result = db.prepare(
+    'INSERT INTO resources (title, type, url, description, thumbnail, published, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(title, type || 'article', url || null, description || null, thumbnail, pub, sort_order ?? 0);
+
+  res.status(201).json({ id: result.lastInsertRowid, title, type: type || 'article', url, description, thumbnail, published: pub, sort_order: sort_order ?? 0 });
+});
+
+app.put('/api/resources/:id', resourceUpload, upload.single('thumbnail'), (req, res) => {
+  const { id } = req.params;
+  const { title, type, url, description, published, sort_order } = req.body;
+  if (!title) return res.status(400).json({ error: 'Title is required' });
+
+  const existing = db.prepare('SELECT * FROM resources WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'Resource not found' });
+
+  let thumbnail = existing.thumbnail;
+  if (req.file) {
+    if (existing.thumbnail) {
+      try { unlinkSync(join(__dirname, existing.thumbnail.replace(/^\//, ''))); } catch { /* ignore */ }
+    }
+    thumbnail = `/uploads/resources/${req.file.filename}`;
+  }
+
+  const pub = published === '0' ? 0 : 1;
+  db.prepare(
+    'UPDATE resources SET title = ?, type = ?, url = ?, description = ?, thumbnail = ?, published = ?, sort_order = ? WHERE id = ?'
+  ).run(title, type || 'article', url || null, description || null, thumbnail, pub, sort_order ?? 0, id);
+
+  res.json({ id: Number(id), title, type: type || 'article', url, description, thumbnail, published: pub, sort_order: sort_order ?? 0 });
+});
+
+app.delete('/api/resources/:id', (req, res) => {
+  const { id } = req.params;
+  const existing = db.prepare('SELECT thumbnail FROM resources WHERE id = ?').get(id);
+  if (existing && existing.thumbnail) {
+    try { unlinkSync(join(__dirname, existing.thumbnail.replace(/^\//, ''))); } catch { /* ignore */ }
+  }
+  const result = db.prepare('DELETE FROM resources WHERE id = ?').run(id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Resource not found' });
   res.json({ success: true });
 });
 

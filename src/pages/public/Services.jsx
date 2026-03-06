@@ -24,7 +24,10 @@ export default function Services() {
         <div className="container">
           <div className="services-full-grid">
             {services.map((service) => (
-              <div key={service.id} className="service-full-card">
+              <div key={service.id} className="service-full-card" style={{ position: 'relative' }}>
+                {service.on_sale ? (
+                  <span className="sale-badge">{service.sale_label || 'SALE'}</span>
+                ) : null}
                 <div className="service-full-icon">{service.icon}</div>
                 <div className="service-full-content">
                   <h3>{service.name}</h3>
