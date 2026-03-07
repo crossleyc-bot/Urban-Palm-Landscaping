@@ -226,7 +226,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    inventory_id INTEGER NOT NULL REFERENCES supplier_inventory(id),
+    inventory_id INTEGER REFERENCES supplier_inventory(id) ON DELETE SET NULL,
     item_name TEXT NOT NULL,
     unit TEXT,
     price REAL NOT NULL,
@@ -404,6 +404,27 @@ if (!invPayColumns.includes('payment_method')) {
 }
 if (!invPayColumns.includes('transaction_id')) {
   db.exec("ALTER TABLE invoices ADD COLUMN transaction_id TEXT");
+}
+
+// Migration: rebuild order_items to use ON DELETE SET NULL for inventory_id FK
+const oiSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='order_items'").get();
+if (oiSchema && oiSchema.sql && !oiSchema.sql.includes('ON DELETE SET NULL')) {
+  db.pragma('foreign_keys = OFF');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS order_items_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      inventory_id INTEGER REFERENCES supplier_inventory(id) ON DELETE SET NULL,
+      item_name TEXT NOT NULL,
+      unit TEXT,
+      price REAL NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1
+    );
+    INSERT INTO order_items_new SELECT * FROM order_items;
+    DROP TABLE order_items;
+    ALTER TABLE order_items_new RENAME TO order_items;
+  `);
+  db.pragma('foreign_keys = ON');
 }
 
 // Seed default hero carousel slides if table is empty
