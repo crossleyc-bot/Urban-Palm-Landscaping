@@ -1305,6 +1305,133 @@ app.get('/api/products', (req, res) => {
   res.json(leaves);
 });
 
+// ─── Product Items (public, for cart) ────────────────────────────────────────
+
+app.get('/api/products/:categoryId/items', (req, res) => {
+  const items = db.prepare(`
+    SELECT si.id, si.item_name, si.sku, si.unit, si.retail_cost, si.qty_available,
+           si.image, si.on_sale, si.sale_price, t.name AS category_name
+    FROM supplier_inventory si
+    LEFT JOIN taxonomy t ON t.id = si.category_id
+    WHERE si.category_id = ? AND si.available = 1
+    ORDER BY si.item_name
+  `).all(req.params.categoryId);
+  res.json(items);
+});
+
+// ─── Orders (Shopping Cart) ─────────────────────────────────────────────────
+
+app.get('/api/orders', (req, res) => {
+  const { user_id } = req.query;
+  if (!user_id) return res.status(400).json({ error: 'user_id required' });
+  const orders = db.prepare(
+    'SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC'
+  ).all(user_id);
+  res.json(orders);
+});
+
+app.get('/api/orders/:id', (req, res) => {
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+  res.json({ ...order, items });
+});
+
+app.post('/api/orders', (req, res) => {
+  const { user_id, items } = req.body;
+  if (!user_id || !items || !items.length) {
+    return res.status(400).json({ error: 'user_id and items are required' });
+  }
+
+  // Validate items and calculate totals
+  let subtotal = 0;
+  const resolved = [];
+  for (const item of items) {
+    const inv = db.prepare('SELECT * FROM supplier_inventory WHERE id = ? AND available = 1').get(item.inventory_id);
+    if (!inv) return res.status(400).json({ error: `Product ${item.inventory_id} not available` });
+    if (item.quantity > inv.qty_available) {
+      return res.status(400).json({ error: `Only ${inv.qty_available} of "${inv.item_name}" available` });
+    }
+    const price = inv.on_sale && inv.sale_price != null ? inv.sale_price : inv.retail_cost;
+    subtotal += price * item.quantity;
+    resolved.push({ inv, quantity: item.quantity, price });
+  }
+
+  const tax = Math.round(subtotal * 0.07 * 100) / 100; // 7% tax
+  const total = Math.round((subtotal + tax) * 100) / 100;
+
+  const result = db.prepare(
+    'INSERT INTO orders (user_id, subtotal, tax, total) VALUES (?, ?, ?, ?)'
+  ).run(user_id, subtotal, tax, total);
+
+  const orderId = result.lastInsertRowid;
+  const insertItem = db.prepare(
+    'INSERT INTO order_items (order_id, inventory_id, item_name, unit, price, quantity) VALUES (?, ?, ?, ?, ?, ?)'
+  );
+  const updateQty = db.prepare(
+    'UPDATE supplier_inventory SET qty_available = qty_available - ? WHERE id = ?'
+  );
+
+  for (const r of resolved) {
+    insertItem.run(orderId, r.inv.id, r.inv.item_name, r.inv.unit, r.price, r.quantity);
+    updateQty.run(r.quantity, r.inv.id);
+  }
+
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+  const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(orderId);
+  res.status(201).json({ ...order, items: orderItems });
+});
+
+app.post('/api/orders/:id/create-payment-intent', async (req, res) => {
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+  if (order.status === 'Paid') return res.status(400).json({ error: 'Order already paid' });
+
+  const stripeKey = db.prepare("SELECT value FROM site_settings WHERE key = 'stripe_secret_key'").get();
+  if (!stripeKey?.value) return res.status(500).json({ error: 'Stripe not configured' });
+
+  try {
+    const stripe = new Stripe(stripeKey.value);
+    const intent = await stripe.paymentIntents.create({
+      amount: Math.round(order.total * 100),
+      currency: 'usd',
+      metadata: { order_id: String(order.id) },
+    });
+    res.json({ clientSecret: intent.client_secret });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/orders/:id/confirm-payment', async (req, res) => {
+  const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+
+  const { payment_intent_id } = req.body;
+  const stripeKey = db.prepare("SELECT value FROM site_settings WHERE key = 'stripe_secret_key'").get();
+  if (!stripeKey?.value) return res.status(500).json({ error: 'Stripe not configured' });
+
+  try {
+    const stripe = new Stripe(stripeKey.value);
+    const intent = await stripe.paymentIntents.retrieve(payment_intent_id);
+    if (intent.status !== 'succeeded') {
+      return res.status(400).json({ error: 'Payment not completed' });
+    }
+
+    const card = intent.charges?.data?.[0]?.payment_method_details?.card;
+    const method = card ? `${card.brand.charAt(0).toUpperCase() + card.brand.slice(1)} ending in ${card.last4}` : 'Card';
+    const paidDate = new Date().toISOString().split('T')[0];
+
+    db.prepare(
+      'UPDATE orders SET status = ?, payment_method = ?, transaction_id = ?, paid_date = ?, updated_at = datetime(?) WHERE id = ?'
+    ).run('Paid', method, payment_intent_id, paidDate, paidDate, order.id);
+
+    res.json({ status: 'Paid', payment_method: method, transaction_id: payment_intent_id, paid_date: paidDate });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Taxonomy ─────────────────────────────────────────────────────────────────
 
 app.get('/api/taxonomy/roots', (_req, res) => {

@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { apiGet } from '../../api';
+import { useCart } from '../../context/CartContext';
+import { useToast } from '../../components/ui/Toast';
 import SEO from '../../components/SEO';
 import './Products.css';
 
@@ -22,6 +24,11 @@ export default function Products() {
   const [taxonomyRoots, setTaxonomyRoots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All');
+  const [expandedLeaf, setExpandedLeaf] = useState(null);
+  const [leafItems, setLeafItems] = useState({});
+  const [loadingItems, setLoadingItems] = useState(null);
+  const { addItem, items: cartItems } = useCart();
+  const { addToast } = useToast();
 
   useEffect(() => {
     Promise.all([apiGet('/products'), apiGet('/taxonomy/roots')])
@@ -29,7 +36,6 @@ export default function Products() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Map each leaf to its taxonomy root name
   const leafToRoot = useMemo(() => {
     const allDescendants = {};
     for (const root of taxonomyRoots) {
@@ -40,13 +46,11 @@ export default function Products() {
     const map = {};
     for (const leaf of leaves) {
       const key = (leaf.parent_name || leaf.name || '').toLowerCase();
-      // Try parent name first, then leaf name itself
       map[leaf.id] = allDescendants[key] || allDescendants[leaf.name.toLowerCase()] || null;
     }
     return map;
   }, [leaves, taxonomyRoots]);
 
-  // Filter chip categories from taxonomy roots (only those with matching leaves)
   const filterCategories = useMemo(() => {
     const matched = new Set(Object.values(leafToRoot).filter(Boolean));
     const cats = taxonomyRoots
@@ -55,7 +59,6 @@ export default function Products() {
     return ['All', ...cats];
   }, [taxonomyRoots, leafToRoot]);
 
-  // Filter leaves by taxonomy root match
   const filtered = useMemo(() => {
     if (activeCategory === 'All') return leaves;
     return leaves.filter(l => leafToRoot[l.id] === activeCategory);
@@ -63,6 +66,35 @@ export default function Products() {
 
   const handleCategoryClick = (name) => {
     setActiveCategory(prev => prev === name ? 'All' : name);
+  };
+
+  const toggleLeafExpand = async (leafId) => {
+    if (expandedLeaf === leafId) {
+      setExpandedLeaf(null);
+      return;
+    }
+    setExpandedLeaf(leafId);
+    if (!leafItems[leafId]) {
+      setLoadingItems(leafId);
+      try {
+        const items = await apiGet(`/products/${leafId}/items`);
+        setLeafItems(prev => ({ ...prev, [leafId]: items }));
+      } catch {
+        setLeafItems(prev => ({ ...prev, [leafId]: [] }));
+      } finally {
+        setLoadingItems(null);
+      }
+    }
+  };
+
+  const handleAddToCart = (product) => {
+    addItem(product);
+    addToast(`${product.item_name} added to cart`, 'success');
+  };
+
+  const getCartQty = (inventoryId) => {
+    const item = cartItems.find(i => i.inventory_id === inventoryId);
+    return item ? item.quantity : 0;
   };
 
   return (
@@ -89,7 +121,6 @@ export default function Products() {
             </div>
           ) : (
             <>
-              {/* Taxonomy Category Cards */}
               {taxonomyRoots.length > 0 && (
                 <div>
                   <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -117,7 +148,6 @@ export default function Products() {
                 </div>
               )}
 
-              {/* Category filter chips */}
               <div className="products-filter">
                 {filterCategories.map(cat => (
                   <button
@@ -136,9 +166,12 @@ export default function Products() {
                 <div className="products-grid">
                   {filtered.map(leaf => {
                     const rootName = leafToRoot[leaf.id];
+                    const isExpanded = expandedLeaf === leaf.id;
+                    const items = leafItems[leaf.id] || [];
+                    const isLoadingItems = loadingItems === leaf.id;
                     return (
-                      <div key={leaf.id} className="product-card">
-                        <div className="product-image">
+                      <div key={leaf.id} className={`product-card${isExpanded ? ' product-card-expanded' : ''}`}>
+                        <div className="product-image" onClick={() => toggleLeafExpand(leaf.id)} style={{ cursor: 'pointer' }}>
                           {leaf.image ? (
                             <img src={leaf.image} alt={leaf.name} loading="lazy" />
                           ) : (
@@ -148,7 +181,7 @@ export default function Products() {
                           {leaf.has_sale ? <span className="product-sale-badge">Sale</span> : null}
                         </div>
                         <div className="product-body">
-                          <h3>{leaf.name}</h3>
+                          <h3 onClick={() => toggleLeafExpand(leaf.id)} style={{ cursor: 'pointer' }}>{leaf.name}</h3>
                           {leaf.description && (
                             <p className="product-description">{leaf.description}</p>
                           )}
@@ -169,7 +202,57 @@ export default function Products() {
                               )}
                             </div>
                           )}
+                          <button
+                            className="btn btn-primary btn-sm"
+                            style={{ marginTop: '0.75rem', width: '100%' }}
+                            onClick={() => toggleLeafExpand(leaf.id)}
+                          >
+                            {isExpanded ? 'Hide Items' : 'View Items'}
+                          </button>
                         </div>
+
+                        {isExpanded && (
+                          <div className="product-items-panel">
+                            {isLoadingItems ? (
+                              <p style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>Loading items...</p>
+                            ) : items.length === 0 ? (
+                              <p style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>No items available.</p>
+                            ) : (
+                              items.map(item => {
+                                const inCart = getCartQty(item.id);
+                                const price = item.on_sale && item.sale_price != null ? item.sale_price : item.retail_cost;
+                                return (
+                                  <div key={item.id} className="product-item-row">
+                                    {item.image && (
+                                      <img src={item.image} alt={item.item_name} className="product-item-thumb" />
+                                    )}
+                                    <div className="product-item-info">
+                                      <div className="product-item-name">{item.item_name}</div>
+                                      {item.unit && <span className="product-item-unit">per {item.unit}</span>}
+                                    </div>
+                                    <div className="product-item-pricing">
+                                      {item.on_sale && item.sale_price != null ? (
+                                        <>
+                                          <span className="product-item-original">${Number(item.retail_cost).toFixed(2)}</span>
+                                          <span className="product-item-sale">${Number(item.sale_price).toFixed(2)}</span>
+                                        </>
+                                      ) : (
+                                        <span>${Number(price).toFixed(2)}</span>
+                                      )}
+                                    </div>
+                                    <button
+                                      className={`btn btn-sm ${inCart ? 'btn-secondary' : 'btn-primary'}`}
+                                      onClick={() => handleAddToCart(item)}
+                                      disabled={item.qty_available <= 0}
+                                    >
+                                      {inCart ? `In Cart (${inCart})` : 'Add to Cart'}
+                                    </button>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -180,7 +263,6 @@ export default function Products() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="section" style={{ background: 'var(--color-bg-secondary)' }}>
         <div className="container" style={{ textAlign: 'center' }}>
           <h2 style={{ marginBottom: '0.75rem' }}>Need Materials for Your Project?</h2>

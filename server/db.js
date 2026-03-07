@@ -209,6 +209,29 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+  CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'Pending',
+    subtotal REAL NOT NULL DEFAULT 0,
+    tax REAL NOT NULL DEFAULT 0,
+    total REAL NOT NULL DEFAULT 0,
+    payment_method TEXT,
+    transaction_id TEXT,
+    paid_date TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    inventory_id INTEGER NOT NULL REFERENCES supplier_inventory(id),
+    item_name TEXT NOT NULL,
+    unit TEXT,
+    price REAL NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1
+  );
 `);
 
 // Migration: add sale columns to services

@@ -104,6 +104,40 @@
   background: var(--color-primary-light);
 }
 
+.header-cart {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  text-decoration: none;
+  padding: 0.4rem;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.header-cart:hover {
+  background: var(--color-bg-secondary);
+}
+
+.header-cart-badge {
+  position: absolute;
+  top: -2px;
+  right: -6px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+}
+
 .header-actions {
   display: flex;
   gap: 0.5rem;
