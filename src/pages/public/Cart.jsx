@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
-import { useAuth } from '../../context/AuthContext';
 import SEO from '../../components/SEO';
 import './Cart.css';
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, clearCart, subtotal } = useCart();
-  const { user } = useAuth();
   const tax = Math.round(subtotal * 0.07 * 100) / 100;
   const total = Math.round((subtotal + tax) * 100) / 100;
 
@@ -62,20 +60,9 @@ export default function Cart() {
                     <span>${total.toFixed(2)}</span>
                   </div>
                 </div>
-                {user ? (
-                  <Link to="/checkout" className="btn btn-primary" style={{ width: '100%', textAlign: 'center' }}>
-                    Proceed to Checkout
-                  </Link>
-                ) : (
-                  <div>
-                    <Link to="/login" className="btn btn-primary" style={{ width: '100%', textAlign: 'center', marginBottom: '0.5rem' }}>
-                      Log In to Checkout
-                    </Link>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>
-                      You need an account to place an order.
-                    </p>
-                  </div>
-                )}
+                <Link to="/checkout" className="btn btn-primary" style={{ width: '100%', textAlign: 'center' }}>
+                  Proceed to Checkout
+                </Link>
                 <Link to="/products" className="btn btn-outline" style={{ width: '100%', textAlign: 'center', marginTop: '0.5rem' }}>
                   Continue Shopping
                 </Link>
