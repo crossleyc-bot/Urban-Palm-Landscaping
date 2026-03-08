@@ -427,6 +427,33 @@ if (oiSchema && oiSchema.sql && !oiSchema.sql.includes('ON DELETE SET NULL')) {
   db.pragma('foreign_keys = ON');
 }
 
+// Migration: rebuild orders table to match expected schema (subtotal, tax, total, etc.)
+const ordColumns = db.prepare("PRAGMA table_info(orders)").all().map(c => c.name);
+if (!ordColumns.includes('subtotal')) {
+  db.pragma('foreign_keys = OFF');
+  db.exec(`
+    CREATE TABLE orders_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      status TEXT NOT NULL DEFAULT 'Pending',
+      subtotal REAL NOT NULL DEFAULT 0,
+      tax REAL NOT NULL DEFAULT 0,
+      total REAL NOT NULL DEFAULT 0,
+      payment_method TEXT,
+      transaction_id TEXT,
+      paid_date TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    INSERT INTO orders_new (id, user_id, status, total, created_at, updated_at)
+      SELECT id, COALESCE(user_id, 0), COALESCE(status, 'Pending'), COALESCE(amount, 0), COALESCE(date, datetime('now')), datetime('now')
+      FROM orders;
+    DROP TABLE orders;
+    ALTER TABLE orders_new RENAME TO orders;
+  `);
+  db.pragma('foreign_keys = ON');
+}
+
 // Seed default hero carousel slides if table is empty
 const slideCount = db.prepare('SELECT COUNT(*) as cnt FROM hero_slides').get();
 if (slideCount.cnt === 0) {
