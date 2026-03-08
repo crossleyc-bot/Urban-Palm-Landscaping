@@ -117,7 +117,7 @@ export default function Portfolio() {
           <h2>Ready to Transform Your Space?</h2>
           <p>Let us bring the same level of craftsmanship to your property.</p>
           <div className="portfolio-cta-actions">
-            <Link to="/contact" className="btn btn-primary btn-lg">Get Free Consultation</Link>
+            <Link to="/quote" className="btn btn-primary btn-lg">Get Free Quote</Link>
             <Link to="/services" className="btn btn-outline btn-lg">View Services</Link>
           </div>
         </div>

@@ -850,20 +850,23 @@ app.delete('/api/contact/:id', (req, res) => {
 // ─── Quote Requests ──────────────────────────────────────────────────────────
 
 app.post('/api/quotes', (req, res) => {
-  const { user_id, service, property_type, timeline, budget, details, address } = req.body;
+  const { user_id, service, property_type, timeline, budget, details, address, guest_name, guest_email, guest_phone } = req.body;
   if (!service || !details || !address) {
     return res.status(400).json({ error: 'Service, details, and address are required' });
   }
+  if (!user_id && (!guest_name || !guest_email)) {
+    return res.status(400).json({ error: 'Name and email are required' });
+  }
 
   db.prepare(
-    'INSERT INTO quote_requests (user_id, service, property_type, timeline, budget, details, address) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(user_id || null, service, property_type || null, timeline || null, budget || null, details, address);
+    'INSERT INTO quote_requests (user_id, service, property_type, timeline, budget, details, address, guest_name, guest_email, guest_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(user_id || null, service, property_type || null, timeline || null, budget || null, details, address, guest_name || null, guest_email || null, guest_phone || null);
 
   res.status(201).json({ success: true });
 });
 
 app.get('/api/quotes', (req, res) => {
-  const quotes = db.prepare('SELECT q.*, u.name AS user_name FROM quote_requests q LEFT JOIN users u ON q.user_id = u.id ORDER BY q.created_at DESC').all();
+  const quotes = db.prepare('SELECT q.*, u.name AS user_name, u.email AS user_email FROM quote_requests q LEFT JOIN users u ON q.user_id = u.id ORDER BY q.created_at DESC').all();
   res.json(quotes);
 });
 

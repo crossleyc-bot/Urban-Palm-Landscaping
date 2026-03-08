@@ -247,7 +247,7 @@ export default function Home() {
           <h2>Let's Create Your Dream Landscape</h2>
           <p>Contact us today for a free on-site consultation and detailed estimate. No obligation, no pressure.</p>
           <div className="cta-actions">
-            <Link to="/contact" className="btn btn-primary btn-lg">Get Free Consultation</Link>
+            <Link to="/quote" className="btn btn-primary btn-lg">Get Free Quote</Link>
             <a href={`tel:${phone.replace(/\D/g, '')}`} className="btn btn-outline btn-lg cta-phone-btn">Call {phone}</a>
           </div>
         </div>

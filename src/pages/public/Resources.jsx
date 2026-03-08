@@ -132,7 +132,7 @@ export default function Resources() {
           <h2>Have Questions About Your Landscape?</h2>
           <p>Our team is ready to help with expert advice and free consultations.</p>
           <div className="cta-actions">
-            <Link to="/contact" className="btn btn-primary btn-lg">Get Free Consultation</Link>
+            <Link to="/quote" className="btn btn-primary btn-lg">Get Free Quote</Link>
             <a href="tel:3212312094" className="btn btn-outline btn-lg cta-phone-btn">Call (321) 231-2094</a>
           </div>
         </div>

@@ -21,7 +21,7 @@ export default function Header() {
           <span>Same Day Quotes &mdash; Fast, free estimates for your landscaping project</span>
           <span className="topbar-divider"></span>
           <a href="tel:3212312094" className="topbar-phone">&#9742; (321) 231-2094</a>
-          <Link to="/contact" className="btn btn-primary btn-sm">Get a Quote</Link>
+          <Link to="/quote" className="btn btn-primary btn-sm">Get a Quote</Link>
         </div>
       </div>
       <div className="header-container">

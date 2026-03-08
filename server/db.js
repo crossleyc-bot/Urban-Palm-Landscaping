@@ -277,6 +277,18 @@ if (!svcColumns.includes('image_after')) {
   db.exec("ALTER TABLE services ADD COLUMN image_after TEXT");
 }
 
+// Migration: add guest contact fields to quote_requests
+const quoteGuestColumns = db.prepare("PRAGMA table_info(quote_requests)").all().map(c => c.name);
+if (!quoteGuestColumns.includes('guest_name')) {
+  db.exec("ALTER TABLE quote_requests ADD COLUMN guest_name TEXT");
+}
+if (!quoteGuestColumns.includes('guest_email')) {
+  db.exec("ALTER TABLE quote_requests ADD COLUMN guest_email TEXT");
+}
+if (!quoteGuestColumns.includes('guest_phone')) {
+  db.exec("ALTER TABLE quote_requests ADD COLUMN guest_phone TEXT");
+}
+
 // Migration: add status and admin_reply columns to quote_requests if missing
 const quoteColumns = db.prepare("PRAGMA table_info(quote_requests)").all().map(c => c.name);
 if (!quoteColumns.includes('status')) {
