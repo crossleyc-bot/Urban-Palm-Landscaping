@@ -236,6 +236,21 @@ db.exec(`
   );
 `);
 
+// Migration: add phone, address, and notification preferences to users
+const userColumns = db.prepare("PRAGMA table_info(users)").all().map(c => c.name);
+if (!userColumns.includes('phone')) {
+  db.exec("ALTER TABLE users ADD COLUMN phone TEXT");
+}
+if (!userColumns.includes('address')) {
+  db.exec("ALTER TABLE users ADD COLUMN address TEXT");
+}
+if (!userColumns.includes('sms_opt_in')) {
+  db.exec("ALTER TABLE users ADD COLUMN sms_opt_in INTEGER NOT NULL DEFAULT 0");
+}
+if (!userColumns.includes('email_opt_in')) {
+  db.exec("ALTER TABLE users ADD COLUMN email_opt_in INTEGER NOT NULL DEFAULT 0");
+}
+
 // Migration: add sale columns to services
 const svcColumns = db.prepare("PRAGMA table_info(services)").all().map(c => c.name);
 if (!svcColumns.includes('on_sale')) {

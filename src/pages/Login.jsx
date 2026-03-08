@@ -8,8 +8,12 @@ export default function Login() {
   const [mode, setMode] = useState('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [smsOptIn, setSmsOptIn] = useState(false);
+  const [emailOptIn, setEmailOptIn] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
@@ -32,6 +36,26 @@ export default function Login() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (phone) {
+      const digits = phone.replace(/\D/g, '');
+      if (digits.length < 10 || digits.length > 11) {
+        setError('Please enter a valid 10-digit phone number');
+        return;
+      }
+    }
+
+    if (address && address.trim().length < 5) {
+      setError('Please enter a valid street address');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -42,7 +66,7 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      await register(name, email, password);
+      await register({ name, email, password, phone, address, sms_opt_in: smsOptIn, email_opt_in: emailOptIn });
       navigate('/portal');
     } catch (err) {
       setError(err.message || 'Registration failed');
@@ -144,6 +168,28 @@ export default function Login() {
             </div>
 
             <div className="form-group">
+              <label htmlFor="reg-phone">Phone</label>
+              <input
+                id="reg-phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="(321) 231-2094"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="reg-address">Street Address</label>
+              <input
+                id="reg-address"
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="123 Main St, Orlando, FL 32801"
+              />
+            </div>
+
+            <div className="form-group">
               <label htmlFor="reg-password">Password</label>
               <input
                 id="reg-password"
@@ -167,6 +213,26 @@ export default function Login() {
                 required
               />
             </div>
+
+            <fieldset className="login-opt-in-group">
+              <legend>Communication Preferences</legend>
+              <label className="login-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={emailOptIn}
+                  onChange={(e) => setEmailOptIn(e.target.checked)}
+                />
+                <span>Send me emails about promotions, tips, and updates</span>
+              </label>
+              <label className="login-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={smsOptIn}
+                  onChange={(e) => setSmsOptIn(e.target.checked)}
+                />
+                <span>Send me text messages about appointments and updates</span>
+              </label>
+            </fieldset>
 
             <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
               {loading ? <><Spinner size={16} /> Creating account...</> : 'Create Account'}

@@ -105,9 +105,28 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 app.post('/api/auth/register', (req, res) => {
-  const { email, password, name } = req.body;
+  const { email, password, name, phone, address, sms_opt_in, email_opt_in } = req.body;
   if (!email || !password || !name) {
     return res.status(400).json({ error: 'Email, password, and name are required' });
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Please enter a valid email address' });
+  }
+
+  // Validate phone if provided
+  if (phone) {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 10 || digits.length > 11) {
+      return res.status(400).json({ error: 'Please enter a valid 10-digit phone number' });
+    }
+  }
+
+  // Validate street address if provided
+  if (address !== undefined && address !== '' && address.trim().length < 5) {
+    return res.status(400).json({ error: 'Please enter a valid street address' });
   }
 
   const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
@@ -116,11 +135,11 @@ app.post('/api/auth/register', (req, res) => {
   }
 
   const hash = bcrypt.hashSync(password, 10);
-  const result = db.prepare('INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)').run(
-    email, hash, name, 'customer'
-  );
+  const result = db.prepare(
+    'INSERT INTO users (email, password_hash, name, role, phone, address, sms_opt_in, email_opt_in) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(email, hash, name, 'customer', phone || null, address || null, sms_opt_in ? 1 : 0, email_opt_in ? 1 : 0);
 
-  res.status(201).json({ id: result.lastInsertRowid, email, name, role: 'customer' });
+  res.status(201).json({ id: result.lastInsertRowid, email, name, role: 'customer', phone: phone || null, address: address || null, sms_opt_in: !!sms_opt_in, email_opt_in: !!email_opt_in });
 });
 
 // ─── Account ────────────────────────────────────────────────────────────────
