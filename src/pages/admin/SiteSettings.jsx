@@ -23,7 +23,7 @@ function isDirectVideo(url) {
   return url.startsWith('/uploads/videos/') || /\.(mp4|webm|mov|ogg)(\?|$)/i.test(url);
 }
 
-const emptySlide = { badge: '', headline: '', subtext: '', cta_label: '', cta_link: '', cta2_label: '', cta2_link: '', sort_order: 0 };
+const emptySlide = { badge: '', headline: '', subtext: '', cta_label: 'Get Free Quote', cta_link: '/quote', cta2_label: '', cta2_link: '', sort_order: 0 };
 
 export default function SiteSettings() {
   const { addToast } = useToast();
@@ -943,7 +943,7 @@ export default function SiteSettings() {
                 </div>
                 <div style={fieldGap}>
                   <label style={labelStyle}>Primary Button Link</label>
-                  <input className="table-input" value={slideForm.cta_link} onChange={e => setSlideForm(f => ({ ...f, cta_link: e.target.value }))} placeholder="/contact" />
+                  <input className="table-input" value={slideForm.cta_link} onChange={e => setSlideForm(f => ({ ...f, cta_link: e.target.value }))} placeholder="/quote" />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
