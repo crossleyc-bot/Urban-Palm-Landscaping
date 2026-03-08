@@ -67,8 +67,7 @@ export default function Header() {
               </>
             ) : (
               <>
-                <Link to="/login" className="btn btn-outline" onClick={() => setMenuOpen(false)}>Log In</Link>
-                <Link to="/portal" className="btn btn-primary" onClick={() => setMenuOpen(false)}>Customer Portal</Link>
+                <Link to="/login" className="btn btn-primary" onClick={() => setMenuOpen(false)}>Sign In</Link>
               </>
             )}
           </div>
@@ -95,8 +94,7 @@ export default function Header() {
             </>
           ) : (
             <>
-              <Link to="/login" className="btn btn-outline">Log In</Link>
-              <Link to="/portal" className="btn btn-primary">Customer Portal</Link>
+              <Link to="/login" className="btn btn-primary">Sign In</Link>
             </>
           )}
         </div>
