@@ -90,20 +90,20 @@ const employees = [
 for (const e of employees) insertEmployee.run(...e);
 
 // ─── Orders ─────────────────────────────────────────────────────────────────
-const insertOrder = db.prepare('INSERT INTO orders (order_id, user_id, service, date, status, amount) VALUES (?, ?, ?, ?, ?, ?)');
+const insertOrder = db.prepare('INSERT INTO orders (user_id, status, subtotal, tax, total, created_at) VALUES (?, ?, ?, ?, ?, ?)');
 const orders = [
-  ['ORD-001', 2, 'Landscape Delivery & Installation', '2026-01-15', 'Completed', 1250],
-  ['ORD-002', 2, 'Seasonal Cleanup', '2026-02-01', 'Completed', 200],
-  ['ORD-003', 3, 'Tree & Shrub Care', '2026-02-05', 'Completed', 375],
-  ['ORD-004', 3, 'Landscape Design', '2026-02-10', 'Completed', 750],
-  ['ORD-005', 4, 'Hardscaping', '2026-02-12', 'In Progress', 4500],
-  ['ORD-006', 5, 'Irrigation Systems', '2026-02-14', 'In Progress', 850],
-  ['ORD-007', 5, 'Lawn Maintenance', '2026-02-15', 'Scheduled', 120],
-  ['ORD-008', 6, 'Landscape Delivery & Installation', '2026-02-18', 'Scheduled', 680],
-  ['ORD-009', 7, 'Outdoor Lighting', '2026-02-20', 'Scheduled', 1200],
-  ['ORD-010', 8, 'Landscape Design', '2026-02-25', 'Pending Quote', null],
-  ['ORD-011', 2, 'Hardscaping', '2026-03-01', 'Pending Quote', null],
-  ['ORD-012', 4, 'Irrigation Systems', '2026-03-05', 'Scheduled', 450],
+  [2, 'Completed', 1168.22, 81.78, 1250.00, '2026-01-15'],
+  [2, 'Completed', 186.92, 13.08, 200.00, '2026-02-01'],
+  [3, 'Completed', 350.47, 24.53, 375.00, '2026-02-05'],
+  [3, 'Completed', 700.93, 49.07, 750.00, '2026-02-10'],
+  [4, 'Pending', 4205.61, 294.39, 4500.00, '2026-02-12'],
+  [5, 'Pending', 794.39, 55.61, 850.00, '2026-02-14'],
+  [5, 'Pending', 112.15, 7.85, 120.00, '2026-02-15'],
+  [6, 'Pending', 635.51, 44.49, 680.00, '2026-02-18'],
+  [7, 'Pending', 1121.50, 78.50, 1200.00, '2026-02-20'],
+  [8, 'Pending', 0, 0, 0, '2026-02-25'],
+  [2, 'Pending', 0, 0, 0, '2026-03-01'],
+  [4, 'Pending', 420.56, 29.44, 450.00, '2026-03-05'],
 ];
 for (const o of orders) insertOrder.run(...o);
 
