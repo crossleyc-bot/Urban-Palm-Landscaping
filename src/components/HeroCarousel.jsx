@@ -57,7 +57,10 @@ export default function HeroCarousel() {
     fetch('/api/hero-slides')
       .then(r => r.ok ? r.json() : [])
       .then(data => {
-        const active = data.filter(s => s.active && s.image);
+        const active = data.filter(s => s.active && s.image).map(s => ({
+          ...s,
+          cta_link: (!s.cta_link || s.cta_link === '/login') ? '/quote' : s.cta_link,
+        }));
         if (active.length > 0) setSlides(active);
       })
       .catch(() => { /* keep defaults */ });
