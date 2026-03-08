@@ -307,7 +307,7 @@ export default function Products() {
             We deliver and install everything you see here. Request a quote and let us handle the heavy lifting.
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/portal/quote" className="btn btn-primary">Get a Quote</Link>
+            <Link to="/quote" className="btn btn-primary">Get a Quote</Link>
             <Link to="/services" className="btn btn-outline">View Services</Link>
           </div>
         </div>

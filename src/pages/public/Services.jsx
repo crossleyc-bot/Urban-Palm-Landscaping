@@ -36,7 +36,7 @@ export default function Services() {
                   <p>{service.description}</p>
                   <div className="service-full-footer">
                     <span className="service-price">{service.price}</span>
-                    <Link to="/portal/quote" className="btn btn-secondary btn-sm">Get Quote</Link>
+                    <Link to="/quote" className="btn btn-secondary btn-sm">Get Quote</Link>
                   </div>
                 </div>
               </div>
