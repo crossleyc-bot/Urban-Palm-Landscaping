@@ -648,7 +648,9 @@ if (slideCount.cnt === 0) {
 // Migration: update hero slide CTA links to /quote
 db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link = '/contact'").run();
 db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link = '/login'").run();
-db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link IS NULL").run();
+db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link LIKE '/portal%'").run();
+db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link LIKE '/signin%'").run();
+db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link IS NULL OR cta_link = ''").run();
 db.prepare("UPDATE hero_slides SET cta_label = 'Get Free Quote' WHERE cta_label = 'Get Free Consultation'").run();
 
 export default db;

@@ -301,7 +301,7 @@ const carouselUpload = (req, _res, next) => { req.uploadDir = 'carousel'; next()
 app.get('/api/hero-slides', (req, res) => {
   const slides = db.prepare('SELECT * FROM hero_slides ORDER BY sort_order, id').all().map(s => ({
     ...s,
-    cta_link: (!s.cta_link || s.cta_link.trim().toLowerCase() === '/login') ? '/quote' : s.cta_link,
+    cta_link: (!s.cta_link || /^\/(login|signin|sign-in|portal)/i.test(s.cta_link.trim())) ? '/quote' : s.cta_link,
   }));
   res.json(slides);
 });
@@ -313,7 +313,7 @@ app.post('/api/hero-slides', carouselUpload, upload.single('image'), (req, res) 
   const image = `/uploads/carousel/${req.file.filename}`;
   const result = db.prepare(
     'INSERT INTO hero_slides (image, badge, headline, subtext, cta_label, cta_link, cta2_label, cta2_link, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(image, badge || null, headline || null, subtext || null, cta_label || null, cta_link || null, cta2_label || null, cta2_link || null, Number(sort_order) || 0);
+  ).run(image, badge || null, headline || null, subtext || null, cta_label || null, cta_link || '/quote', cta2_label || null, cta2_link || null, Number(sort_order) || 0);
 
   const slide = db.prepare('SELECT * FROM hero_slides WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(slide);
@@ -335,7 +335,7 @@ app.put('/api/hero-slides/:id', carouselUpload, upload.single('image'), (req, re
 
   db.prepare(
     'UPDATE hero_slides SET image = ?, badge = ?, headline = ?, subtext = ?, cta_label = ?, cta_link = ?, cta2_label = ?, cta2_link = ?, sort_order = ?, active = ? WHERE id = ?'
-  ).run(image, badge || null, headline || null, subtext || null, cta_label || null, cta_link || null, cta2_label || null, cta2_link || null, Number(sort_order) || 0, active !== undefined ? Number(active) : 1, id);
+  ).run(image, badge || null, headline || null, subtext || null, cta_label || null, cta_link || '/quote', cta2_label || null, cta2_link || null, Number(sort_order) || 0, active !== undefined ? Number(active) : 1, id);
 
   const updated = db.prepare('SELECT * FROM hero_slides WHERE id = ?').get(id);
   res.json(updated);
