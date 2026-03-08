@@ -59,7 +59,7 @@ export default function HeroCarousel() {
       .then(data => {
         const active = data.filter(s => s.active && s.image).map(s => ({
           ...s,
-          cta_link: (!s.cta_link || s.cta_link === '/login') ? '/quote' : s.cta_link,
+          cta_link: (!s.cta_link || s.cta_link.trim().toLowerCase() === '/login') ? '/quote' : s.cta_link,
         }));
         if (active.length > 0) setSlides(active);
       })
