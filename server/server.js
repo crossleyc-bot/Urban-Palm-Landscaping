@@ -436,7 +436,8 @@ app.put('/api/testimonials/:id', (req, res) => {
 });
 
 app.delete('/api/testimonials/:id', (req, res) => {
-  db.prepare('DELETE FROM testimonials WHERE id = ?').run(req.params.id);
+  const result = db.prepare('DELETE FROM testimonials WHERE id = ?').run(req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Testimonial not found' });
   res.json({ success: true });
 });
 
