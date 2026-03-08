@@ -311,6 +311,68 @@
   color: #dc2626;
 }
 
+.product-item-stock {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+/* Inline cart quantity controls on product rows */
+.product-item-cart-controls {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1.5px solid var(--color-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cart-qty-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  transition: background 0.15s;
+  padding: 0;
+}
+
+.cart-qty-btn:hover:not(:disabled) {
+  background: rgba(26, 71, 42, 0.08);
+}
+
+[data-theme="dark"] .cart-qty-btn:hover:not(:disabled) {
+  background: rgba(74, 222, 128, 0.12);
+}
+
+.cart-qty-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* X button styling for remove */
+.cart-qty-btn:first-child {
+  color: var(--color-primary);
+}
+
+.cart-qty-value {
+  min-width: 28px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
+  border-left: 1.5px solid var(--color-border);
+  border-right: 1.5px solid var(--color-border);
+  line-height: 32px;
+}
+
 @media (max-width: 1024px) {
   .products-grid {
     grid-template-columns: repeat(3, 1fr);

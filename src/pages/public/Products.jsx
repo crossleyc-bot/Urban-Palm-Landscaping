@@ -27,7 +27,7 @@ export default function Products() {
   const [expandedLeaf, setExpandedLeaf] = useState(null);
   const [leafItems, setLeafItems] = useState({});
   const [loadingItems, setLoadingItems] = useState(null);
-  const { addItem, items: cartItems } = useCart();
+  const { addItem, updateQuantity, removeItem, items: cartItems } = useCart();
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -229,6 +229,9 @@ export default function Products() {
                                     <div className="product-item-info">
                                       <div className="product-item-name">{item.item_name}</div>
                                       {item.unit && <span className="product-item-unit">per {item.unit}</span>}
+                                      {item.qty_available > 0 && (
+                                        <span className="product-item-stock">{item.qty_available} available</span>
+                                      )}
                                     </div>
                                     <div className="product-item-pricing">
                                       {item.on_sale && item.sale_price != null ? (
@@ -240,13 +243,47 @@ export default function Products() {
                                         <span>${Number(price).toFixed(2)}</span>
                                       )}
                                     </div>
-                                    <button
-                                      className={`btn btn-sm ${inCart ? 'btn-secondary' : 'btn-primary'}`}
-                                      onClick={() => handleAddToCart(item)}
-                                      disabled={item.qty_available <= 0}
-                                    >
-                                      {inCart ? `In Cart (${inCart})` : 'Add to Cart'}
-                                    </button>
+                                    {inCart ? (
+                                      <div className="product-item-cart-controls">
+                                        <button
+                                          className="cart-qty-btn"
+                                          onClick={() => {
+                                            if (inCart <= 1) {
+                                              removeItem(item.id);
+                                              addToast(`${item.item_name} removed from cart`, 'info');
+                                            } else {
+                                              updateQuantity(item.id, inCart - 1);
+                                            }
+                                          }}
+                                          title={inCart <= 1 ? 'Remove from cart' : 'Decrease quantity'}
+                                        >
+                                          {inCart <= 1 ? '\u2715' : '\u2212'}
+                                        </button>
+                                        <span className="cart-qty-value">{inCart}</span>
+                                        <button
+                                          className="cart-qty-btn"
+                                          onClick={() => {
+                                            if (item.qty_available && inCart >= item.qty_available) {
+                                              addToast(`Only ${item.qty_available} available`, 'warning');
+                                              return;
+                                            }
+                                            updateQuantity(item.id, inCart + 1);
+                                          }}
+                                          disabled={item.qty_available > 0 && inCart >= item.qty_available}
+                                          title="Increase quantity"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        className="btn btn-sm btn-primary"
+                                        onClick={() => handleAddToCart(item)}
+                                        disabled={item.qty_available <= 0}
+                                      >
+                                        {item.qty_available <= 0 ? 'Out of Stock' : 'Add to Cart'}
+                                      </button>
+                                    )}
                                   </div>
                                 );
                               })
