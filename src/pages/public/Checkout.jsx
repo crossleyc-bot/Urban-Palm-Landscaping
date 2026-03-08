@@ -163,7 +163,7 @@ function CustomerSection({ onReady }) {
     if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
     setLoading(true);
     try {
-      const u = await register(name, email, password);
+      const u = await register({ name, email, password });
       onReady({ type: 'user', user_id: u.id });
     } catch (err) {
       setError(err.message || 'Registration failed');
@@ -294,19 +294,70 @@ export default function Checkout() {
   const [success, setSuccess] = useState(null);
   const [placeError, setPlaceError] = useState('');
 
-  const tax = Math.round(subtotal * 0.07 * 100) / 100;
-  const total = Math.round((subtotal + tax) * 100) / 100;
+  // Checkout settings
+  const [settings, setSettings] = useState({ delivery_fee: 0, installation_fee: 0, delivery_minimum: 0 });
+  const [addDelivery, setAddDelivery] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [addInstallation, setAddInstallation] = useState(false);
+
+  // Coupon
+  const [couponCode, setCouponCode] = useState('');
+  const [couponResult, setCouponResult] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const deliveryAvailable = settings.delivery_fee > 0;
+  const installationAvailable = settings.installation_fee > 0;
+  const meetsDeliveryMinimum = subtotal >= settings.delivery_minimum;
+
+  const discount = couponResult?.discount || 0;
+  const discountedSubtotal = subtotal - discount;
+  const deliveryFee = addDelivery ? settings.delivery_fee : 0;
+  const installationFee = addInstallation ? settings.installation_fee : 0;
+  const tax = Math.round(discountedSubtotal * 0.07 * 100) / 100;
+  const total = Math.round((discountedSubtotal + deliveryFee + installationFee + tax) * 100) / 100;
 
   useEffect(() => {
     getStripePromise().then(sp => {
       if (!sp) setStripeError(true);
       setStripePromise(sp);
     });
+    apiGet('/checkout-settings').then(setSettings).catch(() => {});
   }, []);
 
-  // If user logs in via CustomerSection or was already logged in, reflect it
+  // Pre-fill delivery address from user profile
+  useEffect(() => {
+    if (user?.address && !deliveryAddress) setDeliveryAddress(user.address);
+  }, [user, deliveryAddress]);
+
+  // Reset delivery if subtotal drops below minimum
+  useEffect(() => {
+    if (!meetsDeliveryMinimum) setAddDelivery(false);
+  }, [meetsDeliveryMinimum]);
+
   const handleCustomerReady = (info) => {
     setCustomerInfo(info);
+  };
+
+  const applyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setCouponError('');
+    setCouponResult(null);
+    try {
+      const result = await apiPost('/coupons/validate', { code: couponCode.trim(), subtotal });
+      setCouponResult(result);
+    } catch (err) {
+      setCouponError(err.message || 'Invalid coupon');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setCouponResult(null);
+    setCouponCode('');
+    setCouponError('');
   };
 
   const isCustomerReady = !!customerInfo;
@@ -331,6 +382,10 @@ export default function Checkout() {
     try {
       const payload = {
         items: items.map(i => ({ inventory_id: i.inventory_id, quantity: i.quantity })),
+        add_delivery: addDelivery,
+        delivery_address: addDelivery ? deliveryAddress : null,
+        add_installation: addInstallation,
+        coupon_code: couponResult?.coupon_code || null,
       };
       if (customerInfo.type === 'user') {
         payload.user_id = customerInfo.user_id;
@@ -395,6 +450,13 @@ export default function Checkout() {
     );
   }
 
+  const summaryRow = (label, value, opts = {}) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+      <span style={{ color: opts.color || 'var(--color-text-muted)' }}>{label}</span>
+      <span style={{ color: opts.valueColor, fontWeight: opts.bold ? 700 : undefined }}>{value}</span>
+    </div>
+  );
+
   return (
     <div className="products-page">
       <SEO title="Checkout" description="Complete your order." path="/checkout" />
@@ -440,7 +502,130 @@ export default function Checkout() {
                 ))}
               </div>
 
-              {/* Step 3: Place order & pay */}
+              {/* Service Add-ons */}
+              {(deliveryAvailable || installationAvailable) && (
+                <div className="card" style={{ marginBottom: '1.5rem' }}>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Service Add-ons</h2>
+
+                  {deliveryAvailable && (
+                    <div style={{ marginBottom: installationAvailable ? '1rem' : 0 }}>
+                      <label style={{
+                        display: 'flex', alignItems: 'center', gap: '0.75rem',
+                        cursor: meetsDeliveryMinimum ? 'pointer' : 'not-allowed',
+                        opacity: meetsDeliveryMinimum ? 1 : 0.5,
+                        padding: '0.75rem', border: '1px solid var(--color-border)', borderRadius: 8,
+                        background: addDelivery ? 'var(--color-primary-light)' : 'transparent',
+                        transition: 'background 0.2s',
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={addDelivery}
+                          onChange={e => setAddDelivery(e.target.checked)}
+                          disabled={!meetsDeliveryMinimum}
+                          style={{ width: 18, height: 18 }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Delivery</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                            We deliver to your door
+                          </div>
+                        </div>
+                        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>+ ${settings.delivery_fee.toFixed(2)}</span>
+                      </label>
+                      {!meetsDeliveryMinimum && settings.delivery_minimum > 0 && (
+                        <p style={{ fontSize: '0.8rem', color: '#d97706', margin: '0.4rem 0 0 0' }}>
+                          Delivery available on orders over ${settings.delivery_minimum.toFixed(2)}
+                        </p>
+                      )}
+                      {addDelivery && (
+                        <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                          <label htmlFor="delivery-addr" style={{ fontSize: '0.85rem', fontWeight: 500 }}>Delivery Address</label>
+                          <input
+                            id="delivery-addr"
+                            type="text"
+                            value={deliveryAddress}
+                            onChange={e => setDeliveryAddress(e.target.value)}
+                            placeholder="123 Main St, Orlando, FL 32801"
+                            required
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {installationAvailable && (
+                    <label style={{
+                      display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer',
+                      padding: '0.75rem', border: '1px solid var(--color-border)', borderRadius: 8,
+                      background: addInstallation ? 'var(--color-primary-light)' : 'transparent',
+                      transition: 'background 0.2s',
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={addInstallation}
+                        onChange={e => setAddInstallation(e.target.checked)}
+                        style={{ width: 18, height: 18 }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Installation</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                          Professional installation by our team
+                        </div>
+                      </div>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>+ ${settings.installation_fee.toFixed(2)}</span>
+                    </label>
+                  )}
+                </div>
+              )}
+
+              {/* Coupon */}
+              <div className="card" style={{ marginBottom: '1.5rem' }}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Coupon Code</h2>
+                {couponResult ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '0.75rem', background: '#f0fdf4', border: '1px solid #bbf7d0',
+                    borderRadius: 8,
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#16a34a' }}>
+                        {couponResult.coupon_code} applied
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                        {couponResult.type === 'percentage' ? `${couponResult.value}% off` : `$${couponResult.value.toFixed(2)} off`}
+                        {' '}&mdash; saving ${couponResult.discount.toFixed(2)}
+                      </div>
+                    </div>
+                    <button className="btn btn-outline btn-sm" onClick={removeCoupon} style={{ flexShrink: 0 }}>
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        value={couponCode}
+                        onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
+                        placeholder="Enter coupon code"
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        className="btn btn-outline"
+                        onClick={applyCoupon}
+                        disabled={couponLoading || !couponCode.trim()}
+                      >
+                        {couponLoading ? 'Checking...' : 'Apply'}
+                      </button>
+                    </div>
+                    {couponError && (
+                      <p style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '0.5rem' }}>{couponError}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Place order & pay */}
               {!order ? (
                 <div>
                   {placeError && <p style={{ color: '#dc2626', fontSize: '0.9rem', marginBottom: '0.75rem' }}>{placeError}</p>}
@@ -448,7 +633,7 @@ export default function Checkout() {
                     className="btn btn-primary"
                     style={{ width: '100%' }}
                     onClick={placeOrder}
-                    disabled={placing || !isCustomerReady}
+                    disabled={placing || !isCustomerReady || (addDelivery && !deliveryAddress.trim())}
                     title={!isCustomerReady ? 'Please complete customer information above' : ''}
                   >
                     {!isCustomerReady ? 'Complete Info Above to Continue' : placing ? 'Placing Order...' : 'Place Order & Pay'}
@@ -475,14 +660,11 @@ export default function Checkout() {
             <div className="card" style={{ position: 'sticky', top: '1rem' }}>
               <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Order Summary</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>Tax (7%)</span>
-                  <span>${tax.toFixed(2)}</span>
-                </div>
+                {summaryRow('Subtotal', `$${subtotal.toFixed(2)}`)}
+                {discount > 0 && summaryRow(`Discount (${couponResult.coupon_code})`, `-$${discount.toFixed(2)}`, { valueColor: '#16a34a' })}
+                {addDelivery && summaryRow('Delivery', `$${deliveryFee.toFixed(2)}`)}
+                {addInstallation && summaryRow('Installation', `$${installationFee.toFixed(2)}`)}
+                {summaryRow('Tax (7%)', `$${tax.toFixed(2)}`)}
                 <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.1rem' }}>
                   <span>Total</span>
                   <span>${total.toFixed(2)}</span>

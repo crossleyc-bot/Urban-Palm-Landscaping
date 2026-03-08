@@ -52,6 +52,7 @@ const ManageJobOpenings = lazy(() => import('./pages/admin/ManageJobOpenings'));
 const ManageTaxonomy = lazy(() => import('./pages/admin/ManageTaxonomy'));
 const ManageResources = lazy(() => import('./pages/admin/ManageResources'));
 const ManageTestimonials = lazy(() => import('./pages/admin/ManageTestimonials'));
+const ManageCoupons = lazy(() => import('./pages/admin/ManageCoupons'));
 const SiteSettings = lazy(() => import('./pages/admin/SiteSettings'));
 
 import './App.css';
@@ -81,6 +82,7 @@ const adminNav = [
   { path: '/admin/testimonials', label: 'Testimonials', icon: '\u2B50' },
   { path: '/admin/resources', label: 'Resources', icon: '\uD83D\uDCDA' },
   { path: '/admin/job-openings', label: 'Job Openings', icon: '\uD83D\uDCCB' },
+  { path: '/admin/coupons', label: 'Coupons', icon: '\uD83C\uDFF7\uFE0F' },
   { path: '/admin/settings', label: 'Site Settings', icon: '\u2699\uFE0F' },
 ];
 
@@ -200,6 +202,7 @@ export default function App() {
                   <Route path="/admin/testimonials" element={<ManageTestimonials />} />
                   <Route path="/admin/resources" element={<ManageResources />} />
                   <Route path="/admin/job-openings" element={<ManageJobOpenings />} />
+                  <Route path="/admin/coupons" element={<ManageCoupons />} />
                   <Route path="/admin/settings" element={<SiteSettings />} />
                 </Route>
               </Route>

@@ -510,6 +510,40 @@ if (ordSchema && ordSchema.sql.includes('user_id INTEGER NOT NULL')) {
   db.pragma('foreign_keys = ON');
 }
 
+// Migration: add coupons table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS coupons (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT UNIQUE NOT NULL,
+    type TEXT NOT NULL DEFAULT 'percentage',
+    value REAL NOT NULL,
+    min_order REAL NOT NULL DEFAULT 0,
+    max_uses INTEGER,
+    uses_count INTEGER NOT NULL DEFAULT 0,
+    active INTEGER NOT NULL DEFAULT 1,
+    expires_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// Migration: add delivery, installation, coupon columns to orders
+const ordFeatureColumns = db.prepare("PRAGMA table_info(orders)").all().map(c => c.name);
+if (!ordFeatureColumns.includes('delivery_fee')) {
+  db.exec("ALTER TABLE orders ADD COLUMN delivery_fee REAL NOT NULL DEFAULT 0");
+}
+if (!ordFeatureColumns.includes('installation_fee')) {
+  db.exec("ALTER TABLE orders ADD COLUMN installation_fee REAL NOT NULL DEFAULT 0");
+}
+if (!ordFeatureColumns.includes('delivery_address')) {
+  db.exec("ALTER TABLE orders ADD COLUMN delivery_address TEXT");
+}
+if (!ordFeatureColumns.includes('coupon_code')) {
+  db.exec("ALTER TABLE orders ADD COLUMN coupon_code TEXT");
+}
+if (!ordFeatureColumns.includes('discount')) {
+  db.exec("ALTER TABLE orders ADD COLUMN discount REAL NOT NULL DEFAULT 0");
+}
+
 // Seed default hero carousel slides if table is empty
 const slideCount = db.prepare('SELECT COUNT(*) as cnt FROM hero_slides').get();
 if (slideCount.cnt === 0) {

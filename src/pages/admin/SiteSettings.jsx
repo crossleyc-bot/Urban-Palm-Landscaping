@@ -60,6 +60,12 @@ export default function SiteSettings() {
   const [uspsSaving, setUspsSaving] = useState(false);
   const [uspsLoaded, setUspsLoaded] = useState(false);
 
+  // Delivery & installation settings
+  const [deliveryFee, setDeliveryFee] = useState('');
+  const [installationFee, setInstallationFee] = useState('');
+  const [deliveryMinimum, setDeliveryMinimum] = useState('');
+  const [deliverySaving, setDeliverySaving] = useState(false);
+
   // Hero carousel state
   const [slides, setSlides] = useState([]);
   const [slideModal, setSlideModal] = useState(null); // null = closed, 'new' or slide object
@@ -94,6 +100,9 @@ export default function SiteSettings() {
       setStripeKeysLoaded(!!s.stripe_secret_key);
       setUspsUserId(s.usps_user_id ? '••••••••' : '');
       setUspsLoaded(!!s.usps_user_id);
+      setDeliveryFee(s.delivery_fee || '');
+      setInstallationFee(s.installation_fee || '');
+      setDeliveryMinimum(s.delivery_minimum || '');
       // Initialize page visibility (default to '1' for all)
       const vis = {};
       for (const p of PAGE_KEYS) vis[p.key] = s[p.key] !== '0' ? '1' : '0';
@@ -659,6 +668,80 @@ export default function SiteSettings() {
             </span>
           )}
         </div>
+      </div>
+
+      {/* ── Delivery & Installation Fees ── */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>Delivery & Installation</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem', lineHeight: 1.6 }}>
+          Set fees for delivery and installation services. Customers can add these at checkout.
+          Leave blank or set to 0 to disable an option.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: 600 }}>
+          <div style={fieldGap}>
+            <label style={labelStyle}>Delivery Fee ($)</label>
+            <input
+              className="table-input"
+              type="number"
+              min="0"
+              step="0.01"
+              value={deliveryFee}
+              onChange={e => setDeliveryFee(e.target.value)}
+              placeholder="e.g. 49.99"
+            />
+          </div>
+          <div style={fieldGap}>
+            <label style={labelStyle}>Minimum Order for Delivery ($)</label>
+            <input
+              className="table-input"
+              type="number"
+              min="0"
+              step="0.01"
+              value={deliveryMinimum}
+              onChange={e => setDeliveryMinimum(e.target.value)}
+              placeholder="e.g. 75.00"
+            />
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+              Delivery option will be disabled if the cart subtotal is below this amount.
+            </span>
+          </div>
+          <div style={fieldGap}>
+            <label style={labelStyle}>Installation Fee ($)</label>
+            <input
+              className="table-input"
+              type="number"
+              min="0"
+              step="0.01"
+              value={installationFee}
+              onChange={e => setInstallationFee(e.target.value)}
+              placeholder="e.g. 99.99"
+            />
+          </div>
+        </div>
+
+        <button
+          className="btn btn-primary"
+          style={{ marginTop: '1rem' }}
+          disabled={deliverySaving}
+          onClick={async () => {
+            setDeliverySaving(true);
+            try {
+              await apiPut('/settings', {
+                delivery_fee: deliveryFee,
+                installation_fee: installationFee,
+                delivery_minimum: deliveryMinimum,
+              });
+              addToast('Delivery & installation settings saved', 'success');
+            } catch (err) {
+              addToast(err.message || 'Failed to save', 'error');
+            } finally {
+              setDeliverySaving(false);
+            }
+          }}
+        >
+          {deliverySaving ? 'Saving...' : 'Save Delivery Settings'}
+        </button>
       </div>
 
       {/* ── Page Visibility ── */}
