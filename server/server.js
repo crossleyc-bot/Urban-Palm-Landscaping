@@ -1311,11 +1311,25 @@ app.put('/api/inventory/:id', (req, res) => {
   const supplierExists = db.prepare('SELECT 1 FROM suppliers WHERE id = ?').get(suppId);
   if (!supplierExists) return res.status(400).json({ error: 'Supplier not found' });
 
+  // Check if item is being put on sale (wasn't on sale before)
+  const prevItem = db.prepare('SELECT on_sale, item_name FROM supplier_inventory WHERE id = ?').get(id);
+
   try {
     const result = db.prepare(
       'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, category_id = ?, unit = ?, unit_cost = ?, retail_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, available = ?, on_sale = ?, sale_price = ?, updated_at = datetime(\'now\') WHERE id = ?'
     ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available, onSale, salePrice, id);
     if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
+
+    // Notify opted-in users when an item goes on sale
+    if (onSale === 1 && prevItem && !prevItem.on_sale && salePrice && retail) {
+      const pctOff = Math.round((1 - salePrice / retail) * 100);
+      notifyOptedInUsers(
+        'sale',
+        `Sale: ${item_name}`,
+        `${item_name} is now ${pctOff}% off! Was $${retail.toFixed(2)}, now $${salePrice.toFixed(2)}.`,
+        '/products'
+      );
+    }
 
     res.json({ success: true, available, on_sale: onSale, sale_price: salePrice });
   } catch (err) {
@@ -1611,10 +1625,23 @@ app.post('/api/coupons', (req, res) => {
   const existing = db.prepare('SELECT id FROM coupons WHERE UPPER(code) = UPPER(?)').get(code);
   if (existing) return res.status(409).json({ error: 'Coupon code already exists' });
 
+  const isActive = active !== false ? 1 : 0;
   const result = db.prepare(
     'INSERT INTO coupons (code, type, value, min_order, max_uses, active, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(code.toUpperCase().trim(), type, value, min_order || 0, max_uses || null, active !== false ? 1 : 0, expires_at || null);
+  ).run(code.toUpperCase().trim(), type, value, min_order || 0, max_uses || null, isActive, expires_at || null);
   const coupon = db.prepare('SELECT * FROM coupons WHERE id = ?').get(result.lastInsertRowid);
+
+  // Notify opted-in customers about the new coupon
+  if (isActive) {
+    const discount = type === 'percentage' ? `${value}%` : `$${Number(value).toFixed(2)}`;
+    notifyOptedInUsers(
+      'promo',
+      `New Coupon: ${discount} Off!`,
+      `Use code ${code.toUpperCase().trim()} to get ${discount} off your order${min_order > 0 ? ` (min. order $${Number(min_order).toFixed(2)})` : ''}.`,
+      '/products'
+    );
+  }
+
   res.status(201).json(coupon);
 });
 
@@ -1883,6 +1910,132 @@ app.delete('/api/resources/:id', (req, res) => {
   if (result.changes === 0) return res.status(404).json({ error: 'Resource not found' });
   res.json({ success: true });
 });
+
+// ─── Announcements ───────────────────────────────────────────────────────────
+
+app.get('/api/announcements', (_req, res) => {
+  const announcements = db.prepare('SELECT * FROM announcements ORDER BY created_at DESC').all();
+  res.json(announcements);
+});
+
+app.get('/api/announcements/active', (_req, res) => {
+  const announcement = db.prepare('SELECT * FROM announcements WHERE active = 1 ORDER BY created_at DESC LIMIT 1').get();
+  res.json(announcement || null);
+});
+
+app.post('/api/announcements', (req, res) => {
+  const { message, link_text, link_url, bg_color, text_color, active } = req.body;
+  if (!message) return res.status(400).json({ error: 'Message is required' });
+  const result = db.prepare(
+    'INSERT INTO announcements (message, link_text, link_url, bg_color, text_color, active) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(message, link_text || null, link_url || null, bg_color || '#166534', text_color || '#ffffff', active !== false ? 1 : 0);
+  const created = db.prepare('SELECT * FROM announcements WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json(created);
+});
+
+app.put('/api/announcements/:id', (req, res) => {
+  const { message, link_text, link_url, bg_color, text_color, active } = req.body;
+  if (!message) return res.status(400).json({ error: 'Message is required' });
+  db.prepare(
+    'UPDATE announcements SET message = ?, link_text = ?, link_url = ?, bg_color = ?, text_color = ?, active = ? WHERE id = ?'
+  ).run(message, link_text || null, link_url || null, bg_color || '#166534', text_color || '#ffffff', active ? 1 : 0, req.params.id);
+  const updated = db.prepare('SELECT * FROM announcements WHERE id = ?').get(req.params.id);
+  res.json(updated);
+});
+
+app.delete('/api/announcements/:id', (req, res) => {
+  db.prepare('DELETE FROM announcements WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
+// ─── Current Deals (public) ─────────────────────────────────────────────────
+
+app.get('/api/deals', (_req, res) => {
+  // Products on sale
+  const saleProducts = db.prepare(`
+    SELECT si.id, si.item_name, si.retail_cost, si.sale_price, si.image, t.name AS category_name
+    FROM supplier_inventory si
+    LEFT JOIN taxonomy t ON si.category_id = t.id
+    WHERE si.on_sale = 1 AND si.available = 1 AND si.sale_price IS NOT NULL
+    ORDER BY si.updated_at DESC
+    LIMIT 8
+  `).all();
+
+  // Active public coupons (non-expired, within usage limits)
+  const coupons = db.prepare(`
+    SELECT code, type, value, min_order, expires_at
+    FROM coupons
+    WHERE active = 1
+      AND (expires_at IS NULL OR expires_at > datetime('now'))
+      AND (max_uses IS NULL OR uses_count < max_uses)
+    ORDER BY created_at DESC
+    LIMIT 4
+  `).all();
+
+  res.json({ saleProducts, coupons });
+});
+
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+app.get('/api/notifications', (req, res) => {
+  const { user_id } = req.query;
+  if (!user_id) return res.status(400).json({ error: 'user_id is required' });
+  const notifications = db.prepare(
+    'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50'
+  ).get ? db.prepare(
+    'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50'
+  ).all(user_id) : [];
+  res.json(notifications);
+});
+
+app.get('/api/notifications/unread-count', (req, res) => {
+  const { user_id } = req.query;
+  if (!user_id) return res.status(400).json({ error: 'user_id is required' });
+  const row = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0').get(user_id);
+  res.json({ count: row.count });
+});
+
+app.put('/api/notifications/:id/read', (req, res) => {
+  db.prepare('UPDATE notifications SET read = 1 WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
+app.put('/api/notifications/read-all', (req, res) => {
+  const { user_id } = req.body;
+  if (!user_id) return res.status(400).json({ error: 'user_id is required' });
+  db.prepare('UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0').run(user_id);
+  res.json({ success: true });
+});
+
+// ─── Notification Helper ─────────────────────────────────────────────────────
+
+function notifyOptedInUsers(type, title, message, link) {
+  // Get all customers who opted in for email or SMS
+  const users = db.prepare(
+    "SELECT id, email, phone, email_opt_in, sms_opt_in FROM users WHERE role = 'customer' AND (email_opt_in = 1 OR sms_opt_in = 1)"
+  ).all();
+
+  const insertNotification = db.prepare(
+    'INSERT INTO notifications (user_id, type, title, message, link) VALUES (?, ?, ?, ?, ?)'
+  );
+  const insertQueue = db.prepare(
+    'INSERT INTO notification_queue (user_id, channel, subject, body) VALUES (?, ?, ?, ?)'
+  );
+
+  for (const user of users) {
+    // In-app notification for all opted-in users
+    insertNotification.run(user.id, type, title, message, link || null);
+
+    // Queue email notification
+    if (user.email_opt_in) {
+      insertQueue.run(user.id, 'email', title, message);
+    }
+    // Queue SMS notification
+    if (user.sms_opt_in && user.phone) {
+      insertQueue.run(user.id, 'sms', null, message);
+    }
+  }
+}
 
 // ─── Start ───────────────────────────────────────────────────────────────────
 

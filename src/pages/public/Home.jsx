@@ -25,11 +25,13 @@ export default function Home() {
   const [services, setServices] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
   const [welcomeVideo, setWelcomeVideo] = useState(null);
+  const [deals, setDeals] = useState({ saleProducts: [], coupons: [] });
   const phone = settings.contact_phone || '(321) 231-2094';
 
   useEffect(() => {
     apiGet('/services').then(setServices);
     apiGet('/testimonials').then(setTestimonials);
+    apiGet('/deals').then(setDeals).catch(() => {});
     apiGet('/settings').then(s => {
       if (s.welcome_video_url) {
         setWelcomeVideo({
@@ -46,6 +48,63 @@ export default function Home() {
       <SEO title="Full-Service Landscaping in Central Florida" description="Professional landscape design, installation, and delivery services for residential and commercial properties in Orlando, Winter Park, and Central Florida." path="/" />
       {/* Hero Carousel */}
       <HeroCarousel />
+
+      {/* Current Deals */}
+      {(deals.saleProducts.length > 0 || deals.coupons.length > 0) && (
+        <section className="section deals-section">
+          <div className="container">
+            <div className="section-header">
+              <span className="section-tag">Current Deals</span>
+              <h2>Special Offers & Promotions</h2>
+              <p>Take advantage of our latest deals on landscaping products.</p>
+            </div>
+
+            {deals.coupons.length > 0 && (
+              <div className="deals-coupons">
+                {deals.coupons.map(c => (
+                  <div key={c.code} className="deal-coupon-card">
+                    <div className="deal-coupon-badge">
+                      {c.type === 'percentage' ? `${c.value}% OFF` : `$${Number(c.value).toFixed(2)} OFF`}
+                    </div>
+                    <div className="deal-coupon-info">
+                      <code className="deal-coupon-code">{c.code}</code>
+                      {c.min_order > 0 && <span className="deal-coupon-min">Min. order ${Number(c.min_order).toFixed(2)}</span>}
+                      {c.expires_at && <span className="deal-coupon-expires">Expires {new Date(c.expires_at).toLocaleDateString()}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {deals.saleProducts.length > 0 && (
+              <div className="deals-products-grid">
+                {deals.saleProducts.map(p => (
+                  <Link to="/products" key={p.id} className="deal-product-card">
+                    {p.image ? (
+                      <img src={p.image} alt={p.item_name} className="deal-product-img" />
+                    ) : (
+                      <div className="deal-product-img deal-product-placeholder">&#127793;</div>
+                    )}
+                    <div className="deal-product-info">
+                      <span className="deal-sale-badge">SALE</span>
+                      <h4>{p.item_name}</h4>
+                      {p.category_name && <span className="deal-product-cat">{p.category_name}</span>}
+                      <div className="deal-product-prices">
+                        <span className="deal-price-old">${Number(p.retail_cost).toFixed(2)}</span>
+                        <span className="deal-price-new">${Number(p.sale_price).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            <div className="section-cta">
+              <Link to="/products" className="btn btn-primary">Shop All Products</Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Welcome Video */}
       {welcomeVideo && (getEmbedUrl(welcomeVideo.url) || isDirectVideo(welcomeVideo.url)) && (

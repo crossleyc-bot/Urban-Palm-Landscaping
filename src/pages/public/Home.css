@@ -470,3 +470,151 @@
   object-fit: contain;
   background: #000;
 }
+
+/* ===================== Current Deals ===================== */
+
+.deals-section {
+  background: var(--color-bg-secondary, #f7fdf9);
+}
+
+.deals-coupons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.deal-coupon-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: var(--color-surface, #fff);
+  border: 2px dashed #16a34a;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  min-width: 220px;
+}
+
+.deal-coupon-badge {
+  background: #166534;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.deal-coupon-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.deal-coupon-code {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: 0.05em;
+}
+
+.deal-coupon-min,
+.deal-coupon-expires {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.deals-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.deal-product-card {
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.deal-product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.deal-product-img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.deal-product-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  background: #f0fdf4;
+}
+
+.deal-product-info {
+  padding: 0.75rem;
+}
+
+.deal-sale-badge {
+  display: inline-block;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+
+.deal-product-info h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 0.2rem;
+  line-height: 1.3;
+}
+
+.deal-product-cat {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.deal-product-prices {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+.deal-price-old {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.deal-price-new {
+  color: #dc2626;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+@media (max-width: 600px) {
+  .deals-coupons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .deals-products-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

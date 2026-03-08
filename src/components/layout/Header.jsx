@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -11,6 +11,57 @@ export default function Header() {
   const { isPageVisible } = useSiteSettings();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const notifRef = useRef(null);
+
+  // Fetch unread notification count for logged-in customers
+  useEffect(() => {
+    if (!user || user.role === 'admin') return;
+    const fetchCount = () => {
+      fetch(`/api/notifications/unread-count?user_id=${user.id}`)
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then(d => setUnreadCount(d.count))
+        .catch(() => {});
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Load notifications when bell is clicked
+  const toggleNotifications = () => {
+    if (!notifOpen && user) {
+      fetch(`/api/notifications?user_id=${user.id}`)
+        .then(r => r.ok ? r.json() : [])
+        .then(setNotifications)
+        .catch(() => {});
+    }
+    setNotifOpen(prev => !prev);
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!notifOpen) return;
+    const handleClick = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [notifOpen]);
+
+  const markAllRead = () => {
+    if (!user) return;
+    fetch('/api/notifications/read-all', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: user.id }),
+    }).then(() => {
+      setUnreadCount(0);
+      setNotifications(prev => prev.map(n => ({ ...n, read: 1 })));
+    }).catch(() => {});
+  };
 
   const isActive = (path) => location.pathname === path ? 'nav-link active' : 'nav-link';
 
@@ -72,6 +123,53 @@ export default function Header() {
             )}
           </div>
         </nav>
+
+        {user && user.role !== 'admin' && (
+          <div className="header-notif-wrapper" ref={notifRef}>
+            <button className="header-notif-bell" onClick={toggleNotifications} aria-label="Notifications">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              {unreadCount > 0 && <span className="header-notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+            </button>
+            {notifOpen && (
+              <div className="header-notif-dropdown">
+                <div className="notif-dropdown-header">
+                  <strong>Notifications</strong>
+                  {unreadCount > 0 && (
+                    <button className="notif-mark-read" onClick={markAllRead}>Mark all read</button>
+                  )}
+                </div>
+                <div className="notif-dropdown-list">
+                  {notifications.length === 0 ? (
+                    <div className="notif-empty">No notifications yet</div>
+                  ) : (
+                    notifications.slice(0, 10).map(n => (
+                      <div key={n.id} className={`notif-item ${n.read ? '' : 'notif-unread'}`}>
+                        <div className="notif-item-icon">
+                          {n.type === 'sale' ? '\u{1F3F7}' : n.type === 'promo' ? '\u{1F381}' : '\u{1F514}'}
+                        </div>
+                        <div className="notif-item-content">
+                          <div className="notif-item-title">{n.title}</div>
+                          <div className="notif-item-msg">{n.message}</div>
+                          <div className="notif-item-time">
+                            {new Date(n.created_at + 'Z').toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                {notifications.length > 0 && (
+                  <Link to="/portal" className="notif-dropdown-footer" onClick={() => setNotifOpen(false)}>
+                    View all in portal
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <Link to="/cart" className="header-cart" aria-label="Shopping cart">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

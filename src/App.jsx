@@ -12,6 +12,7 @@ import Breadcrumbs from './components/ui/Breadcrumbs';
 import ErrorBoundary from './components/ErrorBoundary';
 import ScrollToTop from './components/ScrollToTop';
 import BackToTop from './components/BackToTop';
+import AnnouncementBanner from './components/AnnouncementBanner';
 import NotFound from './pages/NotFound';
 import Spinner from './components/ui/Spinner';
 
@@ -158,6 +159,7 @@ export default function App() {
           <ToastProvider>
             <ErrorBoundary>
             <Header />
+            <AnnouncementBanner />
             <ScrollToTop />
             <BackToTop />
             <Routes>
