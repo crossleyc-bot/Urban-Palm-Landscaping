@@ -69,6 +69,7 @@ export default function ManageSuppliers() {
   };
 
   const deleteSupplier = async (id) => {
+    if (!confirm('Delete this supplier?')) return;
     try {
       await apiDelete(`/suppliers/${id}`);
       setSuppliers(prev => prev.filter(s => s.id !== id));

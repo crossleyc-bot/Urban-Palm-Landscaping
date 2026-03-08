@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiGet, apiPut } from '../../api';
+import { apiGet, apiPut, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonTable } from '../../components/ui/Skeleton';
@@ -44,6 +44,17 @@ export default function ContactMessages() {
   const closeReply = () => {
     setReplyingTo(null);
     setReplyForm({ admin_reply: '', status: 'Replied' });
+  };
+
+  const deleteMessage = async (id) => {
+    if (!confirm('Delete this contact message?')) return;
+    try {
+      await apiDelete(`/contact/${id}`);
+      setMessages(prev => prev.filter(m => m.id !== id));
+      addToast('Message deleted', 'success');
+    } catch {
+      addToast('Failed to delete message', 'error');
+    }
   };
 
   const submitReply = async () => {
@@ -116,9 +127,12 @@ export default function ContactMessages() {
                     <td><span className={statusBadge(m.status || 'New')}>{m.status || 'New'}</span></td>
                     <td>{m.created_at ? new Date(m.created_at).toLocaleDateString() : '\u2014'}</td>
                     <td>
-                      <button className="btn btn-outline btn-sm" onClick={() => openReply(m)}>
-                        {m.admin_reply ? 'View Reply' : 'Reply'}
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                        <button className="btn btn-outline btn-sm" onClick={() => openReply(m)}>
+                          {m.admin_reply ? 'View Reply' : 'Reply'}
+                        </button>
+                        <button className="btn btn-outline btn-sm" style={{ color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => deleteMessage(m.id)}>Delete</button>
+                      </div>
                     </td>
                   </tr>
                 ))

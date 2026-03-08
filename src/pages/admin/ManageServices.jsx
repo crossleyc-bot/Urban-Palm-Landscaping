@@ -171,6 +171,7 @@ export default function ManageServices() {
   };
 
   const deleteService = async (id) => {
+    if (!confirm('Delete this service?')) return;
     try {
       await apiDelete(`/services/${id}`);
       setServices(prev => prev.filter(s => s.id !== id));

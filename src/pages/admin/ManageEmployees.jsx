@@ -179,6 +179,7 @@ export default function ManageEmployees() {
   };
 
   const deleteEmployee = async (empId) => {
+    if (!confirm('Delete this employee?')) return;
     try {
       await apiDelete(`/employees/${empId}`);
       setEmployees(prev => prev.filter(e => e.id !== empId));

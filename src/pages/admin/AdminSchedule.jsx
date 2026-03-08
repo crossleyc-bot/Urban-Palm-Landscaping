@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiGet, apiPut } from '../../api';
+import { apiGet, apiPut, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
@@ -104,6 +104,17 @@ export default function AdminSchedule() {
       addToast('Failed to update job', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteJob = async (jobId) => {
+    if (!confirm('Delete this job?')) return;
+    try {
+      await apiDelete(`/jobs/${jobId}`);
+      setJobs(prev => prev.filter(j => j.id !== jobId));
+      addToast('Job deleted', 'success');
+    } catch {
+      addToast('Failed to delete job', 'error');
     }
   };
 
@@ -277,7 +288,10 @@ export default function AdminSchedule() {
                           </span>
                         </td>
                         <td>
-                          <button className="btn btn-outline btn-sm" onClick={() => startEdit(job)}>Edit</button>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button className="btn btn-outline btn-sm" onClick={() => startEdit(job)}>Edit</button>
+                            <button className="btn btn-outline btn-sm" style={{ color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => deleteJob(job.id)}>Delete</button>
+                          </div>
                         </td>
                       </>
                     )}
