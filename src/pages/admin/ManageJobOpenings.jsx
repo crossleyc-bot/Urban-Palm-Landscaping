@@ -72,7 +72,7 @@ export default function ManageJobOpenings() {
       await apiDelete(`/job-openings/${id}`);
       setOpenings(prev => prev.filter(o => o.id !== id));
       addToast('Job opening deleted', 'success');
-    } catch { addToast('Failed to delete', 'error'); }
+    } catch (err) { addToast(err.message || 'Failed to delete', 'error'); }
   };
 
   if (loading) {

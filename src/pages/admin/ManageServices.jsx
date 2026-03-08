@@ -176,7 +176,7 @@ export default function ManageServices() {
       await apiDelete(`/services/${id}`);
       setServices(prev => prev.filter(s => s.id !== id));
       addToast('Service deleted', 'success');
-    } catch { addToast('Failed to delete service', 'error'); }
+    } catch (err) { addToast(err.message || 'Failed to delete service', 'error'); }
   };
 
   const handleImageUploaded = (serviceId, newImage) => {

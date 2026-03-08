@@ -184,8 +184,8 @@ export default function ManageEmployees() {
       await apiDelete(`/employees/${empId}`);
       setEmployees(prev => prev.filter(e => e.id !== empId));
       addToast('Employee deleted', 'success');
-    } catch {
-      addToast('Failed to delete employee', 'error');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete employee', 'error');
     }
   };
 

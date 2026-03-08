@@ -120,7 +120,7 @@ export default function ManageResources() {
       await apiDelete(`/resources/${id}`);
       setResources(prev => prev.filter(r => r.id !== id));
       addToast('Resource deleted', 'success');
-    } catch { addToast('Failed to delete resource', 'error'); }
+    } catch (err) { addToast(err.message || 'Failed to delete resource', 'error'); }
   };
 
   const togglePublished = async (r) => {

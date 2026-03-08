@@ -113,8 +113,8 @@ export default function AdminSchedule() {
       await apiDelete(`/jobs/${jobId}`);
       setJobs(prev => prev.filter(j => j.id !== jobId));
       addToast('Job deleted', 'success');
-    } catch {
-      addToast('Failed to delete job', 'error');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete job', 'error');
     }
   };
 

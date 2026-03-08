@@ -70,10 +70,14 @@ export async function apiPatch(path, data) {
 }
 
 export async function apiDelete(path) {
-  const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE' });
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'DELETE',
+    headers: { 'Accept': 'application/json' },
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Request failed' }));
     throw new Error(err.error || `API error: ${res.status}`);
   }
-  return res.json();
+  const text = await res.text();
+  return text ? JSON.parse(text) : { success: true };
 }
