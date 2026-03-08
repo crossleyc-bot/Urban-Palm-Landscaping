@@ -100,8 +100,8 @@ export default function HeroCarousel() {
             {slide.headline && <h1>{slide.headline}</h1>}
             {slide.subtext && <p>{slide.subtext}</p>}
             <div className="hero-actions">
-              {slide.cta_label && slide.cta_link && (
-                <Link to={slide.cta_link} className="btn btn-primary btn-lg">
+              {slide.cta_label && (
+                <Link to={slide.cta_link || '/quote'} className="btn btn-primary btn-lg">
                   {slide.cta_label}
                 </Link>
               )}
