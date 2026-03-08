@@ -74,7 +74,7 @@ export default function ManageSuppliers() {
       await apiDelete(`/suppliers/${id}`);
       setSuppliers(prev => prev.filter(s => s.id !== id));
       addToast('Supplier deleted', 'success');
-    } catch { addToast('Failed to delete supplier', 'error'); }
+    } catch (err) { addToast(err.message || 'Failed to delete supplier', 'error'); }
   };
 
   const handleImport = async (e) => {

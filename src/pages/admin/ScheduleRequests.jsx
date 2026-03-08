@@ -103,8 +103,8 @@ export default function ScheduleRequests() {
       await apiDelete(`/schedule/${id}`);
       setRequests(prev => prev.filter(r => r.id !== id));
       addToast('Schedule request deleted', 'success');
-    } catch {
-      addToast('Failed to delete schedule request', 'error');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete schedule request', 'error');
     }
   };
 

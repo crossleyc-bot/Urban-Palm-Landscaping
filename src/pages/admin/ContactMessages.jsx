@@ -52,8 +52,8 @@ export default function ContactMessages() {
       await apiDelete(`/contact/${id}`);
       setMessages(prev => prev.filter(m => m.id !== id));
       addToast('Message deleted', 'success');
-    } catch {
-      addToast('Failed to delete message', 'error');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete message', 'error');
     }
   };
 

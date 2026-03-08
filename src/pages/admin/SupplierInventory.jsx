@@ -142,7 +142,7 @@ export default function SupplierInventory() {
       await apiDelete(`/inventory/${id}`);
       setItems(prev => prev.filter(i => i.id !== id));
       addToast('Item deleted', 'success');
-    } catch { addToast('Failed to delete item', 'error'); }
+    } catch (err) { addToast(err.message || 'Failed to delete item', 'error'); }
   };
 
   const handleImportCSV = async (e) => {

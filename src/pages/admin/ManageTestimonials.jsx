@@ -50,8 +50,8 @@ export default function ManageTestimonials() {
       await apiDelete(`/testimonials/${t.id}`);
       setTestimonials(prev => prev.filter(x => x.id !== t.id));
       addToast('Testimonial deleted', 'success');
-    } catch {
-      addToast('Failed to delete', 'error');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete', 'error');
     }
   };
 

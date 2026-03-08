@@ -237,8 +237,8 @@ export default function ManageTaxonomy() {
       setNodes(prev => prev.filter(n => !idsToRemove.has(n.id)));
       setConfirmDelete(null);
       addToast('Deleted', 'success');
-    } catch {
-      addToast('Failed to delete', 'error');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete', 'error');
     }
   };
 

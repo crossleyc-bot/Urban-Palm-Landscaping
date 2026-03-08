@@ -135,8 +135,8 @@ export default function QuoteRequests() {
       setQuotes(prev => prev.filter(q => q.id !== id));
       closeModal();
       addToast('Quote request deleted', 'success');
-    } catch {
-      addToast('Failed to delete', 'error');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete', 'error');
     }
   };
 
