@@ -114,7 +114,12 @@ export default function Login() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-header">
-          <span className="login-logo">&#9752;</span>
+          <span className="login-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3c-1.2 5-4 8-8 10 3.5.5 6.5 0 8-2v12" />
+              <path d="M12 3c1.2 5 4 8 8 10-3.5.5-6.5 0-8-2" />
+            </svg>
+          </span>
           <h1>{mode === 'login' ? 'Welcome Back' : 'Create Account'}</h1>
           <p>{mode === 'login' ? 'Sign in to your Urban Palm account' : 'Join Urban Palm to request quotes and track your projects'}</p>
         </div>
