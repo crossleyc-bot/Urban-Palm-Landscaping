@@ -160,7 +160,8 @@ function CustomerSection({ onReady }) {
     e.preventDefault();
     setError('');
     if (password !== confirmPassword) { setError('Passwords do not match'); return; }
-    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
+    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) { setError('Password must include uppercase, lowercase, number, and special character'); return; }
     setLoading(true);
     try {
       const u = await register({ name, email, password });
@@ -268,7 +269,7 @@ function CustomerSection({ onReady }) {
           </div>
           <div className="form-group">
             <label htmlFor="reg-password">Password</label>
-            <input id="reg-password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" required minLength={6} />
+            <input id="reg-password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 chars, upper, lower, number, special" required minLength={8} />
           </div>
           <div className="form-group">
             <label htmlFor="reg-confirm">Confirm Password</label>

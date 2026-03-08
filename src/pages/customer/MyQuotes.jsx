@@ -33,7 +33,7 @@ export default function MyQuotes() {
   const respondToQuote = async (quote, newStatus) => {
     setResponding(true);
     try {
-      const updated = await apiPut(`/quotes/${quote.id}/respond`, { status: newStatus, user_id: user.id });
+      const updated = await apiPut(`/quotes/${quote.id}/respond`, { status: newStatus });
       setQuotes(prev => prev.map(q => q.id === quote.id ? updated : q));
       setSelected(updated);
     } catch { /* silently fail */ }
@@ -42,7 +42,7 @@ export default function MyQuotes() {
 
   useEffect(() => {
     if (user) {
-      apiGet(`/my-quotes?user_id=${user.id}`)
+      apiGet('/my-quotes')
         .then(setQuotes)
         .finally(() => setLoading(false));
     }

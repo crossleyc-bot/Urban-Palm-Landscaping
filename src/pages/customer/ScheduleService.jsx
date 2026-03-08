@@ -35,7 +35,6 @@ export default function ScheduleService() {
     setSubmitting(true);
     try {
       await apiPost('/schedule', {
-        user_id: user.id,
         service: form.service.value,
         date: form.date.value,
         time: form.time.value,

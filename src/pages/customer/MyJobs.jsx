@@ -27,7 +27,7 @@ export default function MyJobs() {
 
   useEffect(() => {
     if (user) {
-      apiGet(`/jobs?user_id=${user.id}`)
+      apiGet('/jobs')
         .then(setJobs)
         .finally(() => setLoading(false));
     }

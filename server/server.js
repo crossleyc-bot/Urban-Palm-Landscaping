@@ -3,12 +3,79 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import multer from 'multer';
 import Stripe from 'stripe';
 import { fileURLToPath } from 'url';
 import { dirname, join, extname } from 'path';
-import { existsSync, mkdirSync, unlinkSync, readFileSync } from 'fs';
+import { existsSync, mkdirSync, unlinkSync, readFileSync, writeFileSync } from 'fs';
 import db from './db.js';
+
+// ─── JWT Configuration ──────────────────────────────────────────────────────
+const JWT_SECRET_PATH = join(dirname(fileURLToPath(import.meta.url)), '.jwt-secret');
+function getJwtSecret() {
+  if (existsSync(JWT_SECRET_PATH)) {
+    return readFileSync(JWT_SECRET_PATH, 'utf-8').trim();
+  }
+  const secret = crypto.randomBytes(64).toString('hex');
+  writeFileSync(JWT_SECRET_PATH, secret, { mode: 0o600 });
+  return secret;
+}
+const JWT_SECRET = getJwtSecret();
+const JWT_EXPIRES_IN = '7d';
+
+function generateToken(user) {
+  return jwt.sign(
+    { id: user.id, email: user.email, role: user.role },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+}
+
+// ─── Auth Middleware ─────────────────────────────────────────────────────────
+// Verifies JWT and attaches req.user = { id, email, role }
+function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  const token = authHeader.slice(7);
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+}
+
+// Requires the authenticated user to be an admin
+function requireAdmin(req, res, next) {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+}
+
+// ─── Password Policy ────────────────────────────────────────────────────────
+function validatePassword(password) {
+  if (!password || password.length < 8) {
+    return 'Password must be at least 8 characters';
+  }
+  if (!/[A-Z]/.test(password)) {
+    return 'Password must contain at least one uppercase letter';
+  }
+  if (!/[a-z]/.test(password)) {
+    return 'Password must contain at least one lowercase letter';
+  }
+  if (!/[0-9]/.test(password)) {
+    return 'Password must contain at least one number';
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return 'Password must contain at least one special character';
+  }
+  return null;
+}
 
 // ─── Stripe helper ───────────────────────────────────────────────────────────
 function getStripeInstance() {
@@ -101,7 +168,8 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
-  res.json({ id: user.id, email: user.email, name: user.name, role: user.role });
+  const token = generateToken(user);
+  res.json({ id: user.id, email: user.email, name: user.name, role: user.role, token });
 });
 
 app.post('/api/auth/register', (req, res) => {
@@ -114,6 +182,12 @@ app.post('/api/auth/register', (req, res) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     return res.status(400).json({ error: 'Please enter a valid email address' });
+  }
+
+  // Enforce password policy
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return res.status(400).json({ error: passwordError });
   }
 
   // Validate phone if provided
@@ -139,7 +213,9 @@ app.post('/api/auth/register', (req, res) => {
     'INSERT INTO users (email, password_hash, name, role, phone, address, sms_opt_in, email_opt_in) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(email, hash, name, 'customer', phone || null, address || null, sms_opt_in ? 1 : 0, email_opt_in ? 1 : 0);
 
-  res.status(201).json({ id: result.lastInsertRowid, email, name, role: 'customer', phone: phone || null, address: address || null, sms_opt_in: !!sms_opt_in, email_opt_in: !!email_opt_in });
+  const newUser = { id: result.lastInsertRowid, email, name, role: 'customer' };
+  const token = generateToken(newUser);
+  res.status(201).json({ id: newUser.id, email, name, role: 'customer', phone: phone || null, address: address || null, sms_opt_in: !!sms_opt_in, email_opt_in: !!email_opt_in, token });
 });
 
 // ─── USPS Address Validation ─────────────────────────────────────────────────
@@ -201,52 +277,53 @@ function escapeXml(str) {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// ─── Account ────────────────────────────────────────────────────────────────
+// ─── Account (requires authentication) ──────────────────────────────────────
 
-app.put('/api/account/password', (req, res) => {
-  const { user_id, current_password, new_password } = req.body;
-  if (!user_id || !current_password || !new_password) {
-    return res.status(400).json({ error: 'All fields are required' });
+app.put('/api/account/password', requireAuth, (req, res) => {
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password) {
+    return res.status(400).json({ error: 'Current password and new password are required' });
   }
-  if (new_password.length < 6) {
-    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  const passwordError = validatePassword(new_password);
+  if (passwordError) {
+    return res.status(400).json({ error: passwordError });
   }
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(user_id);
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
   if (!bcrypt.compareSync(current_password, user.password_hash)) {
     return res.status(401).json({ error: 'Current password is incorrect' });
   }
   const hash = bcrypt.hashSync(new_password, 10);
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, user_id);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.user.id);
   res.json({ success: true });
 });
 
-app.put('/api/account/profile', (req, res) => {
-  const { user_id, name, email } = req.body;
-  if (!user_id || !name || !email) {
+app.put('/api/account/profile', requireAuth, (req, res) => {
+  const { name, email } = req.body;
+  if (!name || !email) {
     return res.status(400).json({ error: 'Name and email are required' });
   }
-  const existing = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, user_id);
+  const existing = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, req.user.id);
   if (existing) return res.status(400).json({ error: 'Email already in use' });
-  db.prepare('UPDATE users SET name = ?, email = ? WHERE id = ?').run(name, email, user_id);
-  res.json({ id: user_id, name, email });
+  db.prepare('UPDATE users SET name = ?, email = ? WHERE id = ?').run(name, email, req.user.id);
+  res.json({ id: req.user.id, name, email });
 });
 
-// ─── Site Settings ──────────────────────────────────────────────────────────
+// ─── Site Settings (admin only) ─────────────────────────────────────────────
 
-app.get('/api/settings', (req, res) => {
+app.get('/api/settings', requireAuth, requireAdmin, (req, res) => {
   const rows = db.prepare('SELECT key, value FROM site_settings').all();
   const settings = {};
   for (const r of rows) settings[r.key] = r.value;
   res.json(settings);
 });
 
-app.get('/api/settings/:key', (req, res) => {
+app.get('/api/settings/:key', requireAuth, requireAdmin, (req, res) => {
   const row = db.prepare('SELECT value FROM site_settings WHERE key = ?').get(req.params.key);
   res.json({ value: row ? row.value : null });
 });
 
-app.put('/api/settings', (req, res) => {
+app.put('/api/settings', requireAuth, requireAdmin, (req, res) => {
   const entries = req.body;
   if (!entries || typeof entries !== 'object') return res.status(400).json({ error: 'Invalid settings data' });
 
@@ -264,7 +341,7 @@ app.put('/api/settings', (req, res) => {
 
 const settingsVideoUpload = (req, _res, next) => { req.uploadDir = 'videos'; next(); };
 
-app.post('/api/settings/upload-video', settingsVideoUpload, videoUpload.single('video'), (req, res) => {
+app.post('/api/settings/upload-video', requireAuth, requireAdmin, settingsVideoUpload, videoUpload.single('video'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Video file is required. Accepted formats: .mp4, .webm, .mov, .ogg (max 100MB).' });
 
   // Delete old uploaded video if one exists
@@ -282,7 +359,7 @@ app.post('/api/settings/upload-video', settingsVideoUpload, videoUpload.single('
   res.json({ success: true, url: videoPath });
 });
 
-app.delete('/api/settings/video', (req, res) => {
+app.delete('/api/settings/video', requireAuth, requireAdmin, (req, res) => {
   const existing = db.prepare("SELECT value FROM site_settings WHERE key = 'welcome_video_url'").get();
   if (existing && existing.value && existing.value.startsWith('/uploads/videos/')) {
     try { unlinkSync(join(__dirname, existing.value.replace(/^\//, ''))); } catch { /* ignore */ }
@@ -306,7 +383,7 @@ app.get('/api/hero-slides', (req, res) => {
   res.json(slides);
 });
 
-app.post('/api/hero-slides', carouselUpload, upload.single('image'), (req, res) => {
+app.post('/api/hero-slides', requireAuth, requireAdmin, carouselUpload, upload.single('image'), (req, res) => {
   const { badge, headline, subtext, cta_label, cta_link, cta2_label, cta2_link, sort_order } = req.body;
   if (!req.file) return res.status(400).json({ error: 'Image is required' });
 
@@ -319,7 +396,7 @@ app.post('/api/hero-slides', carouselUpload, upload.single('image'), (req, res) 
   res.status(201).json(slide);
 });
 
-app.put('/api/hero-slides/:id', carouselUpload, upload.single('image'), (req, res) => {
+app.put('/api/hero-slides/:id', requireAuth, requireAdmin, carouselUpload, upload.single('image'), (req, res) => {
   const { id } = req.params;
   const existing = db.prepare('SELECT * FROM hero_slides WHERE id = ?').get(id);
   if (!existing) return res.status(404).json({ error: 'Slide not found' });
@@ -341,7 +418,7 @@ app.put('/api/hero-slides/:id', carouselUpload, upload.single('image'), (req, re
   res.json(updated);
 });
 
-app.patch('/api/hero-slides/:id', (req, res) => {
+app.patch('/api/hero-slides/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const existing = db.prepare('SELECT * FROM hero_slides WHERE id = ?').get(id);
   if (!existing) return res.status(404).json({ error: 'Slide not found' });
@@ -354,7 +431,7 @@ app.patch('/api/hero-slides/:id', (req, res) => {
   res.json(updated);
 });
 
-app.delete('/api/hero-slides/:id', (req, res) => {
+app.delete('/api/hero-slides/:id', requireAuth, requireAdmin, (req, res) => {
   const existing = db.prepare('SELECT * FROM hero_slides WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Slide not found' });
 
@@ -381,7 +458,7 @@ app.get('/api/services', (req, res) => {
   res.json(services.map(s => ({ ...s, images: imageMap.get(s.id) || [] })));
 });
 
-app.post('/api/services', serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
+app.post('/api/services', requireAuth, requireAdmin, serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
   const { name, description, price, icon, on_sale, sale_label } = req.body;
   if (!name) return res.status(400).json({ error: 'Service name is required' });
 
@@ -396,7 +473,7 @@ app.post('/api/services', serviceUpload, upload.fields([{ name: 'image_before', 
   res.status(201).json({ id: result.lastInsertRowid, name, description, price, icon, image_before: imageBefore, image_after: imageAfter });
 });
 
-app.put('/api/services/:id', serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
+app.put('/api/services/:id', requireAuth, requireAdmin, serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
   const { id } = req.params;
   const { name, description, price, icon, on_sale, sale_label } = req.body;
   if (!name) return res.status(400).json({ error: 'Service name is required' });
@@ -428,7 +505,7 @@ app.put('/api/services/:id', serviceUpload, upload.fields([{ name: 'image_before
   res.json({ success: true, image_before: imageBefore, image_after: imageAfter });
 });
 
-app.delete('/api/services/:id', (req, res) => {
+app.delete('/api/services/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const existing = db.prepare('SELECT image_before, image_after FROM services WHERE id = ?').get(id);
   const extraImages = db.prepare('SELECT image_before, image_after FROM service_images WHERE service_id = ?').all(id);
@@ -447,7 +524,7 @@ app.delete('/api/services/:id', (req, res) => {
 
 // ─── Service Images ─────────────────────────────────────────────────────────
 
-app.post('/api/services/:serviceId/images', serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
+app.post('/api/services/:serviceId/images', requireAuth, requireAdmin, serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
   const { serviceId } = req.params;
   const service = db.prepare('SELECT id FROM services WHERE id = ?').get(serviceId);
   if (!service) return res.status(404).json({ error: 'Service not found' });
@@ -467,7 +544,7 @@ app.post('/api/services/:serviceId/images', serviceUpload, upload.fields([{ name
   res.status(201).json({ id: result.lastInsertRowid, service_id: Number(serviceId), image_before: imageBefore, image_after: imageAfter, sort_order: sortOrder });
 });
 
-app.delete('/api/service-images/:id', (req, res) => {
+app.delete('/api/service-images/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const existing = db.prepare('SELECT image_before, image_after FROM service_images WHERE id = ?').get(id);
   if (!existing) return res.status(404).json({ error: 'Image not found' });
@@ -495,21 +572,21 @@ app.get('/api/testimonials', (req, res) => {
   res.json(testimonials);
 });
 
-app.post('/api/testimonials', (req, res) => {
+app.post('/api/testimonials', requireAuth, requireAdmin, (req, res) => {
   const { name, text, rating } = req.body;
   if (!name || !text || !rating) return res.status(400).json({ error: 'Name, text, and rating are required' });
   const result = db.prepare('INSERT INTO testimonials (name, text, rating) VALUES (?, ?, ?)').run(name, text, Number(rating));
   res.status(201).json({ id: result.lastInsertRowid, name, text, rating: Number(rating) });
 });
 
-app.put('/api/testimonials/:id', (req, res) => {
+app.put('/api/testimonials/:id', requireAuth, requireAdmin, (req, res) => {
   const { name, text, rating } = req.body;
   if (!name || !text || !rating) return res.status(400).json({ error: 'Name, text, and rating are required' });
   db.prepare('UPDATE testimonials SET name = ?, text = ?, rating = ? WHERE id = ?').run(name, text, Number(rating), req.params.id);
   res.json({ id: Number(req.params.id), name, text, rating: Number(rating) });
 });
 
-app.delete('/api/testimonials/:id', (req, res) => {
+app.delete('/api/testimonials/:id', requireAuth, requireAdmin, (req, res) => {
   const result = db.prepare('DELETE FROM testimonials WHERE id = ?').run(req.params.id);
   if (result.changes === 0) return res.status(404).json({ error: 'Testimonial not found' });
   res.json({ success: true });
@@ -517,13 +594,19 @@ app.delete('/api/testimonials/:id', (req, res) => {
 
 // ─── Jobs ────────────────────────────────────────────────────────────────────
 
-app.get('/api/jobs', (req, res) => {
-  const userId = req.query.user_id;
+app.get('/api/jobs', requireAuth, (req, res) => {
   let jobs;
-  if (userId) {
-    jobs = db.prepare('SELECT j.*, u.name AS user_name FROM jobs j LEFT JOIN users u ON j.user_id = u.id WHERE j.user_id = ?').all(userId);
+  if (req.user.role === 'admin') {
+    // Admin can see all jobs, or filter by user_id
+    const userId = req.query.user_id;
+    if (userId) {
+      jobs = db.prepare('SELECT j.*, u.name AS user_name FROM jobs j LEFT JOIN users u ON j.user_id = u.id WHERE j.user_id = ?').all(userId);
+    } else {
+      jobs = db.prepare('SELECT j.*, u.name AS user_name FROM jobs j LEFT JOIN users u ON j.user_id = u.id').all();
+    }
   } else {
-    jobs = db.prepare('SELECT j.*, u.name AS user_name FROM jobs j LEFT JOIN users u ON j.user_id = u.id').all();
+    // Customers can only see their own jobs
+    jobs = db.prepare('SELECT j.*, u.name AS user_name FROM jobs j LEFT JOIN users u ON j.user_id = u.id WHERE j.user_id = ?').all(req.user.id);
   }
   res.json(jobs.map(j => ({
     id: j.job_id,
@@ -541,7 +624,7 @@ app.get('/api/jobs', (req, res) => {
   })));
 });
 
-app.post('/api/jobs', (req, res) => {
+app.post('/api/jobs', requireAuth, requireAdmin, (req, res) => {
   const { client, service, assignee, date, status, quote_id, schedule_id, user_id, address, amount } = req.body;
   if (!client || !service || !date) {
     return res.status(400).json({ error: 'Client, service, and date are required' });
@@ -567,7 +650,7 @@ app.post('/api/jobs', (req, res) => {
   res.status(201).json({ id: jobId, client, service, assignee: assignee || 'Unassigned', date, status: status || 'Scheduled', quote_id, schedule_id, user_id, address, amount });
 });
 
-app.put('/api/jobs/:jobId/status', (req, res) => {
+app.put('/api/jobs/:jobId/status', requireAuth, requireAdmin, (req, res) => {
   const { jobId } = req.params;
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'Status is required' });
@@ -578,7 +661,7 @@ app.put('/api/jobs/:jobId/status', (req, res) => {
   res.json({ success: true });
 });
 
-app.put('/api/jobs/:jobId', (req, res) => {
+app.put('/api/jobs/:jobId', requireAuth, requireAdmin, (req, res) => {
   const { jobId } = req.params;
   const { client, service, assignee, date, status, address, amount } = req.body;
   if (!client || !service || !date) {
@@ -593,7 +676,7 @@ app.put('/api/jobs/:jobId', (req, res) => {
   res.json({ success: true });
 });
 
-app.delete('/api/jobs/:jobId', (req, res) => {
+app.delete('/api/jobs/:jobId', requireAuth, requireAdmin, (req, res) => {
   const result = db.prepare('DELETE FROM jobs WHERE job_id = ?').run(req.params.jobId);
   if (result.changes === 0) return res.status(404).json({ error: 'Job not found' });
   res.json({ success: true });
@@ -603,7 +686,7 @@ app.delete('/api/jobs/:jobId', (req, res) => {
 
 const employeeUpload = (req, _res, next) => { req.uploadDir = 'employees'; next(); };
 
-app.get('/api/employees', (req, res) => {
+app.get('/api/employees', requireAuth, requireAdmin, (req, res) => {
   const employees = db.prepare('SELECT * FROM employees').all();
   res.json(employees.map(e => ({
     id: e.emp_id,
@@ -627,7 +710,7 @@ app.get('/api/employees/featured', (req, res) => {
   })));
 });
 
-app.post('/api/employees', employeeUpload, upload.single('image'), (req, res) => {
+app.post('/api/employees', requireAuth, requireAdmin, employeeUpload, upload.single('image'), (req, res) => {
   const { name, role, phone, email, status, show_on_website } = req.body;
   if (!name || !role) return res.status(400).json({ error: 'Name and role are required' });
 
@@ -644,7 +727,7 @@ app.post('/api/employees', employeeUpload, upload.single('image'), (req, res) =>
   res.status(201).json({ id: empId, name, role, phone, email, image, status: status || 'Active', show_on_website: showOnWeb });
 });
 
-app.put('/api/employees/:empId', employeeUpload, upload.single('image'), (req, res) => {
+app.put('/api/employees/:empId', requireAuth, requireAdmin, employeeUpload, upload.single('image'), (req, res) => {
   const { empId } = req.params;
   const { name, role, phone, email, status, show_on_website } = req.body;
   if (!name || !role) return res.status(400).json({ error: 'Name and role are required' });
@@ -671,7 +754,7 @@ app.put('/api/employees/:empId', employeeUpload, upload.single('image'), (req, r
   res.json({ success: true, image, show_on_website: showOnWeb });
 });
 
-app.delete('/api/employees/:empId', (req, res) => {
+app.delete('/api/employees/:empId', requireAuth, requireAdmin, (req, res) => {
   const { empId } = req.params;
   const existing = db.prepare('SELECT image FROM employees WHERE emp_id = ?').get(empId);
   const result = db.prepare('DELETE FROM employees WHERE emp_id = ?').run(empId);
@@ -688,13 +771,17 @@ app.delete('/api/employees/:empId', (req, res) => {
 
 // ─── Invoices ────────────────────────────────────────────────────────────────
 
-app.get('/api/invoices', (req, res) => {
-  const userId = req.query.user_id;
+app.get('/api/invoices', requireAuth, (req, res) => {
   let invoices;
-  if (userId) {
-    invoices = db.prepare('SELECT * FROM invoices WHERE user_id = ?').all(userId);
+  if (req.user.role === 'admin') {
+    const userId = req.query.user_id;
+    if (userId) {
+      invoices = db.prepare('SELECT * FROM invoices WHERE user_id = ?').all(userId);
+    } else {
+      invoices = db.prepare('SELECT * FROM invoices').all();
+    }
   } else {
-    invoices = db.prepare('SELECT * FROM invoices').all();
+    invoices = db.prepare('SELECT * FROM invoices WHERE user_id = ?').all(req.user.id);
   }
   res.json(invoices.map(i => ({
     id: i.inv_id,
@@ -711,7 +798,7 @@ app.get('/api/invoices', (req, res) => {
   })));
 });
 
-app.post('/api/invoices', (req, res) => {
+app.post('/api/invoices', requireAuth, requireAdmin, (req, res) => {
   const { client, amount, date, due_date, status, job_id, user_id } = req.body;
   if (!client || amount == null) return res.status(400).json({ error: 'Client and amount are required' });
 
@@ -728,7 +815,7 @@ app.post('/api/invoices', (req, res) => {
   res.status(201).json({ id: invId, client, amount, date: invoiceDate, dueDate, status: status || 'Pending', job_id, user_id });
 });
 
-app.put('/api/invoices/:invId', (req, res) => {
+app.put('/api/invoices/:invId', requireAuth, requireAdmin, (req, res) => {
   const { invId } = req.params;
   const { client, amount, date, due_date, status } = req.body;
   if (!client || amount == null || !status) return res.status(400).json({ error: 'Client, amount, and status are required' });
@@ -748,7 +835,7 @@ app.get('/api/stripe/public-key', (_req, res) => {
 });
 
 // ─── Create Stripe PaymentIntent ─────────────────────────────────────────────
-app.post('/api/invoices/:invId/create-payment-intent', async (req, res) => {
+app.post('/api/invoices/:invId/create-payment-intent', requireAuth, async (req, res) => {
   const { invId } = req.params;
 
   const invoice = db.prepare('SELECT * FROM invoices WHERE inv_id = ?').get(invId);
@@ -772,7 +859,7 @@ app.post('/api/invoices/:invId/create-payment-intent', async (req, res) => {
 });
 
 // ─── Confirm payment (after Stripe succeeds on the client) ───────────────────
-app.post('/api/invoices/:invId/confirm-payment', async (req, res) => {
+app.post('/api/invoices/:invId/confirm-payment', requireAuth, async (req, res) => {
   const { invId } = req.params;
   const { payment_intent_id } = req.body;
 
@@ -826,12 +913,12 @@ app.post('/api/contact', (req, res) => {
   res.status(201).json({ success: true });
 });
 
-app.get('/api/contact', (req, res) => {
+app.get('/api/contact', requireAuth, requireAdmin, (req, res) => {
   const messages = db.prepare('SELECT * FROM contact_messages ORDER BY created_at DESC').all();
   res.json(messages);
 });
 
-app.put('/api/contact/:id/reply', (req, res) => {
+app.put('/api/contact/:id/reply', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const { admin_reply, status } = req.body;
   if (!admin_reply || !status) return res.status(400).json({ error: 'Reply and status are required' });
@@ -844,7 +931,7 @@ app.put('/api/contact/:id/reply', (req, res) => {
   res.json({ success: true });
 });
 
-app.delete('/api/contact/:id', (req, res) => {
+app.delete('/api/contact/:id', requireAuth, requireAdmin, (req, res) => {
   const result = db.prepare('DELETE FROM contact_messages WHERE id = ?').run(req.params.id);
   if (result.changes === 0) return res.status(404).json({ error: 'Message not found' });
   res.json({ success: true });
@@ -868,28 +955,27 @@ app.post('/api/quotes', (req, res) => {
   res.status(201).json({ success: true });
 });
 
-app.get('/api/quotes', (req, res) => {
+app.get('/api/quotes', requireAuth, requireAdmin, (req, res) => {
   const quotes = db.prepare('SELECT q.*, u.name AS user_name, u.email AS user_email FROM quote_requests q LEFT JOIN users u ON q.user_id = u.id ORDER BY q.created_at DESC').all();
   res.json(quotes);
 });
 
 // Customer approve / decline a quote they own
-app.put('/api/quotes/:id/respond', (req, res) => {
+app.put('/api/quotes/:id/respond', requireAuth, (req, res) => {
   const { id } = req.params;
-  const { status, user_id } = req.body;
+  const { status } = req.body;
   if (!['Approved', 'Declined'].includes(status)) return res.status(400).json({ error: 'Status must be Approved or Declined' });
-  if (!user_id) return res.status(400).json({ error: 'user_id is required' });
 
   const quote = db.prepare('SELECT * FROM quote_requests WHERE id = ?').get(id);
   if (!quote) return res.status(404).json({ error: 'Quote not found' });
-  if (quote.user_id !== Number(user_id)) return res.status(403).json({ error: 'Not authorized' });
+  if (quote.user_id !== req.user.id) return res.status(403).json({ error: 'Not authorized' });
 
   db.prepare('UPDATE quote_requests SET status = ? WHERE id = ?').run(status, id);
   const updated = db.prepare('SELECT * FROM quote_requests WHERE id = ?').get(id);
   res.json(updated);
 });
 
-app.put('/api/quotes/:id/reply', (req, res) => {
+app.put('/api/quotes/:id/reply', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const { admin_reply, status } = req.body;
   if (!admin_reply || !status) return res.status(400).json({ error: 'Reply and status are required' });
@@ -902,7 +988,7 @@ app.put('/api/quotes/:id/reply', (req, res) => {
   res.json({ success: true });
 });
 
-app.put('/api/quotes/:id', (req, res) => {
+app.put('/api/quotes/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const { service, property_type, timeline, budget, details, address, status, admin_reply } = req.body;
   if (!service || !details || !address) return res.status(400).json({ error: 'Service, details, and address are required' });
@@ -916,7 +1002,7 @@ app.put('/api/quotes/:id', (req, res) => {
   res.json(updated);
 });
 
-app.delete('/api/quotes/:id', (req, res) => {
+app.delete('/api/quotes/:id', requireAuth, requireAdmin, (req, res) => {
   const result = db.prepare('DELETE FROM quote_requests WHERE id = ?').run(req.params.id);
   if (result.changes === 0) return res.status(404).json({ error: 'Quote request not found' });
   res.json({ success: true });
@@ -924,31 +1010,35 @@ app.delete('/api/quotes/:id', (req, res) => {
 
 // ─── Schedule Requests ───────────────────────────────────────────────────────
 
-app.post('/api/schedule', (req, res) => {
-  const { user_id, service, date, time, frequency, address, notes } = req.body;
+app.post('/api/schedule', requireAuth, (req, res) => {
+  const { service, date, time, frequency, address, notes } = req.body;
   if (!service || !date || !address) {
     return res.status(400).json({ error: 'Service, date, and address are required' });
   }
 
   db.prepare(
     'INSERT INTO schedule_requests (user_id, service, date, time, frequency, address, notes) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(user_id || null, service, date, time || null, frequency || null, address, notes || null);
+  ).run(req.user.id, service, date, time || null, frequency || null, address, notes || null);
 
   res.status(201).json({ success: true });
 });
 
-app.get('/api/schedule', (req, res) => {
-  const userId = req.query.user_id;
+app.get('/api/schedule', requireAuth, (req, res) => {
   let requests;
-  if (userId) {
-    requests = db.prepare('SELECT s.*, u.name AS user_name FROM schedule_requests s LEFT JOIN users u ON s.user_id = u.id WHERE s.user_id = ? ORDER BY s.created_at DESC').all(userId);
+  if (req.user.role === 'admin') {
+    const userId = req.query.user_id;
+    if (userId) {
+      requests = db.prepare('SELECT s.*, u.name AS user_name FROM schedule_requests s LEFT JOIN users u ON s.user_id = u.id WHERE s.user_id = ? ORDER BY s.created_at DESC').all(userId);
+    } else {
+      requests = db.prepare('SELECT s.*, u.name AS user_name FROM schedule_requests s LEFT JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC').all();
+    }
   } else {
-    requests = db.prepare('SELECT s.*, u.name AS user_name FROM schedule_requests s LEFT JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC').all();
+    requests = db.prepare('SELECT s.*, u.name AS user_name FROM schedule_requests s LEFT JOIN users u ON s.user_id = u.id WHERE s.user_id = ? ORDER BY s.created_at DESC').all(req.user.id);
   }
   res.json(requests);
 });
 
-app.put('/api/schedule/:id', (req, res) => {
+app.put('/api/schedule/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'Status is required' });
@@ -959,28 +1049,26 @@ app.put('/api/schedule/:id', (req, res) => {
   res.json({ success: true });
 });
 
-app.delete('/api/schedule/:id', (req, res) => {
+app.delete('/api/schedule/:id', requireAuth, requireAdmin, (req, res) => {
   const result = db.prepare('DELETE FROM schedule_requests WHERE id = ?').run(req.params.id);
   if (result.changes === 0) return res.status(404).json({ error: 'Schedule request not found' });
   res.json({ success: true });
 });
 
-// Customer-facing quotes (filtered by user)
-app.get('/api/my-quotes', (req, res) => {
-  const userId = req.query.user_id;
-  if (!userId) return res.status(400).json({ error: 'user_id is required' });
-  const quotes = db.prepare('SELECT * FROM quote_requests WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+// Customer-facing quotes (filtered by authenticated user)
+app.get('/api/my-quotes', requireAuth, (req, res) => {
+  const quotes = db.prepare('SELECT * FROM quote_requests WHERE user_id = ? ORDER BY created_at DESC').all(req.user.id);
   res.json(quotes);
 });
 
 // ─── Suppliers ──────────────────────────────────────────────────────────────
 
-app.get('/api/suppliers', (req, res) => {
+app.get('/api/suppliers', requireAuth, requireAdmin, (req, res) => {
   const suppliers = db.prepare('SELECT * FROM suppliers ORDER BY name').all();
   res.json(suppliers);
 });
 
-app.post('/api/suppliers', (req, res) => {
+app.post('/api/suppliers', requireAuth, requireAdmin, (req, res) => {
   const { name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status } = req.body;
   if (!name) return res.status(400).json({ error: 'Supplier name is required' });
 
@@ -991,7 +1079,7 @@ app.post('/api/suppliers', (req, res) => {
   res.status(201).json({ id: result.lastInsertRowid, name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status: status || 'Active' });
 });
 
-app.put('/api/suppliers/:id', (req, res) => {
+app.put('/api/suppliers/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const { name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status } = req.body;
   if (!name) return res.status(400).json({ error: 'Supplier name is required' });
@@ -1004,7 +1092,7 @@ app.put('/api/suppliers/:id', (req, res) => {
   res.json({ success: true });
 });
 
-app.delete('/api/suppliers/:id', (req, res) => {
+app.delete('/api/suppliers/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const result = db.prepare('DELETE FROM suppliers WHERE id = ?').run(id);
   if (result.changes === 0) return res.status(404).json({ error: 'Supplier not found' });
@@ -1012,7 +1100,7 @@ app.delete('/api/suppliers/:id', (req, res) => {
   res.json({ success: true });
 });
 
-app.delete('/api/suppliers', (req, res) => {
+app.delete('/api/suppliers', requireAuth, requireAdmin, (req, res) => {
   // Delete all inventory images first
   const images = db.prepare('SELECT image FROM supplier_inventory WHERE image IS NOT NULL').all();
   for (const row of images) {
@@ -1025,7 +1113,7 @@ app.delete('/api/suppliers', (req, res) => {
 
 const supplierImportUpload = (req, _res, next) => { req.uploadDir = 'imports'; next(); };
 
-app.post('/api/suppliers/import', supplierImportUpload, upload.single('file'), (req, res) => {
+app.post('/api/suppliers/import', requireAuth, requireAdmin, supplierImportUpload, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'File is required' });
 
   try {
@@ -1136,13 +1224,13 @@ function resolveCategoryId(raw) {
   return exists ? id : null;
 }
 
-app.get('/api/suppliers/:supplierId/inventory', (req, res) => {
+app.get('/api/suppliers/:supplierId/inventory', requireAuth, requireAdmin, (req, res) => {
   const { supplierId } = req.params;
   const items = db.prepare('SELECT * FROM supplier_inventory WHERE supplier_id = ? ORDER BY item_name').all(supplierId);
   res.json(items);
 });
 
-app.get('/api/inventory', (req, res) => {
+app.get('/api/inventory', requireAuth, requireAdmin, (req, res) => {
   const items = db.prepare(`
     SELECT si.*, s.name AS supplier_name
     FROM supplier_inventory si
@@ -1152,7 +1240,7 @@ app.get('/api/inventory', (req, res) => {
   res.json(items);
 });
 
-app.post('/api/inventory', (req, res) => {
+app.post('/api/inventory', requireAuth, requireAdmin, (req, res) => {
   const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw, on_sale: onSaleRaw, sale_price: salePriceRaw } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
@@ -1183,7 +1271,7 @@ app.post('/api/inventory', (req, res) => {
 
 const inventoryImportUpload = (req, _res, next) => { req.uploadDir = 'imports'; next(); };
 
-app.post('/api/inventory/import', inventoryImportUpload, upload.single('file'), (req, res) => {
+app.post('/api/inventory/import', requireAuth, requireAdmin, inventoryImportUpload, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'File is required' });
 
   try {
@@ -1292,7 +1380,7 @@ app.post('/api/inventory/import', inventoryImportUpload, upload.single('file'), 
   }
 });
 
-app.put('/api/inventory/:id', (req, res) => {
+app.put('/api/inventory/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw, on_sale: onSaleRaw, sale_price: salePriceRaw } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
@@ -1341,7 +1429,7 @@ app.put('/api/inventory/:id', (req, res) => {
   }
 });
 
-app.delete('/api/inventory/:id', (req, res) => {
+app.delete('/api/inventory/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const result = db.prepare('DELETE FROM supplier_inventory WHERE id = ?').run(id);
   if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
@@ -1350,7 +1438,7 @@ app.delete('/api/inventory/:id', (req, res) => {
 
 // ─── Job Openings ───────────────────────────────────────────────────────────
 
-app.get('/api/job-openings', (req, res) => {
+app.get('/api/job-openings', requireAuth, requireAdmin, (req, res) => {
   const openings = db.prepare('SELECT * FROM job_openings ORDER BY created_at DESC').all();
   res.json(openings);
 });
@@ -1360,7 +1448,7 @@ app.get('/api/job-openings/public', (req, res) => {
   res.json(openings);
 });
 
-app.post('/api/job-openings', (req, res) => {
+app.post('/api/job-openings', requireAuth, requireAdmin, (req, res) => {
   const { title, department, type, location, description, requirements, status } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
 
@@ -1371,7 +1459,7 @@ app.post('/api/job-openings', (req, res) => {
   res.status(201).json({ id: result.lastInsertRowid, title, department, type: type || 'Full-time', location: location || 'Orlando, FL', description, requirements, status: status || 'Open' });
 });
 
-app.put('/api/job-openings/:id', (req, res) => {
+app.put('/api/job-openings/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const { title, department, type, location, description, requirements, status } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
@@ -1384,7 +1472,7 @@ app.put('/api/job-openings/:id', (req, res) => {
   res.json({ success: true });
 });
 
-app.delete('/api/job-openings/:id', (req, res) => {
+app.delete('/api/job-openings/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const result = db.prepare('DELETE FROM job_openings WHERE id = ?').run(id);
   if (result.changes === 0) return res.status(404).json({ error: 'Job opening not found' });
@@ -1431,16 +1519,22 @@ app.get('/api/products/:categoryId/items', (req, res) => {
 
 // ─── Orders (Shopping Cart) ─────────────────────────────────────────────────
 
-app.get('/api/orders', (req, res) => {
-  const { user_id } = req.query;
-  if (!user_id) return res.status(400).json({ error: 'user_id required' });
-  const orders = db.prepare(
-    'SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC'
-  ).all(user_id);
+app.get('/api/orders', requireAuth, (req, res) => {
+  let orders;
+  if (req.user.role === 'admin') {
+    const userId = req.query.user_id;
+    if (userId) {
+      orders = db.prepare('SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC').all(userId);
+    } else {
+      orders = db.prepare('SELECT * FROM orders ORDER BY created_at DESC').all();
+    }
+  } else {
+    orders = db.prepare('SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC').all(req.user.id);
+  }
   res.json(orders);
 });
 
-app.get('/api/orders/:id', (req, res) => {
+app.get('/api/orders/:id', requireAuth, (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
   const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
@@ -1546,7 +1640,7 @@ app.post('/api/orders', (req, res) => {
   res.status(201).json({ ...order, items: orderItems });
 });
 
-app.post('/api/orders/:id/create-payment-intent', async (req, res) => {
+app.post('/api/orders/:id/create-payment-intent', requireAuth, async (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
   if (order.status === 'Paid') return res.status(400).json({ error: 'Order already paid' });
@@ -1567,7 +1661,7 @@ app.post('/api/orders/:id/create-payment-intent', async (req, res) => {
   }
 });
 
-app.post('/api/orders/:id/confirm-payment', async (req, res) => {
+app.post('/api/orders/:id/confirm-payment', requireAuth, async (req, res) => {
   const order = db.prepare('SELECT * FROM orders WHERE id = ?').get(req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
@@ -1612,12 +1706,12 @@ app.get('/api/checkout-settings', (_req, res) => {
 
 // ─── Coupons ──────────────────────────────────────────────────────────────────
 
-app.get('/api/coupons', (_req, res) => {
+app.get('/api/coupons', requireAuth, requireAdmin, (_req, res) => {
   const coupons = db.prepare('SELECT * FROM coupons ORDER BY created_at DESC').all();
   res.json(coupons);
 });
 
-app.post('/api/coupons', (req, res) => {
+app.post('/api/coupons', requireAuth, requireAdmin, (req, res) => {
   const { code, type, value, min_order, max_uses, active, expires_at } = req.body;
   if (!code || !type || value == null) {
     return res.status(400).json({ error: 'Code, type, and value are required' });
@@ -1648,7 +1742,7 @@ app.post('/api/coupons', (req, res) => {
   res.status(201).json(coupon);
 });
 
-app.put('/api/coupons/:id', (req, res) => {
+app.put('/api/coupons/:id', requireAuth, requireAdmin, (req, res) => {
   const { code, type, value, min_order, max_uses, active, expires_at } = req.body;
   const existing = db.prepare('SELECT * FROM coupons WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Coupon not found' });
@@ -1663,7 +1757,7 @@ app.put('/api/coupons/:id', (req, res) => {
   res.json(coupon);
 });
 
-app.delete('/api/coupons/:id', (req, res) => {
+app.delete('/api/coupons/:id', requireAuth, requireAdmin, (req, res) => {
   db.prepare('DELETE FROM coupons WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
@@ -1749,7 +1843,7 @@ const taxonomyUpload = (req, _res, next) => { req.uploadDir = 'taxonomy'; next()
 const taxUploadDir = join(__dirname, 'uploads', 'taxonomy');
 if (!existsSync(taxUploadDir)) mkdirSync(taxUploadDir, { recursive: true });
 
-app.post('/api/taxonomy', taxonomyUpload, upload.single('image'), (req, res) => {
+app.post('/api/taxonomy', requireAuth, requireAdmin, taxonomyUpload, upload.single('image'), (req, res) => {
   const { name, description, parent_id } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
 
@@ -1778,7 +1872,7 @@ app.post('/api/taxonomy', taxonomyUpload, upload.single('image'), (req, res) => 
   }
 });
 
-app.put('/api/taxonomy/:id', taxonomyUpload, upload.single('image'), (req, res) => {
+app.put('/api/taxonomy/:id', requireAuth, requireAdmin, taxonomyUpload, upload.single('image'), (req, res) => {
   const { name, description, parent_id } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
 
@@ -1831,14 +1925,14 @@ app.put('/api/taxonomy/:id', taxonomyUpload, upload.single('image'), (req, res) 
   }
 });
 
-app.put('/api/taxonomy/:id/reorder', (req, res) => {
+app.put('/api/taxonomy/:id/reorder', requireAuth, requireAdmin, (req, res) => {
   const { sort_order } = req.body;
   if (sort_order == null) return res.status(400).json({ error: 'sort_order is required' });
   db.prepare("UPDATE taxonomy SET sort_order = ?, updated_at = datetime('now') WHERE id = ?").run(sort_order, req.params.id);
   res.json({ success: true });
 });
 
-app.delete('/api/taxonomy/:id', (req, res) => {
+app.delete('/api/taxonomy/:id', requireAuth, requireAdmin, (req, res) => {
   const node = db.prepare('SELECT * FROM taxonomy WHERE id = ?').get(req.params.id);
   if (!node) return res.status(404).json({ error: 'Not found' });
 
@@ -1855,7 +1949,7 @@ const resourceUpload = (req, _res, next) => { req.uploadDir = 'resources'; next(
 const resourcesDir = join(__dirname, 'uploads', 'resources');
 if (!existsSync(resourcesDir)) mkdirSync(resourcesDir, { recursive: true });
 
-app.get('/api/resources', (req, res) => {
+app.get('/api/resources', requireAuth, requireAdmin, (req, res) => {
   const resources = db.prepare('SELECT * FROM resources ORDER BY sort_order, created_at DESC').all();
   res.json(resources);
 });
@@ -1865,7 +1959,7 @@ app.get('/api/resources/published', (_req, res) => {
   res.json(resources);
 });
 
-app.post('/api/resources', resourceUpload, upload.single('thumbnail'), (req, res) => {
+app.post('/api/resources', requireAuth, requireAdmin, resourceUpload, upload.single('thumbnail'), (req, res) => {
   const { title, type, url, description, published, sort_order } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
 
@@ -1879,7 +1973,7 @@ app.post('/api/resources', resourceUpload, upload.single('thumbnail'), (req, res
   res.status(201).json({ id: result.lastInsertRowid, title, type: type || 'article', url, description, thumbnail, published: pub, sort_order: sort_order ?? 0 });
 });
 
-app.put('/api/resources/:id', resourceUpload, upload.single('thumbnail'), (req, res) => {
+app.put('/api/resources/:id', requireAuth, requireAdmin, resourceUpload, upload.single('thumbnail'), (req, res) => {
   const { id } = req.params;
   const { title, type, url, description, published, sort_order } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
@@ -1903,7 +1997,7 @@ app.put('/api/resources/:id', resourceUpload, upload.single('thumbnail'), (req, 
   res.json({ id: Number(id), title, type: type || 'article', url, description, thumbnail, published: pub, sort_order: sort_order ?? 0 });
 });
 
-app.delete('/api/resources/:id', (req, res) => {
+app.delete('/api/resources/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const existing = db.prepare('SELECT thumbnail FROM resources WHERE id = ?').get(id);
   if (existing && existing.thumbnail) {
@@ -1916,7 +2010,7 @@ app.delete('/api/resources/:id', (req, res) => {
 
 // ─── Announcements ───────────────────────────────────────────────────────────
 
-app.get('/api/announcements', (_req, res) => {
+app.get('/api/announcements', requireAuth, requireAdmin, (_req, res) => {
   const announcements = db.prepare('SELECT * FROM announcements ORDER BY created_at DESC').all();
   res.json(announcements);
 });
@@ -1926,7 +2020,7 @@ app.get('/api/announcements/active', (_req, res) => {
   res.json(announcement || null);
 });
 
-app.post('/api/announcements', (req, res) => {
+app.post('/api/announcements', requireAuth, requireAdmin, (req, res) => {
   const { message, link_text, link_url, bg_color, text_color, active } = req.body;
   if (!message) return res.status(400).json({ error: 'Message is required' });
   const result = db.prepare(
@@ -1936,7 +2030,7 @@ app.post('/api/announcements', (req, res) => {
   res.status(201).json(created);
 });
 
-app.put('/api/announcements/:id', (req, res) => {
+app.put('/api/announcements/:id', requireAuth, requireAdmin, (req, res) => {
   const { message, link_text, link_url, bg_color, text_color, active } = req.body;
   if (!message) return res.status(400).json({ error: 'Message is required' });
   db.prepare(
@@ -1946,7 +2040,7 @@ app.put('/api/announcements/:id', (req, res) => {
   res.json(updated);
 });
 
-app.delete('/api/announcements/:id', (req, res) => {
+app.delete('/api/announcements/:id', requireAuth, requireAdmin, (req, res) => {
   db.prepare('DELETE FROM announcements WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
@@ -1980,33 +2074,30 @@ app.get('/api/deals', (_req, res) => {
 
 // ─── Notifications ───────────────────────────────────────────────────────────
 
-app.get('/api/notifications', (req, res) => {
-  const { user_id } = req.query;
-  if (!user_id) return res.status(400).json({ error: 'user_id is required' });
+app.get('/api/notifications', requireAuth, (req, res) => {
   const notifications = db.prepare(
     'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50'
-  ).get ? db.prepare(
-    'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50'
-  ).all(user_id) : [];
+  ).all(req.user.id);
   res.json(notifications);
 });
 
-app.get('/api/notifications/unread-count', (req, res) => {
-  const { user_id } = req.query;
-  if (!user_id) return res.status(400).json({ error: 'user_id is required' });
-  const row = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0').get(user_id);
+app.get('/api/notifications/unread-count', requireAuth, (req, res) => {
+  const row = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0').get(req.user.id);
   res.json({ count: row.count });
 });
 
-app.put('/api/notifications/:id/read', (req, res) => {
+app.put('/api/notifications/:id/read', requireAuth, (req, res) => {
+  // Only allow marking own notifications as read
+  const notification = db.prepare('SELECT user_id FROM notifications WHERE id = ?').get(req.params.id);
+  if (!notification || notification.user_id !== req.user.id) {
+    return res.status(403).json({ error: 'Not authorized' });
+  }
   db.prepare('UPDATE notifications SET read = 1 WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 
-app.put('/api/notifications/read-all', (req, res) => {
-  const { user_id } = req.body;
-  if (!user_id) return res.status(400).json({ error: 'user_id is required' });
-  db.prepare('UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0').run(user_id);
+app.put('/api/notifications/read-all', requireAuth, (req, res) => {
+  db.prepare('UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0').run(req.user.id);
   res.json({ success: true });
 });
 
