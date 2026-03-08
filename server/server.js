@@ -299,7 +299,10 @@ app.delete('/api/settings/video', (req, res) => {
 const carouselUpload = (req, _res, next) => { req.uploadDir = 'carousel'; next(); };
 
 app.get('/api/hero-slides', (req, res) => {
-  const slides = db.prepare('SELECT * FROM hero_slides ORDER BY sort_order, id').all();
+  const slides = db.prepare('SELECT * FROM hero_slides ORDER BY sort_order, id').all().map(s => ({
+    ...s,
+    cta_link: (!s.cta_link || s.cta_link.trim().toLowerCase() === '/login') ? '/quote' : s.cta_link,
+  }));
   res.json(slides);
 });
 
