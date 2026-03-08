@@ -5,6 +5,8 @@ import bcrypt from 'bcryptjs';
 db.pragma('foreign_keys = OFF');
 
 db.exec(`
+  DELETE FROM announcements;
+  DELETE FROM site_settings;
   DELETE FROM taxonomy;
   DELETE FROM job_openings;
   DELETE FROM supplier_inventory;
@@ -285,5 +287,16 @@ insertTaxonomy.run('Outdoor Kitchens', 'Built-in grills, counters, and cooking s
 insertTaxonomy.run('Pergolas & Shade Structures', 'Overhead coverage for patios and outdoor rooms', outdoor, 2);
 insertTaxonomy.run('Water Features', 'Fountains, ponds, and cascading water elements', outdoor, 3);
 insertTaxonomy.run('Outdoor Furniture', 'Seating, dining, and lounge furniture', outdoor, 4);
+
+// ─── Announcements ─────────────────────────────────────────────────────────
+const insertAnnouncement = db.prepare('INSERT INTO announcements (message, link_text, link_url, bg_color, text_color, active) VALUES (?, ?, ?, ?, ?, ?)');
+insertAnnouncement.run('Spring Sale — 15% off all plants & sod through March!', 'Shop Now', '/products', '#166534', '#ffffff', 1);
+insertAnnouncement.run('Free delivery on orders over $500 this month.', 'Learn More', '/products', '#1e40af', '#ffffff', 0);
+
+// ─── Delivery Fees & Checkout Settings ─────────────────────────────────────
+const insertSetting = db.prepare('INSERT INTO site_settings (key, value) VALUES (?, ?)');
+insertSetting.run('delivery_fee', '75');
+insertSetting.run('installation_fee', '150');
+insertSetting.run('delivery_minimum', '50');
 
 console.log('Database seeded successfully.');

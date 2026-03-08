@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function AnnouncementBanner() {
   const [announcement, setAnnouncement] = useState(null);
   const [dismissed, setDismissed] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     fetch('/api/announcements/active')
@@ -11,12 +12,17 @@ export default function AnnouncementBanner() {
       .then(data => {
         if (data && data.id) {
           const dismissedId = sessionStorage.getItem('dismissed_announcement');
-          if (dismissedId === String(data.id)) return;
+          if (dismissedId === String(data.id)) {
+            setAnnouncement(null);
+            return;
+          }
           setAnnouncement(data);
+        } else {
+          setAnnouncement(null);
         }
       })
       .catch(() => {});
-  }, []);
+  }, [location.pathname]);
 
   if (!announcement || dismissed) return null;
 
