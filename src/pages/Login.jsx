@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiPost } from '../api';
 import Spinner from '../components/ui/Spinner';
 import './Login.css';
 
@@ -14,10 +15,34 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [smsOptIn, setSmsOptIn] = useState(false);
   const [emailOptIn, setEmailOptIn] = useState(false);
+  const [addressValidation, setAddressValidation] = useState(null); // { valid, formatted, error }
+  const [addressValidating, setAddressValidating] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
+
+  const validateAddress = useCallback(async (value) => {
+    if (!value || value.trim().length < 5) {
+      setAddressValidation(null);
+      return;
+    }
+    setAddressValidating(true);
+    try {
+      const result = await apiPost('/validate-address', { street: value });
+      if (result.skipped) {
+        setAddressValidation(null);
+      } else if (result.valid) {
+        setAddressValidation({ valid: true, formatted: result.formatted });
+      } else {
+        setAddressValidation({ valid: false, error: result.error || 'Address not found. Please check and try again.' });
+      }
+    } catch {
+      setAddressValidation(null);
+    } finally {
+      setAddressValidating(false);
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -53,6 +78,11 @@ export default function Login() {
 
     if (address && address.trim().length < 5) {
       setError('Please enter a valid street address');
+      return;
+    }
+
+    if (addressValidation && !addressValidation.valid) {
+      setError('Please correct your street address before continuing');
       return;
     }
 
@@ -184,9 +214,27 @@ export default function Login() {
                 id="reg-address"
                 type="text"
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={(e) => { setAddress(e.target.value); setAddressValidation(null); }}
+                onBlur={(e) => validateAddress(e.target.value)}
                 placeholder="123 Main St, Orlando, FL 32801"
               />
+              {addressValidating && (
+                <span className="address-validating">Validating address...</span>
+              )}
+              {addressValidation && addressValidation.valid && addressValidation.formatted && addressValidation.formatted !== address && (
+                <div className="address-suggestion">
+                  <span>USPS suggests: <strong>{addressValidation.formatted}</strong></span>
+                  <button type="button" className="address-suggestion-btn" onClick={() => { setAddress(addressValidation.formatted); setAddressValidation({ valid: true }); }}>
+                    Use this address
+                  </button>
+                </div>
+              )}
+              {addressValidation && addressValidation.valid && (addressValidation.formatted === address || !addressValidation.formatted) && (
+                <span className="address-valid">Address verified</span>
+              )}
+              {addressValidation && !addressValidation.valid && (
+                <span className="address-invalid">{addressValidation.error}</span>
+              )}
             </div>
 
             <div className="form-group">

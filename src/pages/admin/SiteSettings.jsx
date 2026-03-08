@@ -55,6 +55,11 @@ export default function SiteSettings() {
   const [stripeKeysSaving, setStripeKeysSaving] = useState(false);
   const [stripeKeysLoaded, setStripeKeysLoaded] = useState(false);
 
+  // USPS settings
+  const [uspsUserId, setUspsUserId] = useState('');
+  const [uspsSaving, setUspsSaving] = useState(false);
+  const [uspsLoaded, setUspsLoaded] = useState(false);
+
   // Hero carousel state
   const [slides, setSlides] = useState([]);
   const [slideModal, setSlideModal] = useState(null); // null = closed, 'new' or slide object
@@ -87,6 +92,8 @@ export default function SiteSettings() {
       setStripePublishableKey(s.stripe_publishable_key || '');
       setStripeSecretKey(s.stripe_secret_key ? '••••••••' : '');
       setStripeKeysLoaded(!!s.stripe_secret_key);
+      setUspsUserId(s.usps_user_id ? '••••••••' : '');
+      setUspsLoaded(!!s.usps_user_id);
       // Initialize page visibility (default to '1' for all)
       const vis = {};
       for (const p of PAGE_KEYS) vis[p.key] = s[p.key] !== '0' ? '1' : '0';
@@ -591,6 +598,64 @@ export default function SiteSettings() {
           {stripeKeysLoaded && (
             <span style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 500 }}>
               &#10003; Stripe is configured
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* ── USPS Address Validation ── */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>Address Validation (USPS)</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem', lineHeight: 1.6 }}>
+          Enter your USPS Web Tools User ID to validate customer addresses during registration.
+          Register for free at{' '}
+          <a href="https://registration.shippingapis.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>
+            USPS Web Tools
+          </a>. If no key is configured, address validation will be skipped.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: 600 }}>
+          <div style={fieldGap}>
+            <label style={labelStyle}>USPS User ID</label>
+            <input
+              className="table-input"
+              type="password"
+              value={uspsUserId}
+              onChange={e => setUspsUserId(e.target.value)}
+              onFocus={() => { if (uspsUserId === '••••••••') setUspsUserId(''); }}
+              placeholder="Your USPS Web Tools User ID"
+              style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1rem' }}>
+          <button
+            className="btn btn-primary"
+            disabled={uspsSaving}
+            onClick={async () => {
+              setUspsSaving(true);
+              try {
+                const payload = {};
+                if (uspsUserId && uspsUserId !== '••••••••') {
+                  payload.usps_user_id = uspsUserId.trim();
+                }
+                await apiPut('/settings', payload);
+                setUspsLoaded(!!uspsUserId.trim());
+                if (uspsUserId && uspsUserId !== '••••••••') setUspsUserId('••••••••');
+                addToast('USPS settings saved', 'success');
+              } catch (err) {
+                addToast(err.message || 'Failed to save USPS settings', 'error');
+              } finally {
+                setUspsSaving(false);
+              }
+            }}
+          >
+            {uspsSaving ? 'Saving...' : 'Save USPS Key'}
+          </button>
+          {uspsLoaded && (
+            <span style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 500 }}>
+              &#10003; USPS is configured
             </span>
           )}
         </div>

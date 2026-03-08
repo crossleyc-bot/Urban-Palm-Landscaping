@@ -125,6 +125,54 @@
   flex-shrink: 0;
 }
 
+.address-validating {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.address-valid {
+  font-size: 0.8rem;
+  color: #16a34a;
+  font-weight: 500;
+}
+
+.address-invalid {
+  font-size: 0.8rem;
+  color: #dc2626;
+}
+
+.address-suggestion {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+[data-theme="dark"] .address-suggestion {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.address-suggestion-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.address-suggestion-btn:hover {
+  text-decoration: underline;
+}
+
 .login-hint {
   text-align: center;
   font-size: 0.8rem;

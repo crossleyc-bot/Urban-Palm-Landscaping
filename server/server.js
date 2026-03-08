@@ -142,6 +142,65 @@ app.post('/api/auth/register', (req, res) => {
   res.status(201).json({ id: result.lastInsertRowid, email, name, role: 'customer', phone: phone || null, address: address || null, sms_opt_in: !!sms_opt_in, email_opt_in: !!email_opt_in });
 });
 
+// ─── USPS Address Validation ─────────────────────────────────────────────────
+
+app.post('/api/validate-address', async (req, res) => {
+  const { street, city, state, zip } = req.body;
+  if (!street) {
+    return res.status(400).json({ error: 'Street address is required' });
+  }
+
+  const row = db.prepare("SELECT value FROM site_settings WHERE key = 'usps_user_id'").get();
+  const uspsUserId = row?.value;
+  if (!uspsUserId) {
+    // No USPS key configured — skip validation and accept the address
+    return res.json({ valid: true, skipped: true });
+  }
+
+  const xmlPayload = `<AddressValidateRequest USERID="${uspsUserId}"><Address><Address1></Address1><Address2>${escapeXml(street)}</Address2><City>${escapeXml(city || '')}</City><State>${escapeXml(state || '')}</State><Zip5>${escapeXml(zip || '')}</Zip5><Zip4></Zip4></Address></AddressValidateRequest>`;
+
+  try {
+    const url = `https://secure.shippingapis.com/ShippingAPI.dll?API=Verify&XML=${encodeURIComponent(xmlPayload)}`;
+    const response = await fetch(url);
+    const text = await response.text();
+
+    // Check for USPS error
+    const errorMatch = text.match(/<Description>(.*?)<\/Description>/);
+    if (text.includes('<Error>') && errorMatch) {
+      return res.json({ valid: false, error: errorMatch[1] });
+    }
+
+    // Extract standardized address
+    const get = (tag) => { const m = text.match(new RegExp(`<${tag}>(.*?)</${tag}>`)); return m ? m[1] : ''; };
+    const standardized = {
+      street: get('Address2'),
+      city: get('City'),
+      state: get('State'),
+      zip5: get('Zip5'),
+      zip4: get('Zip4'),
+    };
+
+    // USPS returns a DPV confirmation code: Y = confirmed, D = confirmed (missing secondary), N/empty = not confirmed
+    const dpv = get('DPVConfirmation');
+    const returnText = get('ReturnText');
+
+    res.json({
+      valid: dpv === 'Y' || dpv === 'D' || dpv === 'S',
+      standardized,
+      formatted: `${standardized.street}, ${standardized.city}, ${standardized.state} ${standardized.zip5}${standardized.zip4 ? '-' + standardized.zip4 : ''}`,
+      dpv,
+      returnText: returnText || null,
+    });
+  } catch (err) {
+    // Network error — don't block registration
+    res.json({ valid: true, skipped: true, error: 'Address validation service unavailable' });
+  }
+});
+
+function escapeXml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // ─── Account ────────────────────────────────────────────────────────────────
 
 app.put('/api/account/password', (req, res) => {
