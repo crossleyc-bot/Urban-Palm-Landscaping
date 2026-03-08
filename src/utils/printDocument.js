@@ -15,6 +15,9 @@ export default function printDocument({ title, subtitle, fields, note }) {
     )
     .join('');
 
+  // Build absolute logo URL from the current origin
+  const logoUrl = `${window.location.origin}/logo.png`;
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -24,8 +27,10 @@ export default function printDocument({ title, subtitle, fields, note }) {
     @page { margin: 0.75in; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #111827; font-size: 14px; line-height: 1.5; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #16a34a; padding-bottom: 16px; margin-bottom: 24px; }
-    .brand { font-size: 20px; font-weight: 700; color: #16a34a; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #16a34a; padding-bottom: 16px; margin-bottom: 24px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-logo { height: 48px; width: auto; }
+    .brand-text { font-size: 20px; font-weight: 700; color: #16a34a; }
     .brand-sub { font-size: 11px; color: #6b7280; margin-top: 2px; }
     .doc-title { font-size: 18px; font-weight: 700; text-align: right; }
     .doc-subtitle { font-size: 12px; color: #6b7280; text-align: right; margin-top: 2px; }
@@ -37,9 +42,12 @@ export default function printDocument({ title, subtitle, fields, note }) {
 </head>
 <body>
   <div class="header">
-    <div>
-      <div class="brand">Urban Palm Landscaping</div>
-      <div class="brand-sub">Central Florida&rsquo;s Premier Landscape Partner</div>
+    <div class="brand">
+      <img src="${logoUrl}" alt="Urban Palm Landscaping" class="brand-logo" />
+      <div>
+        <div class="brand-text">Urban Palm Landscaping</div>
+        <div class="brand-sub">Central Florida&rsquo;s Premier Landscape Partner</div>
+      </div>
     </div>
     <div>
       <div class="doc-title">${title}</div>

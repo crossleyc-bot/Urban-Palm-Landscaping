@@ -277,6 +277,18 @@ if (!svcColumns.includes('image_after')) {
   db.exec("ALTER TABLE services ADD COLUMN image_after TEXT");
 }
 
+// Migration: add guest contact fields to quote_requests
+const quoteGuestColumns = db.prepare("PRAGMA table_info(quote_requests)").all().map(c => c.name);
+if (!quoteGuestColumns.includes('guest_name')) {
+  db.exec("ALTER TABLE quote_requests ADD COLUMN guest_name TEXT");
+}
+if (!quoteGuestColumns.includes('guest_email')) {
+  db.exec("ALTER TABLE quote_requests ADD COLUMN guest_email TEXT");
+}
+if (!quoteGuestColumns.includes('guest_phone')) {
+  db.exec("ALTER TABLE quote_requests ADD COLUMN guest_phone TEXT");
+}
+
 // Migration: add status and admin_reply columns to quote_requests if missing
 const quoteColumns = db.prepare("PRAGMA table_info(quote_requests)").all().map(c => c.name);
 if (!quoteColumns.includes('status')) {
@@ -543,6 +555,48 @@ if (!ordFeatureColumns.includes('coupon_code')) {
 if (!ordFeatureColumns.includes('discount')) {
   db.exec("ALTER TABLE orders ADD COLUMN discount REAL NOT NULL DEFAULT 0");
 }
+
+// Migration: add announcements table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS announcements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message TEXT NOT NULL,
+    link_text TEXT,
+    link_url TEXT,
+    bg_color TEXT NOT NULL DEFAULT '#166534',
+    text_color TEXT NOT NULL DEFAULT '#ffffff',
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// Migration: add notifications table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type TEXT NOT NULL DEFAULT 'promo',
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    link TEXT,
+    read INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// Migration: add notification_queue table for email/SMS
+db.exec(`
+  CREATE TABLE IF NOT EXISTS notification_queue (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    channel TEXT NOT NULL,
+    subject TEXT,
+    body TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    sent_at TEXT
+  )
+`);
 
 // Seed default hero carousel slides if table is empty
 const slideCount = db.prepare('SELECT COUNT(*) as cnt FROM hero_slides').get();

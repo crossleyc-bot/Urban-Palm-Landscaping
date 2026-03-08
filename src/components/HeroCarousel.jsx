@@ -19,7 +19,7 @@ const defaultSlides = [
     badge: "Residential Landscapes",
     headline: "Transform Your Backyard Into a Living Masterpiece",
     subtext: "Custom design, expert installation, and reliable delivery for Central Florida homes.",
-    cta_label: "Get Free Consultation", cta_link: "/contact",
+    cta_label: "Get Free Quote", cta_link: "/quote",
     cta2_label: "View Portfolio", cta2_link: "/portfolio",
   },
   {
@@ -27,7 +27,7 @@ const defaultSlides = [
     badge: "Commercial Properties",
     headline: "Professional Grounds That Make a Lasting Impression",
     subtext: "Comprehensive commercial landscaping for offices, retail centers, and mixed-use developments.",
-    cta_label: "Request a Quote", cta_link: "/contact",
+    cta_label: "Request a Quote", cta_link: "/quote",
     cta2_label: "Our Services", cta2_link: "/services",
   },
   {
@@ -35,7 +35,7 @@ const defaultSlides = [
     badge: "Design & Build",
     headline: "From Concept to Completion — One Trusted Partner",
     subtext: "Full-service landscape architecture, hardscaping, and planting by our expert team.",
-    cta_label: "Start Your Project", cta_link: "/contact",
+    cta_label: "Start Your Project", cta_link: "/quote",
     cta2_label: "See Our Work", cta2_link: "/about",
   },
   {
@@ -43,7 +43,7 @@ const defaultSlides = [
     badge: "Delivery & Installation",
     headline: "We Deliver and Install — You Enjoy the Results",
     subtext: "From plants and trees to sod and materials, we handle delivery and professional installation across Central Florida.",
-    cta_label: "Schedule Service", cta_link: "/contact",
+    cta_label: "Schedule Service", cta_link: "/quote",
     cta2_label: "Learn More", cta2_link: "/services",
   },
 ].filter((s) => s.image);

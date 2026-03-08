@@ -192,7 +192,7 @@ export default function About() {
           <h2>Want to Work With Us?</h2>
           <p>Whether you need a full landscape redesign or professional installation, we'd love to hear from you.</p>
           <div className="cta-actions">
-            <Link to="/contact" className="btn btn-primary btn-lg">Get Free Consultation</Link>
+            <Link to="/quote" className="btn btn-primary btn-lg">Get Free Quote</Link>
             <a href="tel:3212312094" className="btn btn-outline btn-lg cta-phone-btn">Call (321) 231-2094</a>
           </div>
         </div>

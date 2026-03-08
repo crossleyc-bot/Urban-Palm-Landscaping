@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { apiGet, apiPut, apiPatch, apiPostForm, apiPutForm, apiDelete } from '../../api';
+import { apiGet, apiPost, apiPut, apiPatch, apiPostForm, apiPutForm, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import { useSiteSettings, PAGE_KEYS } from '../../context/SiteSettingsContext';
 import Spinner from '../../components/ui/Spinner';
@@ -66,6 +66,12 @@ export default function SiteSettings() {
   const [deliveryMinimum, setDeliveryMinimum] = useState('');
   const [deliverySaving, setDeliverySaving] = useState(false);
 
+  // Announcements state
+  const [announcements, setAnnouncements] = useState([]);
+  const [announcementModal, setAnnouncementModal] = useState(null);
+  const [announcementForm, setAnnouncementForm] = useState({ message: '', link_text: '', link_url: '', bg_color: '#166534', text_color: '#ffffff', active: true });
+  const [announcementSaving, setAnnouncementSaving] = useState(false);
+
   // Hero carousel state
   const [slides, setSlides] = useState([]);
   const [slideModal, setSlideModal] = useState(null); // null = closed, 'new' or slide object
@@ -84,7 +90,8 @@ export default function SiteSettings() {
     Promise.all([
       apiGet('/settings'),
       apiGet('/hero-slides'),
-    ]).then(([s, sl]) => {
+      apiGet('/announcements'),
+    ]).then(([s, sl, ann]) => {
       setVideoUrl(s.welcome_video_url || '');
       setVideoTitle(s.welcome_video_title || '');
       setVideoSubtitle(s.welcome_video_subtitle || '');
@@ -108,6 +115,7 @@ export default function SiteSettings() {
       for (const p of PAGE_KEYS) vis[p.key] = s[p.key] !== '0' ? '1' : '0';
       setPageVisibility(vis);
       setSlides(sl);
+      setAnnouncements(ann);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -253,6 +261,76 @@ export default function SiteSettings() {
       <div className="page-header">
         <h1>Site Settings</h1>
         <p>Manage homepage content and other site-wide settings.</p>
+      </div>
+
+      {/* ── Announcement Banner ── */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>Announcement Banner</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: '0.25rem 0 0', lineHeight: 1.6 }}>
+              Display a promotional banner across the top of the site. Only the most recent active announcement is shown.
+            </p>
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={() => {
+            setAnnouncementForm({ message: '', link_text: '', link_url: '', bg_color: '#166534', text_color: '#ffffff', active: true });
+            setAnnouncementModal('new');
+          }}>Add Announcement</button>
+        </div>
+
+        {announcements.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>
+            No announcements yet. Add one to show a banner on your site.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            {announcements.map(ann => (
+              <div
+                key={ann.id}
+                style={{
+                  display: 'flex',
+                  gap: '0.75rem',
+                  alignItems: 'center',
+                  padding: '0.6rem 0.75rem',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 8,
+                  opacity: ann.active ? 1 : 0.5,
+                }}
+              >
+                <div style={{ width: 24, height: 24, borderRadius: 4, background: ann.bg_color, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0, fontSize: '0.85rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ann.message}
+                </div>
+                <span className={ann.active ? 'badge badge-green' : 'badge badge-gray'} style={{ fontSize: '0.7rem' }}>
+                  {ann.active ? 'Active' : 'Inactive'}
+                </span>
+                <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
+                  <button className="btn btn-outline btn-sm" onClick={() => {
+                    setAnnouncementForm({
+                      message: ann.message,
+                      link_text: ann.link_text || '',
+                      link_url: ann.link_url || '',
+                      bg_color: ann.bg_color || '#166534',
+                      text_color: ann.text_color || '#ffffff',
+                      active: !!ann.active,
+                    });
+                    setAnnouncementModal(ann);
+                  }}>Edit</button>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    style={{ color: '#dc2626', borderColor: '#fca5a5' }}
+                    onClick={async () => {
+                      if (!confirm('Delete this announcement?')) return;
+                      await apiDelete(`/announcements/${ann.id}`);
+                      setAnnouncements(prev => prev.filter(a => a.id !== ann.id));
+                      addToast('Announcement deleted', 'success');
+                    }}
+                  >Del</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Hero Carousel ── */}
@@ -889,6 +967,145 @@ export default function SiteSettings() {
               <button className="btn btn-outline" onClick={() => setSlideModal(null)}>Cancel</button>
               <button className="btn btn-primary" onClick={saveSlide} disabled={slideSaving}>
                 {slideSaving ? 'Saving...' : slideModal === 'new' ? 'Add Slide' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Announcement Editor Modal ── */}
+      {announcementModal && (
+        <div className="modal-overlay" onClick={() => setAnnouncementModal(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="modal-header">
+              <h3>{announcementModal === 'new' ? 'New Announcement' : 'Edit Announcement'}</h3>
+              <button className="modal-close" onClick={() => setAnnouncementModal(null)}>&times;</button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={fieldGap}>
+                <label style={labelStyle}>Message *</label>
+                <input
+                  className="table-input"
+                  value={announcementForm.message}
+                  onChange={e => setAnnouncementForm(f => ({ ...f, message: e.target.value }))}
+                  placeholder="e.g. Spring Sale! 20% off all products this week"
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div style={fieldGap}>
+                  <label style={labelStyle}>Link Text</label>
+                  <input
+                    className="table-input"
+                    value={announcementForm.link_text}
+                    onChange={e => setAnnouncementForm(f => ({ ...f, link_text: e.target.value }))}
+                    placeholder="e.g. Shop Now"
+                  />
+                </div>
+                <div style={fieldGap}>
+                  <label style={labelStyle}>Link URL</label>
+                  <input
+                    className="table-input"
+                    value={announcementForm.link_url}
+                    onChange={e => setAnnouncementForm(f => ({ ...f, link_url: e.target.value }))}
+                    placeholder="e.g. /products"
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div style={fieldGap}>
+                  <label style={labelStyle}>Background Color</label>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                      type="color"
+                      value={announcementForm.bg_color}
+                      onChange={e => setAnnouncementForm(f => ({ ...f, bg_color: e.target.value }))}
+                      style={{ width: 36, height: 32, padding: 0, border: '1px solid var(--color-border)', borderRadius: 4 }}
+                    />
+                    <input
+                      className="table-input"
+                      value={announcementForm.bg_color}
+                      onChange={e => setAnnouncementForm(f => ({ ...f, bg_color: e.target.value }))}
+                      style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+                <div style={fieldGap}>
+                  <label style={labelStyle}>Text Color</label>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input
+                      type="color"
+                      value={announcementForm.text_color}
+                      onChange={e => setAnnouncementForm(f => ({ ...f, text_color: e.target.value }))}
+                      style={{ width: 36, height: 32, padding: 0, border: '1px solid var(--color-border)', borderRadius: 4 }}
+                    />
+                    <input
+                      className="table-input"
+                      value={announcementForm.text_color}
+                      onChange={e => setAnnouncementForm(f => ({ ...f, text_color: e.target.value }))}
+                      style={{ flex: 1, fontFamily: 'monospace', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+              </div>
+              {/* Preview */}
+              <div style={fieldGap}>
+                <label style={labelStyle}>Preview</label>
+                <div style={{
+                  background: announcementForm.bg_color,
+                  color: announcementForm.text_color,
+                  padding: '0.5rem 1rem',
+                  borderRadius: 6,
+                  textAlign: 'center',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                }}>
+                  {announcementForm.message || 'Your announcement message here'}
+                  {announcementForm.link_text && (
+                    <span style={{ fontWeight: 700, textDecoration: 'underline', marginLeft: '0.5rem' }}>
+                      {announcementForm.link_text}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={announcementForm.active}
+                  onChange={e => setAnnouncementForm(f => ({ ...f, active: e.target.checked }))}
+                />
+                <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>Active</span>
+              </label>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setAnnouncementModal(null)}>Cancel</button>
+              <button
+                className="btn btn-primary"
+                disabled={announcementSaving}
+                onClick={async () => {
+                  if (!announcementForm.message.trim()) {
+                    addToast('Message is required', 'error');
+                    return;
+                  }
+                  setAnnouncementSaving(true);
+                  try {
+                    if (announcementModal === 'new') {
+                      const created = await apiPost('/announcements', announcementForm);
+                      setAnnouncements(prev => [created, ...prev]);
+                      addToast('Announcement created', 'success');
+                    } else {
+                      const updated = await apiPut(`/announcements/${announcementModal.id}`, announcementForm);
+                      setAnnouncements(prev => prev.map(a => a.id === announcementModal.id ? updated : a));
+                      addToast('Announcement updated', 'success');
+                    }
+                    setAnnouncementModal(null);
+                  } catch (err) {
+                    addToast(err.message || 'Failed to save announcement', 'error');
+                  } finally {
+                    setAnnouncementSaving(false);
+                  }
+                }}
+              >
+                {announcementSaving ? 'Saving...' : announcementModal === 'new' ? 'Create' : 'Save Changes'}
               </button>
             </div>
           </div>

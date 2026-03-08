@@ -12,6 +12,7 @@ import Breadcrumbs from './components/ui/Breadcrumbs';
 import ErrorBoundary from './components/ErrorBoundary';
 import ScrollToTop from './components/ScrollToTop';
 import BackToTop from './components/BackToTop';
+import AnnouncementBanner from './components/AnnouncementBanner';
 import NotFound from './pages/NotFound';
 import Spinner from './components/ui/Spinner';
 
@@ -26,6 +27,7 @@ const Products = lazy(() => import('./pages/public/Products'));
 const Resources = lazy(() => import('./pages/public/Resources'));
 const Cart = lazy(() => import('./pages/public/Cart'));
 const Checkout = lazy(() => import('./pages/public/Checkout'));
+const PublicRequestQuote = lazy(() => import('./pages/public/RequestQuote'));
 const Login = lazy(() => import('./pages/Login'));
 
 // Lazy-loaded customer pages
@@ -157,6 +159,7 @@ export default function App() {
           <ToastProvider>
             <ErrorBoundary>
             <Header />
+            <AnnouncementBanner />
             <ScrollToTop />
             <BackToTop />
             <Routes>
@@ -169,6 +172,7 @@ export default function App() {
                 <Route path="/careers" element={<PageGuard><Careers /></PageGuard>} />
                 <Route path="/products" element={<PageGuard><Products /></PageGuard>} />
                 <Route path="/resources" element={<PageGuard><Resources /></PageGuard>} />
+                <Route path="/quote" element={<PublicRequestQuote />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/login" element={<Login />} />

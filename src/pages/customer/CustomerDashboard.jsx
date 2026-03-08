@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { apiGet } from '../../api';
+import { apiGet, apiPut } from '../../api';
 import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonCards, SkeletonTable } from '../../components/ui/Skeleton';
 
@@ -39,6 +39,7 @@ export default function CustomerDashboard() {
   const [jobs, setJobs] = useState([]);
   const [quotes, setQuotes] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,8 +48,9 @@ export default function CustomerDashboard() {
         apiGet(`/jobs?user_id=${user.id}`),
         apiGet(`/my-quotes?user_id=${user.id}`),
         apiGet(`/invoices?user_id=${user.id}`),
+        apiGet(`/notifications?user_id=${user.id}`),
       ])
-        .then(([j, q, i]) => { setJobs(j); setQuotes(q); setInvoices(i); })
+        .then(([j, q, i, n]) => { setJobs(j); setQuotes(q); setInvoices(i); setNotifications(n); })
         .finally(() => setLoading(false));
     }
   }, [user]);
@@ -86,6 +88,57 @@ export default function CustomerDashboard() {
             <div className="stat-value" style={totalOwed > 0 ? { color: '#d97706' } : {}}>
               ${totalOwed.toLocaleString()}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Promotions & Notifications */}
+      {!loading && notifications.length > 0 && (
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 600 }}>Notifications</h2>
+            {notifications.some(n => !n.read) && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  apiPut('/notifications/read-all', { user_id: user.id }).then(() => {
+                    setNotifications(prev => prev.map(n => ({ ...n, read: 1 })));
+                  });
+                }}
+              >
+                Mark All Read
+              </button>
+            )}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {notifications.slice(0, 5).map(n => (
+              <div
+                key={n.id}
+                style={{
+                  display: 'flex',
+                  gap: '0.75rem',
+                  alignItems: 'flex-start',
+                  padding: '0.65rem 0.75rem',
+                  borderRadius: 8,
+                  background: n.read ? 'transparent' : 'rgba(22, 101, 52, 0.05)',
+                  border: '1px solid var(--color-border)',
+                }}
+              >
+                <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>
+                  {n.type === 'sale' ? '\u{1F3F7}' : n.type === 'promo' ? '\u{1F381}' : '\u{1F514}'}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{n.title}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>{n.message}</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', marginTop: '0.15rem' }}>
+                    {new Date(n.created_at + 'Z').toLocaleDateString()}
+                  </div>
+                </div>
+                {n.link && (
+                  <Link to={n.link} className="btn btn-outline btn-sm" style={{ flexShrink: 0 }}>View</Link>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}

@@ -151,7 +151,7 @@ export default function Services() {
           <h2>Ready to Transform Your Property?</h2>
           <p>Get a free consultation and detailed estimate for your project. No obligation.</p>
           <div className="cta-actions">
-            <Link to="/contact" className="btn btn-primary btn-lg">Get Free Consultation</Link>
+            <Link to="/quote" className="btn btn-primary btn-lg">Get Free Quote</Link>
             <a href="tel:3212312094" className="btn btn-outline btn-lg cta-phone-btn">Call (321) 231-2094</a>
           </div>
         </div>
