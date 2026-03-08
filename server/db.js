@@ -611,7 +611,7 @@ if (slideCount.cnt === 0) {
       badge: 'Residential Landscapes',
       headline: 'Transform Your Backyard Into a Living Masterpiece',
       subtext: 'Custom design, expert installation, and reliable delivery for Central Florida homes.',
-      cta_label: 'Get Free Consultation', cta_link: '/contact',
+      cta_label: 'Get Free Quote', cta_link: '/quote',
       cta2_label: 'View Portfolio', cta2_link: '/portfolio',
     },
     {
@@ -619,7 +619,7 @@ if (slideCount.cnt === 0) {
       badge: 'Commercial Properties',
       headline: 'Professional Grounds That Make a Lasting Impression',
       subtext: 'Comprehensive commercial landscaping for offices, retail centers, and mixed-use developments.',
-      cta_label: 'Request a Quote', cta_link: '/contact',
+      cta_label: 'Request a Quote', cta_link: '/quote',
       cta2_label: 'Our Services', cta2_link: '/services',
     },
     {
@@ -627,7 +627,7 @@ if (slideCount.cnt === 0) {
       badge: 'Design & Build',
       headline: 'From Concept to Completion — One Trusted Partner',
       subtext: 'Full-service landscape architecture, hardscaping, and planting by our expert team.',
-      cta_label: 'Start Your Project', cta_link: '/contact',
+      cta_label: 'Start Your Project', cta_link: '/quote',
       cta2_label: 'See Our Work', cta2_link: '/about',
     },
     {
@@ -635,7 +635,7 @@ if (slideCount.cnt === 0) {
       badge: 'Delivery & Installation',
       headline: 'We Deliver and Install — You Enjoy the Results',
       subtext: 'From plants and trees to sod and materials, we handle delivery and professional installation across Central Florida.',
-      cta_label: 'Schedule Service', cta_link: '/contact',
+      cta_label: 'Schedule Service', cta_link: '/quote',
       cta2_label: 'Learn More', cta2_link: '/services',
     },
   ];
@@ -644,5 +644,9 @@ if (slideCount.cnt === 0) {
     insertSlide.run(s.image, s.badge, s.headline, s.subtext, s.cta_label, s.cta_link, s.cta2_label, s.cta2_link, i);
   }
 }
+
+// Migration: update hero slide CTA links from /contact to /quote
+db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link = '/contact'").run();
+db.prepare("UPDATE hero_slides SET cta_label = 'Get Free Quote' WHERE cta_label = 'Get Free Consultation'").run();
 
 export default db;
