@@ -73,13 +73,14 @@ const apiLimiter = rateLimit({
   max: 200,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path.startsWith('/auth/'),
   message: { error: 'Too many requests, please try again later.' },
 });
 app.use('/api/', apiLimiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 100,
   message: { error: 'Too many login attempts, please try again later.' },
 });
 app.use('/api/auth/', authLimiter);
