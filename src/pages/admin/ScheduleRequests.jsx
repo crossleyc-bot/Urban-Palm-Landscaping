@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { apiGet, apiPost, apiPut } from '../../api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonTable } from '../../components/ui/Skeleton';
@@ -97,6 +97,17 @@ export default function ScheduleRequests() {
     }
   };
 
+  const deleteRequest = async (id) => {
+    if (!confirm('Delete this schedule request?')) return;
+    try {
+      await apiDelete(`/schedule/${id}`);
+      setRequests(prev => prev.filter(r => r.id !== id));
+      addToast('Schedule request deleted', 'success');
+    } catch {
+      addToast('Failed to delete schedule request', 'error');
+    }
+  };
+
   const pendingCount = requests.filter(r => (r.status || 'Pending') === 'Pending').length;
 
   return (
@@ -188,6 +199,7 @@ export default function ScheduleRequests() {
                           {st === 'Confirmed' && (
                             <button className="btn btn-primary btn-sm" onClick={() => openConvert(r)}>Convert to Job</button>
                           )}
+                          <button className="btn btn-outline btn-sm" style={{ color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => deleteRequest(r.id)}>Delete</button>
                         </div>
                       </td>
                     </tr>

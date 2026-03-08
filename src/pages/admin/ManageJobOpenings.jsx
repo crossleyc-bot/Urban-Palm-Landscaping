@@ -67,6 +67,7 @@ export default function ManageJobOpenings() {
   };
 
   const deleteOpening = async (id) => {
+    if (!confirm('Delete this job opening?')) return;
     try {
       await apiDelete(`/job-openings/${id}`);
       setOpenings(prev => prev.filter(o => o.id !== id));

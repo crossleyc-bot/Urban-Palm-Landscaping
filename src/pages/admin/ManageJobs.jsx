@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { apiGet, apiPost, apiPut } from '../../api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import { SkeletonTable } from '../../components/ui/Skeleton';
@@ -78,6 +78,17 @@ export default function ManageJobs() {
       addToast(`Job marked as ${newStatus}`, 'success');
     } catch {
       addToast('Failed to update job status', 'error');
+    }
+  };
+
+  const deleteJob = async (jobId) => {
+    if (!confirm('Delete this job?')) return;
+    try {
+      await apiDelete(`/jobs/${jobId}`);
+      setJobs(prev => prev.filter(j => j.id !== jobId));
+      addToast('Job deleted', 'success');
+    } catch {
+      addToast('Failed to delete job', 'error');
     }
   };
 
@@ -190,6 +201,7 @@ export default function ManageJobs() {
                             Invoice
                           </button>
                         )}
+                        <button className="btn btn-outline btn-sm" style={{ color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => deleteJob(job.id)}>Delete</button>
                       </div>
                     </td>
                   </tr>

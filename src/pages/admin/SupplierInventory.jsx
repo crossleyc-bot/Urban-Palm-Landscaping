@@ -137,6 +137,7 @@ export default function SupplierInventory() {
   };
 
   const deleteItem = async (id) => {
+    if (!confirm('Delete this inventory item?')) return;
     try {
       await apiDelete(`/inventory/${id}`);
       setItems(prev => prev.filter(i => i.id !== id));

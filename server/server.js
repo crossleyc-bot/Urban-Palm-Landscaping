@@ -518,6 +518,12 @@ app.put('/api/jobs/:jobId', (req, res) => {
   res.json({ success: true });
 });
 
+app.delete('/api/jobs/:jobId', (req, res) => {
+  const result = db.prepare('DELETE FROM jobs WHERE job_id = ?').run(req.params.jobId);
+  if (result.changes === 0) return res.status(404).json({ error: 'Job not found' });
+  res.json({ success: true });
+});
+
 // ─── Employees ───────────────────────────────────────────────────────────────
 
 const employeeUpload = (req, _res, next) => { req.uploadDir = 'employees'; next(); };
@@ -763,6 +769,12 @@ app.put('/api/contact/:id/reply', (req, res) => {
   res.json({ success: true });
 });
 
+app.delete('/api/contact/:id', (req, res) => {
+  const result = db.prepare('DELETE FROM contact_messages WHERE id = ?').run(req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Message not found' });
+  res.json({ success: true });
+});
+
 // ─── Quote Requests ──────────────────────────────────────────────────────────
 
 app.post('/api/quotes', (req, res) => {
@@ -866,6 +878,12 @@ app.put('/api/schedule/:id', (req, res) => {
   const result = db.prepare('UPDATE schedule_requests SET status = ? WHERE id = ?').run(status, id);
   if (result.changes === 0) return res.status(404).json({ error: 'Schedule request not found' });
 
+  res.json({ success: true });
+});
+
+app.delete('/api/schedule/:id', (req, res) => {
+  const result = db.prepare('DELETE FROM schedule_requests WHERE id = ?').run(req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Schedule request not found' });
   res.json({ success: true });
 });
 
