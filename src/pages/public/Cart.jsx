@@ -1,11 +1,11 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
-import { useAuth } from '../../context/AuthContext';
 import SEO from '../../components/SEO';
+import './Cart.css';
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, clearCart, subtotal } = useCart();
-  const { user } = useAuth();
   const tax = Math.round(subtotal * 0.07 * 100) / 100;
   const total = Math.round((subtotal + tax) * 100) / 100;
 
@@ -31,97 +31,38 @@ export default function Cart() {
               <Link to="/products" className="btn btn-primary">Browse Products</Link>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem', alignItems: 'start' }}>
+            <div className="cart-layout">
               {/* Cart Items */}
-              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h2 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Cart Items</h2>
+              <div className="card cart-items-card">
+                <div className="cart-items-header">
+                  <h2>Cart Items</h2>
                   <button className="btn btn-outline btn-sm" onClick={clearCart}>Clear Cart</button>
                 </div>
                 {items.map(item => (
-                  <div key={item.inventory_id} style={{
-                    display: 'flex', gap: '1rem', padding: '1rem 1.25rem',
-                    borderBottom: '1px solid var(--color-border)', alignItems: 'center',
-                  }}>
-                    {item.image && (
-                      <img src={item.image} alt={item.item_name} style={{
-                        width: 64, height: 64, borderRadius: 8, objectFit: 'cover',
-                        border: '1px solid var(--color-border)', flexShrink: 0,
-                      }} />
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.15rem' }}>{item.item_name}</div>
-                      {item.category_name && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{item.category_name}</div>
-                      )}
-                      <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-primary)', marginTop: '0.25rem' }}>
-                        ${Number(item.price).toFixed(2)}
-                        {item.unit && <span style={{ fontWeight: 400, color: 'var(--color-text-muted)', fontSize: '0.8rem' }}> / {item.unit}</span>}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                      <button
-                        className="btn btn-outline btn-sm"
-                        style={{ width: 32, padding: 0 }}
-                        onClick={() => updateQuantity(item.inventory_id, item.quantity - 1)}
-                      >
-                        -
-                      </button>
-                      <span style={{ fontWeight: 600, minWidth: 24, textAlign: 'center' }}>{item.quantity}</span>
-                      <button
-                        className="btn btn-outline btn-sm"
-                        style={{ width: 32, padding: 0 }}
-                        onClick={() => updateQuantity(item.inventory_id, item.quantity + 1)}
-                      >
-                        +
-                      </button>
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: '0.95rem', minWidth: 70, textAlign: 'right', flexShrink: 0 }}>
-                      ${(item.price * item.quantity).toFixed(2)}
-                    </div>
-                    <button
-                      className="btn btn-outline btn-sm"
-                      style={{ color: '#dc2626', borderColor: '#fca5a5', flexShrink: 0 }}
-                      onClick={() => removeItem(item.inventory_id)}
-                      title="Remove"
-                    >
-                      &#10005;
-                    </button>
-                  </div>
+                  <CartItemRow key={item.inventory_id} item={item} updateQuantity={updateQuantity} removeItem={removeItem} />
                 ))}
               </div>
 
               {/* Order Summary */}
-              <div className="card" style={{ position: 'sticky', top: '1rem' }}>
+              <div className="card cart-summary">
                 <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Order Summary</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>Subtotal</span>
+                <div className="cart-summary-lines">
+                  <div className="cart-summary-line">
+                    <span className="cart-summary-label">Subtotal</span>
                     <span>${subtotal.toFixed(2)}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>Tax (7%)</span>
+                  <div className="cart-summary-line">
+                    <span className="cart-summary-label">Tax (7%)</span>
                     <span>${tax.toFixed(2)}</span>
                   </div>
-                  <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.1rem' }}>
+                  <div className="cart-summary-total">
                     <span>Total</span>
                     <span>${total.toFixed(2)}</span>
                   </div>
                 </div>
-                {user ? (
-                  <Link to="/checkout" className="btn btn-primary" style={{ width: '100%', textAlign: 'center' }}>
-                    Proceed to Checkout
-                  </Link>
-                ) : (
-                  <div>
-                    <Link to="/login" className="btn btn-primary" style={{ width: '100%', textAlign: 'center', marginBottom: '0.5rem' }}>
-                      Log In to Checkout
-                    </Link>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center' }}>
-                      You need an account to place an order.
-                    </p>
-                  </div>
-                )}
+                <Link to="/checkout" className="btn btn-primary" style={{ width: '100%', textAlign: 'center' }}>
+                  Proceed to Checkout
+                </Link>
                 <Link to="/products" className="btn btn-outline" style={{ width: '100%', textAlign: 'center', marginTop: '0.5rem' }}>
                   Continue Shopping
                 </Link>
@@ -130,6 +71,108 @@ export default function Cart() {
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function CartItemRow({ item, updateQuantity, removeItem }) {
+  const [editing, setEditing] = useState(false);
+  const [inputVal, setInputVal] = useState(String(item.quantity));
+
+  const commitQuantity = () => {
+    setEditing(false);
+    const num = parseInt(inputVal, 10);
+    if (isNaN(num) || num <= 0) {
+      removeItem(item.inventory_id);
+    } else {
+      const clamped = item.max_qty ? Math.min(num, item.max_qty) : num;
+      updateQuantity(item.inventory_id, clamped);
+      setInputVal(String(clamped));
+    }
+  };
+
+  const decrement = () => {
+    if (item.quantity <= 1) {
+      removeItem(item.inventory_id);
+    } else {
+      updateQuantity(item.inventory_id, item.quantity - 1);
+      setInputVal(String(item.quantity - 1));
+    }
+  };
+
+  const increment = () => {
+    if (item.max_qty && item.quantity >= item.max_qty) return;
+    updateQuantity(item.inventory_id, item.quantity + 1);
+    setInputVal(String(item.quantity + 1));
+  };
+
+  return (
+    <div className="cart-item">
+      <div className="cart-item-image">
+        {item.image ? (
+          <img src={item.image} alt={item.item_name} />
+        ) : (
+          <div className="cart-item-placeholder">&#128230;</div>
+        )}
+      </div>
+      <div className="cart-item-details">
+        <div className="cart-item-name">{item.item_name}</div>
+        {item.category_name && (
+          <div className="cart-item-category">{item.category_name}</div>
+        )}
+        <div className="cart-item-price">
+          ${Number(item.price).toFixed(2)}
+          {item.unit && <span className="cart-item-unit"> / {item.unit}</span>}
+        </div>
+      </div>
+      <div className="cart-item-quantity">
+        <button
+          className="cart-qty-btn"
+          onClick={decrement}
+          title={item.quantity <= 1 ? 'Remove item' : 'Decrease quantity'}
+        >
+          {item.quantity <= 1 ? '\u2715' : '\u2212'}
+        </button>
+        {editing ? (
+          <input
+            className="cart-qty-input"
+            type="number"
+            min="0"
+            max={item.max_qty || undefined}
+            value={inputVal}
+            onChange={e => setInputVal(e.target.value)}
+            onBlur={commitQuantity}
+            onKeyDown={e => { if (e.key === 'Enter') commitQuantity(); }}
+            autoFocus
+          />
+        ) : (
+          <button
+            className="cart-qty-display"
+            onClick={() => { setInputVal(String(item.quantity)); setEditing(true); }}
+            title="Click to edit quantity"
+          >
+            {item.quantity}
+          </button>
+        )}
+        <button
+          className="cart-qty-btn"
+          onClick={increment}
+          disabled={item.max_qty > 0 && item.quantity >= item.max_qty}
+          title="Increase quantity"
+        >
+          +
+        </button>
+      </div>
+      <div className="cart-item-line-total">
+        ${(item.price * item.quantity).toFixed(2)}
+      </div>
+      <button
+        className="cart-item-remove"
+        onClick={() => removeItem(item.inventory_id)}
+        title="Remove item"
+      >
+        &#10005;
+      </button>
     </div>
   );
 }

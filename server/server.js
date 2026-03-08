@@ -1349,9 +1349,12 @@ app.get('/api/orders/:id', (req, res) => {
 });
 
 app.post('/api/orders', (req, res) => {
-  const { user_id, items } = req.body;
-  if (!user_id || !items || !items.length) {
-    return res.status(400).json({ error: 'user_id and items are required' });
+  const { user_id, guest_name, guest_email, items } = req.body;
+  if (!items || !items.length) {
+    return res.status(400).json({ error: 'items are required' });
+  }
+  if (!user_id && (!guest_name || !guest_email)) {
+    return res.status(400).json({ error: 'Sign in or provide guest name and email' });
   }
 
   // Validate items and calculate totals
@@ -1372,8 +1375,8 @@ app.post('/api/orders', (req, res) => {
   const total = Math.round((subtotal + tax) * 100) / 100;
 
   const result = db.prepare(
-    'INSERT INTO orders (user_id, subtotal, tax, total) VALUES (?, ?, ?, ?)'
-  ).run(user_id, subtotal, tax, total);
+    'INSERT INTO orders (user_id, guest_name, guest_email, subtotal, tax, total) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(user_id || null, guest_name || null, guest_email || null, subtotal, tax, total);
 
   const orderId = result.lastInsertRowid;
   const insertItem = db.prepare(

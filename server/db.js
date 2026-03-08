@@ -211,7 +211,9 @@ db.exec(`
   );
   CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL REFERENCES users(id),
+    user_id INTEGER REFERENCES users(id),
+    guest_name TEXT,
+    guest_email TEXT,
     status TEXT NOT NULL DEFAULT 'Pending',
     subtotal REAL NOT NULL DEFAULT 0,
     tax REAL NOT NULL DEFAULT 0,
@@ -423,6 +425,72 @@ if (oiSchema && oiSchema.sql && !oiSchema.sql.includes('ON DELETE SET NULL')) {
     INSERT INTO order_items_new SELECT * FROM order_items;
     DROP TABLE order_items;
     ALTER TABLE order_items_new RENAME TO order_items;
+  `);
+  db.pragma('foreign_keys = ON');
+}
+
+// Migration: rebuild orders table to match expected schema (subtotal, tax, total, etc.)
+const ordColumns = db.prepare("PRAGMA table_info(orders)").all().map(c => c.name);
+if (!ordColumns.includes('subtotal')) {
+  db.pragma('foreign_keys = OFF');
+  db.exec(`
+    CREATE TABLE orders_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      status TEXT NOT NULL DEFAULT 'Pending',
+      subtotal REAL NOT NULL DEFAULT 0,
+      tax REAL NOT NULL DEFAULT 0,
+      total REAL NOT NULL DEFAULT 0,
+      payment_method TEXT,
+      transaction_id TEXT,
+      paid_date TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    INSERT INTO orders_new (id, user_id, status, total, created_at, updated_at)
+      SELECT id, COALESCE(user_id, 0), COALESCE(status, 'Pending'), COALESCE(amount, 0), COALESCE(date, datetime('now')), datetime('now')
+      FROM orders;
+    DROP TABLE orders;
+    ALTER TABLE orders_new RENAME TO orders;
+  `);
+  db.pragma('foreign_keys = ON');
+}
+
+// Migration: add guest checkout columns to orders
+const ordColsGuest = db.prepare("PRAGMA table_info(orders)").all().map(c => c.name);
+if (!ordColsGuest.includes('guest_name')) {
+  db.exec("ALTER TABLE orders ADD COLUMN guest_name TEXT");
+}
+if (!ordColsGuest.includes('guest_email')) {
+  db.exec("ALTER TABLE orders ADD COLUMN guest_email TEXT");
+}
+
+// Migration: make orders.user_id nullable (rebuild if NOT NULL)
+const ordSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='orders'").get();
+if (ordSchema && ordSchema.sql.includes('user_id INTEGER NOT NULL')) {
+  db.pragma('foreign_keys = OFF');
+  const cols = db.prepare("PRAGMA table_info(orders)").all().map(c => c.name);
+  const colList = cols.join(', ');
+  db.exec(`
+    CREATE TABLE orders_nullable (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER REFERENCES users(id),
+      guest_name TEXT,
+      guest_email TEXT,
+      status TEXT NOT NULL DEFAULT 'Pending',
+      subtotal REAL NOT NULL DEFAULT 0,
+      tax REAL NOT NULL DEFAULT 0,
+      total REAL NOT NULL DEFAULT 0,
+      payment_method TEXT,
+      transaction_id TEXT,
+      paid_date TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    INSERT INTO orders_nullable (${colList})
+      SELECT ${colList} FROM orders;
+    DROP TABLE orders;
+    ALTER TABLE orders_nullable RENAME TO orders;
   `);
   db.pragma('foreign_keys = ON');
 }

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { apiGet, apiPost } from '../../api';
 import SEO from '../../components/SEO';
+import Spinner from '../../components/ui/Spinner';
 
 let stripePromiseCache = null;
 function getStripePromise() {
@@ -97,10 +98,195 @@ function CheckoutForm({ order, onSuccess }) {
   );
 }
 
+/* ── Inline auth / guest identity section ── */
+function CustomerSection({ onReady }) {
+  const { user, login, register } = useAuth();
+  const [mode, setMode] = useState('guest'); // 'guest' | 'login' | 'register'
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // If already logged in, immediately signal ready
+  useEffect(() => {
+    if (user) onReady({ type: 'user', user_id: user.id });
+  }, [user, onReady]);
+
+  if (user) {
+    return (
+      <div className="card" style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: '50%',
+            background: 'var(--color-primary)', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 700, fontSize: '1rem', flexShrink: 0,
+          }}>
+            {user.name?.[0]?.toUpperCase() || '?'}
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{user.name}</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{user.email}</div>
+          </div>
+          <span style={{
+            marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 600,
+            color: '#16a34a', background: '#f0fdf4', padding: '0.2rem 0.6rem',
+            borderRadius: 9999, flexShrink: 0,
+          }}>Signed In</span>
+        </div>
+      </div>
+    );
+  }
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const u = await login(email, password);
+      onReady({ type: 'user', user_id: u.id });
+    } catch (err) {
+      setError(err.message || 'Invalid email or password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
+    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    setLoading(true);
+    try {
+      const u = await register(name, email, password);
+      onReady({ type: 'user', user_id: u.id });
+    } catch (err) {
+      setError(err.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuest = (e) => {
+    e.preventDefault();
+    setError('');
+    if (!guestName.trim() || !guestEmail.trim()) {
+      setError('Name and email are required');
+      return;
+    }
+    onReady({ type: 'guest', guest_name: guestName.trim(), guest_email: guestEmail.trim() });
+  };
+
+  const tabs = [
+    { key: 'guest', label: 'Guest Checkout' },
+    { key: 'login', label: 'Sign In' },
+    { key: 'register', label: 'Register' },
+  ];
+
+  return (
+    <div className="card" style={{ marginBottom: '1.5rem' }}>
+      <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Customer Information</h2>
+
+      <div style={{
+        display: 'flex', borderBottom: '2px solid var(--color-border)', marginBottom: '1.25rem',
+      }}>
+        {tabs.map(t => (
+          <button
+            key={t.key}
+            onClick={() => { setMode(t.key); setError(''); }}
+            style={{
+              flex: 1, padding: '0.6rem 0.5rem', background: 'none', border: 'none',
+              borderBottom: `2px solid ${mode === t.key ? 'var(--color-primary)' : 'transparent'}`,
+              marginBottom: -2, fontSize: '0.85rem', fontWeight: mode === t.key ? 600 : 500,
+              color: mode === t.key ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              cursor: 'pointer', transition: 'color 0.2s, border-color 0.2s',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div style={{
+          background: '#fef2f2', color: '#dc2626', padding: '0.6rem 0.75rem',
+          borderRadius: 8, fontSize: '0.85rem', marginBottom: '1rem',
+        }}>
+          {error}
+        </div>
+      )}
+
+      {mode === 'guest' && (
+        <form onSubmit={handleGuest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', margin: 0 }}>
+            No account needed. We just need your name and email for order confirmation.
+          </p>
+          <div className="form-group">
+            <label htmlFor="guest-name">Full Name</label>
+            <input id="guest-name" type="text" value={guestName} onChange={e => setGuestName(e.target.value)} placeholder="John Smith" required />
+          </div>
+          <div className="form-group">
+            <label htmlFor="guest-email">Email</label>
+            <input id="guest-email" type="email" value={guestEmail} onChange={e => setGuestEmail(e.target.value)} placeholder="you@example.com" required />
+          </div>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+            Continue as Guest
+          </button>
+        </form>
+      )}
+
+      {mode === 'login' && (
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="form-group">
+            <label htmlFor="login-email">Email</label>
+            <input id="login-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+          </div>
+          <div className="form-group">
+            <label htmlFor="login-password">Password</label>
+            <input id="login-password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required />
+          </div>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
+            {loading ? <><Spinner size={16} /> Signing in...</> : 'Sign In & Continue'}
+          </button>
+        </form>
+      )}
+
+      {mode === 'register' && (
+        <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="form-group">
+            <label htmlFor="reg-name">Full Name</label>
+            <input id="reg-name" type="text" value={name} onChange={e => setName(e.target.value)} placeholder="John Smith" required />
+          </div>
+          <div className="form-group">
+            <label htmlFor="reg-email">Email</label>
+            <input id="reg-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+          </div>
+          <div className="form-group">
+            <label htmlFor="reg-password">Password</label>
+            <input id="reg-password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" required minLength={6} />
+          </div>
+          <div className="form-group">
+            <label htmlFor="reg-confirm">Confirm Password</label>
+            <input id="reg-confirm" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Re-enter your password" required />
+          </div>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
+            {loading ? <><Spinner size={16} /> Creating account...</> : 'Create Account & Continue'}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export default function Checkout() {
   const { items, subtotal, clearCart } = useCart();
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const [customerInfo, setCustomerInfo] = useState(null);
   const [order, setOrder] = useState(null);
   const [placing, setPlacing] = useState(false);
   const [stripePromise, setStripePromise] = useState(null);
@@ -118,19 +304,12 @@ export default function Checkout() {
     });
   }, []);
 
-  if (!user) {
-    return (
-      <div className="products-page">
-        <section className="section">
-          <div className="container" style={{ textAlign: 'center', padding: '4rem 0' }}>
-            <h1 style={{ marginBottom: '1rem' }}>Please Log In</h1>
-            <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>You need to be logged in to checkout.</p>
-            <Link to="/login" className="btn btn-primary">Log In</Link>
-          </div>
-        </section>
-      </div>
-    );
-  }
+  // If user logs in via CustomerSection or was already logged in, reflect it
+  const handleCustomerReady = (info) => {
+    setCustomerInfo(info);
+  };
+
+  const isCustomerReady = !!customerInfo;
 
   if (items.length === 0 && !success) {
     return (
@@ -150,10 +329,16 @@ export default function Checkout() {
     setPlacing(true);
     setPlaceError('');
     try {
-      const result = await apiPost('/orders', {
-        user_id: user.id,
+      const payload = {
         items: items.map(i => ({ inventory_id: i.inventory_id, quantity: i.quantity })),
-      });
+      };
+      if (customerInfo.type === 'user') {
+        payload.user_id = customerInfo.user_id;
+      } else {
+        payload.guest_name = customerInfo.guest_name;
+        payload.guest_email = customerInfo.guest_email;
+      }
+      const result = await apiPost('/orders', payload);
       setOrder(result);
     } catch (err) {
       setPlaceError(err.message || 'Failed to place order');
@@ -197,8 +382,12 @@ export default function Checkout() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
-              <Link to="/portal/orders" className="btn btn-primary">View Orders</Link>
-              <Link to="/products" className="btn btn-outline">Continue Shopping</Link>
+              {user ? (
+                <Link to="/portal/orders" className="btn btn-primary">View Orders</Link>
+              ) : (
+                <Link to="/products" className="btn btn-primary">Continue Shopping</Link>
+              )}
+              <Link to="/products" className="btn btn-outline">Browse Products</Link>
             </div>
           </div>
         </section>
@@ -219,8 +408,12 @@ export default function Checkout() {
       <section className="section">
         <div className="container">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '2rem', alignItems: 'start' }}>
-            {/* Left column: Order items + payment */}
+            {/* Left column */}
             <div>
+              {/* Step 1: Customer info */}
+              <CustomerSection onReady={handleCustomerReady} />
+
+              {/* Step 2: Order items */}
               <div className="card" style={{ marginBottom: '1.5rem' }}>
                 <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Order Items ({items.length})</h2>
                 {items.map(item => (
@@ -247,6 +440,7 @@ export default function Checkout() {
                 ))}
               </div>
 
+              {/* Step 3: Place order & pay */}
               {!order ? (
                 <div>
                   {placeError && <p style={{ color: '#dc2626', fontSize: '0.9rem', marginBottom: '0.75rem' }}>{placeError}</p>}
@@ -254,9 +448,10 @@ export default function Checkout() {
                     className="btn btn-primary"
                     style={{ width: '100%' }}
                     onClick={placeOrder}
-                    disabled={placing}
+                    disabled={placing || !isCustomerReady}
+                    title={!isCustomerReady ? 'Please complete customer information above' : ''}
                   >
-                    {placing ? 'Placing Order...' : 'Place Order & Pay'}
+                    {!isCustomerReady ? 'Complete Info Above to Continue' : placing ? 'Placing Order...' : 'Place Order & Pay'}
                   </button>
                 </div>
               ) : stripeError ? (
