@@ -57,6 +57,68 @@ router.get('/products/:categoryId/items', (req, res) => {
   res.json(items);
 });
 
+// ─── Related Items (public, for cross-sell) ─────────────────────────────────
+
+router.get('/related-items', (req, res) => {
+  const { items } = req.query;
+  if (!items) return res.json([]);
+
+  // items is a JSON string: [{ item_name, category_id }]
+  let cartItems;
+  try {
+    cartItems = JSON.parse(items);
+  } catch {
+    return res.status(400).json({ error: 'Invalid items parameter' });
+  }
+  if (!Array.isArray(cartItems) || cartItems.length === 0) return res.json([]);
+
+  // Find all related item recommendations for cart items
+  const allRelated = [];
+  const seen = new Set();
+  const stmt = db.prepare(`
+    SELECT ri.related_item_name, ri.related_category_id, ri.label,
+           rt.name AS related_category_name
+    FROM related_items ri
+    LEFT JOIN taxonomy rt ON rt.id = ri.related_category_id
+    WHERE ri.source_item_name = ? AND ri.source_category_id = ?
+  `);
+
+  for (const ci of cartItems) {
+    if (!ci.item_name || !ci.category_id) continue;
+    const rows = stmt.all(ci.item_name, ci.category_id);
+    for (const row of rows) {
+      const key = `${row.related_item_name}|${row.related_category_id}`;
+      if (seen.has(key)) continue;
+      // Don't recommend items already in the cart
+      if (cartItems.some(c => c.item_name === row.related_item_name && String(c.category_id) === String(row.related_category_id))) continue;
+      seen.add(key);
+
+      // Fetch the actual product data for the related item
+      const product = db.prepare(`
+        SELECT MIN(si.id) AS id, si.item_name, si.unit,
+               MAX(si.retail_cost) AS retail_cost,
+               MAX(si.image) AS image,
+               MAX(si.on_sale) AS on_sale,
+               MIN(CASE WHEN si.on_sale = 1 THEN si.sale_price ELSE NULL END) AS sale_price,
+               t.name AS category_name,
+               si.category_id,
+               SUM(si.qty_available) AS qty_available
+        FROM supplier_inventory si
+        LEFT JOIN taxonomy t ON t.id = si.category_id
+        WHERE si.item_name = ? AND si.category_id = ? AND si.available = 1
+        GROUP BY si.item_name, si.unit, si.category_id
+        LIMIT 1
+      `).get(row.related_item_name, row.related_category_id);
+
+      if (product && product.qty_available > 0) {
+        allRelated.push({ ...product, label: row.label });
+      }
+    }
+  }
+
+  res.json(allRelated);
+});
+
 // ─── Orders (Shopping Cart) ─────────────────────────────────────────────────
 
 router.get('/orders', requireAuth, (req, res) => {

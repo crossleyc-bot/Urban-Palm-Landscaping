@@ -415,6 +415,70 @@ router.delete('/taxonomy/:id', requireAuth, requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
+// ─── Related Items (cross-sell recommendations) ─────────────────────────────
+
+router.get('/related-items', requireAuth, requireAdmin, (_req, res) => {
+  const rows = db.prepare(`
+    SELECT ri.*,
+           st.name AS source_category_name,
+           rt.name AS related_category_name
+    FROM related_items ri
+    LEFT JOIN taxonomy st ON st.id = ri.source_category_id
+    LEFT JOIN taxonomy rt ON rt.id = ri.related_category_id
+    ORDER BY ri.source_item_name, ri.related_item_name
+  `).all();
+  res.json(rows);
+});
+
+router.post('/related-items', requireAuth, requireAdmin, (req, res) => {
+  const { source_item_name, source_category_id, related_item_name, related_category_id, label } = req.body;
+  if (!source_item_name || !source_category_id || !related_item_name || !related_category_id) {
+    return res.status(400).json({ error: 'Source and related item name and category are required' });
+  }
+
+  // Prevent duplicate
+  const existing = db.prepare(
+    'SELECT id FROM related_items WHERE source_item_name = ? AND source_category_id = ? AND related_item_name = ? AND related_category_id = ?'
+  ).get(source_item_name, source_category_id, related_item_name, related_category_id);
+  if (existing) return res.status(409).json({ error: 'This related item pair already exists' });
+
+  const result = db.prepare(
+    'INSERT INTO related_items (source_item_name, source_category_id, related_item_name, related_category_id, label) VALUES (?, ?, ?, ?, ?)'
+  ).run(source_item_name, Number(source_category_id), related_item_name, Number(related_category_id), label || null);
+
+  const created = db.prepare(`
+    SELECT ri.*, st.name AS source_category_name, rt.name AS related_category_name
+    FROM related_items ri
+    LEFT JOIN taxonomy st ON st.id = ri.source_category_id
+    LEFT JOIN taxonomy rt ON rt.id = ri.related_category_id
+    WHERE ri.id = ?
+  `).get(result.lastInsertRowid);
+  res.status(201).json(created);
+});
+
+router.put('/related-items/:id', requireAuth, requireAdmin, (req, res) => {
+  const { id } = req.params;
+  const { label } = req.body;
+  const existing = db.prepare('SELECT * FROM related_items WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'Not found' });
+
+  db.prepare('UPDATE related_items SET label = ? WHERE id = ?').run(label || null, id);
+  const updated = db.prepare(`
+    SELECT ri.*, st.name AS source_category_name, rt.name AS related_category_name
+    FROM related_items ri
+    LEFT JOIN taxonomy st ON st.id = ri.source_category_id
+    LEFT JOIN taxonomy rt ON rt.id = ri.related_category_id
+    WHERE ri.id = ?
+  `).get(id);
+  res.json(updated);
+});
+
+router.delete('/related-items/:id', requireAuth, requireAdmin, (req, res) => {
+  const result = db.prepare('DELETE FROM related_items WHERE id = ?').run(req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Not found' });
+  res.json({ success: true });
+});
+
 // ─── Resources ───────────────────────────────────────────────────────────────
 
 const resourceUpload = (req, _res, next) => { req.uploadDir = 'resources'; next(); };
