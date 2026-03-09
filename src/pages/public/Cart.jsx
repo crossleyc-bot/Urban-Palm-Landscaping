@@ -39,7 +39,7 @@ export default function Cart() {
                   <button className="btn btn-outline btn-sm" onClick={clearCart}>Clear Cart</button>
                 </div>
                 {items.map(item => (
-                  <CartItemRow key={item.inventory_id} item={item} updateQuantity={updateQuantity} removeItem={removeItem} />
+                  <CartItemRow key={item.product_id} item={item} updateQuantity={updateQuantity} removeItem={removeItem} />
                 ))}
               </div>
 
@@ -83,26 +83,26 @@ function CartItemRow({ item, updateQuantity, removeItem }) {
     setEditing(false);
     const num = parseInt(inputVal, 10);
     if (isNaN(num) || num <= 0) {
-      removeItem(item.inventory_id);
+      removeItem(item.product_id);
     } else {
       const clamped = item.max_qty ? Math.min(num, item.max_qty) : num;
-      updateQuantity(item.inventory_id, clamped);
+      updateQuantity(item.product_id, clamped);
       setInputVal(String(clamped));
     }
   };
 
   const decrement = () => {
     if (item.quantity <= 1) {
-      removeItem(item.inventory_id);
+      removeItem(item.product_id);
     } else {
-      updateQuantity(item.inventory_id, item.quantity - 1);
+      updateQuantity(item.product_id, item.quantity - 1);
       setInputVal(String(item.quantity - 1));
     }
   };
 
   const increment = () => {
     if (item.max_qty && item.quantity >= item.max_qty) return;
-    updateQuantity(item.inventory_id, item.quantity + 1);
+    updateQuantity(item.product_id, item.quantity + 1);
     setInputVal(String(item.quantity + 1));
   };
 
@@ -168,7 +168,7 @@ function CartItemRow({ item, updateQuantity, removeItem }) {
       </div>
       <button
         className="cart-item-remove"
-        onClick={() => removeItem(item.inventory_id)}
+        onClick={() => removeItem(item.product_id)}
         title="Remove item"
       >
         &#10005;

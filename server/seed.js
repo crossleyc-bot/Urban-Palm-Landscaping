@@ -5,6 +5,8 @@ import bcrypt from 'bcryptjs';
 db.pragma('foreign_keys = OFF');
 
 db.exec(`
+  DELETE FROM product_sources;
+  DELETE FROM products;
   DELETE FROM announcements;
   DELETE FROM site_settings;
   DELETE FROM taxonomy;
@@ -173,6 +175,14 @@ const inventory = [
 ];
 for (const i of inventory) insertInventory.run(...i);
 
+// ─── Catalog Products & Sources ──────────────────────────────────────────
+// These are the customer-facing products. Each can be sourced from one or more suppliers.
+const insertProduct = db.prepare('INSERT INTO products (name, description, image, unit, retail_price, category_id, available) VALUES (?, ?, ?, ?, ?, ?, 0)');
+const insertSource = db.prepare('INSERT INTO product_sources (product_id, supplier_id, inventory_id, unit_cost, priority) VALUES (?, ?, ?, ?, ?)');
+
+// We'll assign category_ids later after taxonomy is seeded, so we insert products after taxonomy below.
+// For now, define the product data that we'll use after taxonomy is created.
+
 // ─── Job Openings ─────────────────────────────────────────────────────────
 const insertJobOpening = db.prepare('INSERT INTO job_openings (title, department, type, location, description, requirements, status) VALUES (?, ?, ?, ?, ?, ?, ?)');
 const jobOpenings = [
@@ -287,6 +297,59 @@ insertTaxonomy.run('Outdoor Kitchens', 'Built-in grills, counters, and cooking s
 insertTaxonomy.run('Pergolas & Shade Structures', 'Overhead coverage for patios and outdoor rooms', outdoor, 2);
 insertTaxonomy.run('Water Features', 'Fountains, ponds, and cascading water elements', outdoor, 3);
 insertTaxonomy.run('Outdoor Furniture', 'Seating, dining, and lounge furniture', outdoor, 4);
+
+// ─── Catalog Products (customer-facing) ───────────────────────────────────
+// Now that taxonomy is seeded, we can look up leaf category IDs and link products.
+// Helper to find a taxonomy leaf by name
+const findLeaf = (name) => {
+  const row = db.prepare('SELECT id FROM taxonomy WHERE name = ?').get(name);
+  return row ? row.id : null;
+};
+
+const catalogProducts = [
+  // Plants
+  { name: 'Foxtail Palm (10 gal)', unit: 'each', retail_price: 127.50, category: 'Palm Trees', sources: [[1, 1, 85.00, 0]] },
+  { name: 'Croton Gold Dust (3 gal)', unit: 'each', retail_price: 18.75, category: 'Ornamental Trees', sources: [[1, 2, 12.50, 0]] },
+  { name: 'Jasmine Confederate (1 gal)', unit: 'each', retail_price: 12.00, category: 'Hedge Plants', sources: [[1, 3, 8.00, 0]] },
+  { name: 'Premium Mulch - Brown', unit: 'cu yd', retail_price: 52.50, category: 'Mulch', sources: [[1, 4, 35.00, 0]] },
+  { name: 'Pygmy Date Palm (7 gal)', unit: 'each', retail_price: 97.50, category: 'Palm Trees', sources: [[1, 5, 65.00, 0]] },
+  { name: 'Ixora Nora Grant (3 gal)', unit: 'each', retail_price: 21.00, category: 'Flowering Shrubs', sources: [[1, 6, 14.00, 0]] },
+  { name: 'Bird of Paradise (7 gal)', unit: 'each', retail_price: 63.00, category: 'Ornamental Trees', sources: [[1, 7, 42.00, 0]] },
+  // Sod
+  { name: 'Floratam St. Augustine Sod', unit: 'pallet', retail_price: 277.50, category: 'St. Augustine', sources: [[2, 8, 185.00, 0]] },
+  { name: 'Bermuda Celebration Sod', unit: 'pallet', retail_price: 315.00, category: 'Bermuda Grass', sources: [[2, 9, 210.00, 0]] },
+  { name: 'Zoysia Empire Sod', unit: 'pallet', retail_price: 337.50, category: 'Zoysia', sources: [[2, 10, 225.00, 0]] },
+  { name: 'Bahia Argentine Sod', unit: 'pallet', retail_price: 240.00, category: 'Bahia', sources: [[2, 11, 160.00, 0]] },
+  // Hardscape
+  { name: 'Travertine Pavers 12x12', unit: 'sq ft', retail_price: 6.75, category: 'Travertine Pavers', sources: [[3, 12, 4.50, 0]] },
+  { name: 'River Rock (1-3 in)', unit: 'ton', retail_price: 97.50, category: 'River Rock', sources: [[3, 13, 65.00, 0]] },
+  { name: 'Retaining Wall Block', unit: 'each', retail_price: 4.88, category: 'Retaining Wall Systems', sources: [[3, 14, 3.25, 0]] },
+  { name: 'Flagstone - Natural', unit: 'sq ft', retail_price: 10.13, category: 'Flagstone', sources: [[3, 15, 6.75, 0]] },
+  { name: 'Decomposed Granite', unit: 'ton', retail_price: 67.50, category: 'Gravel & Aggregates', sources: [[3, 16, 45.00, 0]] },
+  { name: 'Fire Pit Kit - Round 42in', unit: 'each', retail_price: 480.00, category: 'Fire Features', sources: [[3, 17, 320.00, 0]] },
+  // Lighting
+  { name: 'LED Path Light - Brass', unit: 'each', retail_price: 57.00, category: 'Path & Area Lights', sources: [[4, 18, 38.00, 0]] },
+  { name: 'LED Uplight - Adjustable', unit: 'each', retail_price: 78.00, category: 'Uplights & Spotlights', sources: [[4, 19, 52.00, 0]] },
+  { name: 'LED Deck Light - Recessed', unit: 'each', retail_price: 42.00, category: 'Deck & Step Lights', sources: [[4, 20, 28.00, 0]] },
+  { name: 'Smart Transformer 300W', unit: 'each', retail_price: 277.50, category: 'Transformers & Controllers', sources: [[4, 21, 185.00, 0]] },
+  { name: 'LED Flood Light - 20W', unit: 'each', retail_price: 97.50, category: 'Flood & Security Lights', sources: [[4, 22, 65.00, 0]] },
+  // Irrigation
+  { name: 'Rain Bird ESP-TM2 Controller', unit: 'each', retail_price: 202.50, category: 'Controllers & Timers', sources: [[5, 23, 135.00, 0]] },
+  { name: 'Hunter PGP Ultra Rotor', unit: 'each', retail_price: 27.75, category: 'Sprinkler Heads & Rotors', sources: [[5, 24, 18.50, 0]] },
+  { name: 'Rain Bird 1804 Pop-Up Spray', unit: 'each', retail_price: 6.38, category: 'Sprinkler Heads & Rotors', sources: [[5, 25, 4.25, 0]] },
+  { name: 'Drip Tubing 1/2in - 100ft', unit: 'roll', retail_price: 33.00, category: 'Drip Irrigation', sources: [[5, 26, 22.00, 0]] },
+  { name: 'PVC Pipe 3/4in - 10ft', unit: 'each', retail_price: 5.70, category: 'Pipes & Fittings', sources: [[5, 27, 3.80, 0]] },
+  { name: 'Valve Box - Standard', unit: 'each', retail_price: 18.00, category: 'Valves & Valve Boxes', sources: [[5, 28, 12.00, 0]] },
+];
+
+for (const p of catalogProducts) {
+  const catId = findLeaf(p.category);
+  const result = insertProduct.run(p.name, p.description || null, p.image || null, p.unit, p.retail_price, catId);
+  const productId = result.lastInsertRowid;
+  for (const [supplierId, invId, unitCost, priority] of p.sources) {
+    insertSource.run(productId, supplierId, invId, unitCost, priority);
+  }
+}
 
 // ─── Announcements ─────────────────────────────────────────────────────────
 const insertAnnouncement = db.prepare('INSERT INTO announcements (message, link_text, link_url, bg_color, text_color, active) VALUES (?, ?, ?, ?, ?, ?)');

@@ -17,21 +17,23 @@ export function CartProvider({ children }) {
 
   const addItem = useCallback((product, qty = 1) => {
     setItems(prev => {
-      const existing = prev.find(i => i.inventory_id === product.id);
+      // Support both product_id (catalog) and legacy inventory_id
+      const id = product.product_id || product.id;
+      const existing = prev.find(i => i.product_id === id);
       let next;
       if (existing) {
         next = prev.map(i =>
-          i.inventory_id === product.id
+          i.product_id === id
             ? { ...i, quantity: i.quantity + qty }
             : i
         );
       } else {
         next = [...prev, {
-          inventory_id: product.id,
+          product_id: id,
           item_name: product.item_name,
           unit: product.unit,
-          price: product.on_sale && product.sale_price != null ? product.sale_price : product.retail_cost,
-          retail_cost: product.retail_cost,
+          price: product.on_sale && product.sale_price != null ? product.sale_price : (product.retail_cost || product.retail_price),
+          retail_cost: product.retail_cost || product.retail_price,
           sale_price: product.sale_price,
           on_sale: product.on_sale,
           image: product.image,
@@ -45,19 +47,19 @@ export function CartProvider({ children }) {
     });
   }, []);
 
-  const updateQuantity = useCallback((inventoryId, quantity) => {
+  const updateQuantity = useCallback((productId, quantity) => {
     setItems(prev => {
       const next = quantity <= 0
-        ? prev.filter(i => i.inventory_id !== inventoryId)
-        : prev.map(i => i.inventory_id === inventoryId ? { ...i, quantity } : i);
+        ? prev.filter(i => i.product_id !== productId)
+        : prev.map(i => i.product_id === productId ? { ...i, quantity } : i);
       localStorage.setItem('cart', JSON.stringify(next));
       return next;
     });
   }, []);
 
-  const removeItem = useCallback((inventoryId) => {
+  const removeItem = useCallback((productId) => {
     setItems(prev => {
-      const next = prev.filter(i => i.inventory_id !== inventoryId);
+      const next = prev.filter(i => i.product_id !== productId);
       localStorage.setItem('cart', JSON.stringify(next));
       return next;
     });

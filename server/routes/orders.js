@@ -19,14 +19,14 @@ router.get('/products', (req, res) => {
   const leaves = db.prepare(`
     SELECT t.id, t.name, t.description, t.image, t.parent_id,
            p.name AS parent_name,
-           COUNT(si.id) AS product_count,
-           MIN(si.retail_cost) AS min_price,
-           MAX(si.retail_cost) AS max_price,
-           MAX(si.on_sale) AS has_sale,
-           MIN(CASE WHEN si.on_sale = 1 THEN si.sale_price ELSE NULL END) AS min_sale_price
+           COUNT(pr.id) AS product_count,
+           MIN(pr.retail_price) AS min_price,
+           MAX(pr.retail_price) AS max_price,
+           MAX(pr.on_sale) AS has_sale,
+           MIN(CASE WHEN pr.on_sale = 1 THEN pr.sale_price ELSE NULL END) AS min_sale_price
     FROM taxonomy t
     LEFT JOIN taxonomy p ON p.id = t.parent_id
-    JOIN supplier_inventory si ON si.category_id = t.id AND si.available = 1
+    JOIN products pr ON pr.category_id = t.id AND pr.available = 1
     WHERE NOT EXISTS (SELECT 1 FROM taxonomy c WHERE c.parent_id = t.id)
     GROUP BY t.id
     ORDER BY t.name
@@ -39,12 +39,16 @@ router.get('/products', (req, res) => {
 
 router.get('/products/:categoryId/items', (req, res) => {
   const items = db.prepare(`
-    SELECT si.id, si.item_name, si.sku, si.unit, si.retail_cost, si.qty_available,
-           si.image, si.on_sale, si.sale_price, t.name AS category_name
-    FROM supplier_inventory si
-    LEFT JOIN taxonomy t ON t.id = si.category_id
-    WHERE si.category_id = ? AND si.available = 1
-    ORDER BY si.item_name
+    SELECT p.id, p.name AS item_name, p.unit, p.retail_price AS retail_cost,
+           p.image, p.on_sale, p.sale_price, t.name AS category_name,
+           (SELECT SUM(si.qty_available) FROM product_sources ps
+            JOIN supplier_inventory si ON si.id = ps.inventory_id
+            WHERE ps.product_id = p.id) AS qty_available,
+           (SELECT COUNT(*) FROM product_sources ps WHERE ps.product_id = p.id) AS source_count
+    FROM products p
+    LEFT JOIN taxonomy t ON t.id = p.category_id
+    WHERE p.category_id = ? AND p.available = 1
+    ORDER BY p.name
   `).all(req.params.categoryId);
   res.json(items);
 });
@@ -85,14 +89,37 @@ router.post('/orders', (req, res) => {
   let subtotal = 0;
   const resolved = [];
   for (const item of items) {
-    const inv = db.prepare('SELECT * FROM supplier_inventory WHERE id = ? AND available = 1').get(item.inventory_id);
-    if (!inv) return res.status(400).json({ error: `Product ${item.inventory_id} not available` });
-    if (item.quantity > inv.qty_available) {
-      return res.status(400).json({ error: `Only ${inv.qty_available} of "${inv.item_name}" available` });
+    // Support both catalog product_id and legacy inventory_id
+    if (item.product_id) {
+      const prod = db.prepare('SELECT * FROM products WHERE id = ? AND available = 1').get(item.product_id);
+      if (!prod) return res.status(400).json({ error: `Product ${item.product_id} not available` });
+
+      // Check aggregate availability across all sources
+      const stockRow = db.prepare(`
+        SELECT COALESCE(SUM(si.qty_available), 0) AS total_available
+        FROM product_sources ps
+        JOIN supplier_inventory si ON si.id = ps.inventory_id
+        WHERE ps.product_id = ?
+      `).get(item.product_id);
+      const totalAvailable = stockRow?.total_available || 0;
+      if (totalAvailable > 0 && item.quantity > totalAvailable) {
+        return res.status(400).json({ error: `Only ${totalAvailable} of "${prod.name}" available` });
+      }
+
+      const price = prod.on_sale && prod.sale_price != null ? prod.sale_price : prod.retail_price;
+      subtotal += price * item.quantity;
+      resolved.push({ product: prod, quantity: item.quantity, price, product_id: prod.id });
+    } else {
+      // Legacy path: direct inventory reference
+      const inv = db.prepare('SELECT * FROM supplier_inventory WHERE id = ? AND available = 1').get(item.inventory_id);
+      if (!inv) return res.status(400).json({ error: `Product ${item.inventory_id} not available` });
+      if (item.quantity > inv.qty_available) {
+        return res.status(400).json({ error: `Only ${inv.qty_available} of "${inv.item_name}" available` });
+      }
+      const price = inv.on_sale && inv.sale_price != null ? inv.sale_price : inv.retail_cost;
+      subtotal += price * item.quantity;
+      resolved.push({ inv, quantity: item.quantity, price });
     }
-    const price = inv.on_sale && inv.sale_price != null ? inv.sale_price : inv.retail_cost;
-    subtotal += price * item.quantity;
-    resolved.push({ inv, quantity: item.quantity, price });
   }
 
   const getSetting = (key) => {
@@ -146,15 +173,36 @@ router.post('/orders', (req, res) => {
 
   const orderId = result.lastInsertRowid;
   const insertItem = db.prepare(
-    'INSERT INTO order_items (order_id, inventory_id, item_name, unit, price, quantity) VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO order_items (order_id, inventory_id, product_id, item_name, unit, price, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)'
   );
   const updateQty = db.prepare(
     'UPDATE supplier_inventory SET qty_available = qty_available - ? WHERE id = ?'
   );
 
   for (const r of resolved) {
-    insertItem.run(orderId, r.inv.id, r.inv.item_name, r.inv.unit, r.price, r.quantity);
-    updateQty.run(r.quantity, r.inv.id);
+    if (r.product_id) {
+      // Catalog product: deduct stock from highest-priority source with availability
+      const sources = db.prepare(`
+        SELECT ps.inventory_id FROM product_sources ps
+        JOIN supplier_inventory si ON si.id = ps.inventory_id
+        WHERE ps.product_id = ? AND si.qty_available > 0
+        ORDER BY ps.priority
+      `).all(r.product_id);
+
+      let remaining = r.quantity;
+      for (const src of sources) {
+        if (remaining <= 0) break;
+        const inv = db.prepare('SELECT qty_available FROM supplier_inventory WHERE id = ?').get(src.inventory_id);
+        const deduct = Math.min(remaining, inv.qty_available);
+        updateQty.run(deduct, src.inventory_id);
+        remaining -= deduct;
+      }
+
+      insertItem.run(orderId, null, r.product_id, r.product.name, r.product.unit, r.price, r.quantity);
+    } else {
+      insertItem.run(orderId, r.inv.id, null, r.inv.item_name, r.inv.unit, r.price, r.quantity);
+      updateQty.run(r.quantity, r.inv.id);
+    }
   }
 
   if (appliedCoupon) {
@@ -319,11 +367,11 @@ router.post('/coupons/validate', (req, res) => {
 
 router.get('/deals', (_req, res) => {
   const saleProducts = db.prepare(`
-    SELECT si.id, si.item_name, si.retail_cost, si.sale_price, si.image, t.name AS category_name
-    FROM supplier_inventory si
-    LEFT JOIN taxonomy t ON si.category_id = t.id
-    WHERE si.on_sale = 1 AND si.available = 1 AND si.sale_price IS NOT NULL
-    ORDER BY si.updated_at DESC
+    SELECT p.id, p.name AS item_name, p.retail_price AS retail_cost, p.sale_price, p.image, t.name AS category_name
+    FROM products p
+    LEFT JOIN taxonomy t ON p.category_id = t.id
+    WHERE p.on_sale = 1 AND p.available = 1 AND p.sale_price IS NOT NULL
+    ORDER BY p.updated_at DESC
     LIMIT 8
   `).all();
 

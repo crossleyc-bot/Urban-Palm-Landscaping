@@ -50,6 +50,7 @@ const ContactMessages = lazy(() => import('./pages/admin/ContactMessages'));
 const ManageServices = lazy(() => import('./pages/admin/ManageServices'));
 const ManageSuppliers = lazy(() => import('./pages/admin/ManageSuppliers'));
 const SupplierInventory = lazy(() => import('./pages/admin/SupplierInventory'));
+const ProductCatalog = lazy(() => import('./pages/admin/ProductCatalog'));
 const ManageJobOpenings = lazy(() => import('./pages/admin/ManageJobOpenings'));
 const ManageTaxonomy = lazy(() => import('./pages/admin/ManageTaxonomy'));
 const ManageResources = lazy(() => import('./pages/admin/ManageResources'));
@@ -76,6 +77,7 @@ const adminNav = [
   { path: '/admin/employees', label: 'Employees', icon: '\uD83D\uDC65' },
   { path: '/admin/suppliers', label: 'Suppliers', icon: '\uD83D\uDE9A' },
   { path: '/admin/inventory', label: 'Inventory', icon: '\uD83D\uDCE6' },
+  { path: '/admin/catalog', label: 'Product Catalog', icon: '\uD83D\uDED2' },
   { path: '/admin/taxonomy', label: 'Taxonomy', icon: '\uD83C\uDF33' },
   { path: '/admin/schedule', label: 'Schedule', icon: '\uD83D\uDCC5' },
   { path: '/admin/invoices', label: 'Invoices', icon: '\uD83D\uDCB0' },
@@ -198,6 +200,7 @@ export default function App() {
                   <Route path="/admin/employees" element={<ManageEmployees />} />
                   <Route path="/admin/suppliers" element={<ManageSuppliers />} />
                   <Route path="/admin/inventory" element={<SupplierInventory />} />
+                  <Route path="/admin/catalog" element={<ProductCatalog />} />
                   <Route path="/admin/taxonomy" element={<ManageTaxonomy />} />
                   <Route path="/admin/schedule" element={<AdminSchedule />} />
                   <Route path="/admin/invoices" element={<Invoices />} />
