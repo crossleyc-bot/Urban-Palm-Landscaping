@@ -691,6 +691,19 @@ if (slideCount.cnt === 0) {
   }
 }
 
+// Migration: add related_items table for cross-sell recommendations
+db.exec(`
+  CREATE TABLE IF NOT EXISTS related_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_item_name TEXT NOT NULL,
+    source_category_id INTEGER NOT NULL REFERENCES taxonomy(id) ON DELETE CASCADE,
+    related_item_name TEXT NOT NULL,
+    related_category_id INTEGER NOT NULL REFERENCES taxonomy(id) ON DELETE CASCADE,
+    label TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
 // Migration: update hero slide CTA links to /quote
 db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link = '/contact'").run();
 db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link = '/login'").run();

@@ -6,12 +6,21 @@ import SEO from '../../components/SEO';
 import './Cart.css';
 
 export default function Cart() {
-  const { items, updateQuantity, removeItem, clearCart, subtotal } = useCart();
+  const { items, addItem, updateQuantity, removeItem, clearCart, subtotal } = useCart();
   const [settings, setSettings] = useState({ delivery_fee: 0, installation_fee: 0, delivery_minimum: 0, category_fees: [] });
+  const [relatedItems, setRelatedItems] = useState([]);
 
   useEffect(() => {
     apiGet('/checkout-settings').then(setSettings).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (items.length === 0) { setRelatedItems([]); return; }
+    const param = JSON.stringify(items.map(i => ({ item_name: i.item_name, category_id: i.category_id })));
+    apiGet(`/related-items?items=${encodeURIComponent(param)}`)
+      .then(setRelatedItems)
+      .catch(() => setRelatedItems([]));
+  }, [items]);
 
   // Build category fee lookup
   const categoryFeeMap = {};
@@ -31,19 +40,16 @@ export default function Cart() {
     return maxFee != null ? maxFee : settings.delivery_fee;
   })();
 
-  // Per-category installation fee estimate (sum model)
+  // Per-item installation fee estimate
   const estimatedInstallationFee = (() => {
-    const seenCategories = new Set();
     let total = 0;
     for (const item of items) {
       const catId = item.category_id;
-      if (catId && !seenCategories.has(catId)) {
-        seenCategories.add(catId);
-        const cf = categoryFeeMap[catId];
-        total += (cf && cf.installation_fee != null) ? cf.installation_fee : settings.installation_fee;
-      }
+      const cf = categoryFeeMap[catId];
+      const fee = (cf && cf.installation_fee != null) ? cf.installation_fee : settings.installation_fee;
+      total += fee * (item.quantity || 1);
     }
-    return seenCategories.size > 0 ? total : settings.installation_fee;
+    return total;
   })();
 
   const tax = Math.round(subtotal * 0.07 * 100) / 100;
@@ -82,6 +88,41 @@ export default function Cart() {
                   <CartItemRow key={item.product_id} item={item} updateQuantity={updateQuantity} removeItem={removeItem} />
                 ))}
               </div>
+
+              {/* Related Items */}
+              {relatedItems.length > 0 && (
+                <div className="card" style={{ gridColumn: '1 / -1', padding: '1.25rem' }}>
+                  <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>You Might Also Need</h2>
+                  <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                    {relatedItems.map(ri => (
+                      <div key={ri.id} style={{ minWidth: 180, maxWidth: 200, flex: '0 0 auto', border: '1px solid var(--color-border)', borderRadius: 'var(--radius)', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {ri.image ? (
+                          <img src={ri.image} alt={ri.item_name} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 'var(--radius)' }} />
+                        ) : (
+                          <div style={{ width: '100%', height: 100, background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>&#128230;</div>
+                        )}
+                        {ri.label && <div style={{ fontSize: '0.7rem', color: 'var(--color-primary)', fontWeight: 600, textTransform: 'uppercase' }}>{ri.label}</div>}
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{ri.item_name}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{ri.category_name}</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--color-primary)' }}>
+                          {ri.on_sale && ri.sale_price != null ? (
+                            <>
+                              <span style={{ textDecoration: 'line-through', color: 'var(--color-text-muted)', fontSize: '0.8rem', marginRight: '0.3rem' }}>${Number(ri.retail_cost).toFixed(2)}</span>
+                              <span style={{ color: '#dc2626' }}>${Number(ri.sale_price).toFixed(2)}</span>
+                            </>
+                          ) : (
+                            `$${Number(ri.retail_cost).toFixed(2)}`
+                          )}
+                          {ri.unit && <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--color-text-muted)' }}> / {ri.unit}</span>}
+                        </div>
+                        <button className="btn btn-primary btn-sm" style={{ marginTop: 'auto' }} onClick={() => addItem(ri)}>
+                          Add to Cart
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Order Summary */}
               <div className="card cart-summary">
