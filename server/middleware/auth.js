@@ -9,6 +9,9 @@ const __dirname = dirname(__filename);
 
 const JWT_SECRET_PATH = join(__dirname, '..', '.jwt-secret');
 function getJwtSecret() {
+  if (process.env.JWT_SECRET) {
+    return process.env.JWT_SECRET;
+  }
   if (existsSync(JWT_SECRET_PATH)) {
     return readFileSync(JWT_SECRET_PATH, 'utf-8').trim();
   }
