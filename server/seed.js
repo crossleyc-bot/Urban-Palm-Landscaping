@@ -124,44 +124,10 @@ for (const s of scheduleRequests) insertSchedule.run(...s);
 // ─── Suppliers ──────────────────────────────────────────────────────────────
 const insertSupplier = db.prepare('INSERT INTO suppliers (name, contact_name, email, phone, address, website, operating_hours, delivery_info, delivery_fees, public_access, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
 const suppliers = [
-  ['Green World Nursery', 'Maria Lopez', 'maria@greenworldnursery.com', '(407) 555-0101', '1200 Plant Ave, Orlando, FL 32803', 'https://greenworldnursery.com', 'Mon-Sat 7am-5pm, Sun 9am-2pm', 'Local delivery within 30 miles. Next-day for orders placed before 2pm.', 'Free on orders over $500, otherwise $75 flat rate', 'Open to public and contractors', 'Net 30 terms. Bulk discount on orders over $2,000. Best selection of native Florida plants.', 'Active'],
   ['SunState Sod Farm', 'Jake Turner', 'jake@sunstatesod.com', '(407) 555-0202', '8400 Sod Rd, Sanford, FL 32771', 'https://sunstatesod.com', 'Mon-Fri 6am-4pm, Sat 7am-12pm', 'Same-day delivery available. Min order 1 pallet.', '$50 per delivery within 25 miles, $1.50/mile beyond', 'Open to public — call ahead for large orders', 'Quality guaranteed — will replace dead sod within 30 days.', 'Active'],
   ['Emerald Coast Turf Co.', 'Brian Holt', 'brian@emeraldcoastturf.com', '(352) 555-0606', '4750 Grass Valley Rd, Ocala, FL 34470', 'https://emeraldcoastturf.com', 'Mon-Fri 6am-5pm, Sat 7am-1pm', 'Next-day delivery available. Min order 1 pallet.', '$60 per delivery within 30 miles, $1.25/mile beyond', 'Open to public and contractors', 'Premium farm-grown sod. 45-day replacement guarantee. Net 15 terms for contractors.', 'Active'],
 ];
 for (const s of suppliers) insertSupplier.run(...s);
-
-// ─── Supplier Inventory ─────────────────────────────────────────────────────
-const insertInventory = db.prepare('INSERT INTO supplier_inventory (supplier_id, item_name, sku, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)');
-const inventory = [
-  // Green World Nursery                               wholesale  retail
-  [1, 'Foxtail Palm (10 gal)', 'GW-FP10', 'each',      85.00, 127.50, 24, 5, null],
-  [1, 'Croton Gold Dust (3 gal)', 'GW-CG3', 'each',    12.50,  18.75, 60, 10, null],
-  [1, 'Jasmine Confederate (1 gal)', 'GW-JC1', 'each',  8.00,  12.00, 120, 20, 'Fragrant, popular for hedges'],
-  [1, 'Premium Mulch - Brown', 'GW-MBR', 'cu yd',      35.00,  52.50, 40, 10, null],
-  [1, 'Pygmy Date Palm (7 gal)', 'GW-PDP7', 'each',    65.00,  97.50, 18, 5, 'Great for accent planting'],
-  [1, 'Ixora Nora Grant (3 gal)', 'GW-ING3', 'each',   14.00,  21.00, 45, 10, 'Red blooms year-round'],
-  [1, 'Bird of Paradise (7 gal)', 'GW-BOP7', 'each',   42.00,  63.00, 12, 3, 'Tropical statement plant'],
-  // SunState Sod Farm
-  [2, 'Floratam St. Augustine Sod', 'SS-FSA', 'pallet', 185.00, 277.50, 30, 5, '500 sq ft per pallet'],
-  [2, 'Bermuda Celebration Sod', 'SS-BCS', 'pallet',    210.00, 315.00, 15, 5, 'Full sun recommended'],
-  [2, 'Zoysia Empire Sod', 'SS-ZES', 'pallet',          225.00, 337.50, 8, 3, 'Shade tolerant'],
-  [2, 'Bahia Argentine Sod', 'SS-BAS', 'pallet',        160.00, 240.00, 20, 5, 'Drought tolerant, low maintenance'],
-  // Emerald Coast Turf Co.
-  [3, 'Floratam St. Augustine Sod', 'EC-FSA', 'pallet', 180.00, 270.00, 40, 8, '500 sq ft per pallet, farm-fresh cut'],
-  [3, 'Bermuda TifTuf Sod', 'EC-BTT', 'pallet',         220.00, 330.00, 20, 5, 'Drought tolerant hybrid bermuda'],
-  [3, 'Zoysia Empire Sod', 'EC-ZES', 'pallet',           230.00, 345.00, 12, 4, 'Shade tolerant, fine blade'],
-  [3, 'Bahia Argentine Sod', 'EC-BAS', 'pallet',         155.00, 232.50, 25, 5, 'Low maintenance, great for large areas'],
-  [3, 'Bermuda Celebration Sod', 'EC-BCS', 'pallet',     215.00, 322.50, 18, 5, 'Dense turf, full sun'],
-];
-for (const i of inventory) insertInventory.run(...i);
-
-// ─── Catalog Products & Sources ──────────────────────────────────────────
-// These are the customer-facing products. Each can be sourced from one or more suppliers.
-const insertProduct = db.prepare('INSERT INTO products (name, description, image, unit, retail_price, category_id, available) VALUES (?, ?, ?, ?, ?, ?, 0)');
-const insertSource = db.prepare('INSERT INTO product_sources (product_id, supplier_id, inventory_id, unit_cost, priority) VALUES (?, ?, ?, ?, ?)');
-
-// We'll assign category_ids later after taxonomy is seeded, so we insert products after taxonomy below.
-// For now, define the product data that we'll use after taxonomy is created.
 
 // ─── Job Openings ─────────────────────────────────────────────────────────
 const insertJobOpening = db.prepare('INSERT INTO job_openings (title, department, type, location, description, requirements, status) VALUES (?, ?, ?, ?, ?, ?, ?)');
@@ -278,39 +244,31 @@ insertTaxonomy.run('Pergolas & Shade Structures', 'Overhead coverage for patios 
 insertTaxonomy.run('Water Features', 'Fountains, ponds, and cascading water elements', outdoor, 3);
 insertTaxonomy.run('Outdoor Furniture', 'Seating, dining, and lounge furniture', outdoor, 4);
 
-// ─── Catalog Products (customer-facing) ───────────────────────────────────
-// Now that taxonomy is seeded, we can look up leaf category IDs and link products.
-// Helper to find a taxonomy leaf by name
+// ─── Supplier Inventory ─────────────────────────────────────────────────────
+// Seeded after taxonomy so we can assign category_ids directly.
 const findLeaf = (name) => {
   const row = db.prepare('SELECT id FROM taxonomy WHERE name = ?').get(name);
   return row ? row.id : null;
 };
 
-const catalogProducts = [
-  // Plants
-  { name: 'Foxtail Palm (10 gal)', unit: 'each', retail_price: 127.50, category: 'Palm Trees', sources: [[1, 1, 85.00, 0]] },
-  { name: 'Croton Gold Dust (3 gal)', unit: 'each', retail_price: 18.75, category: 'Ornamental Trees', sources: [[1, 2, 12.50, 0]] },
-  { name: 'Jasmine Confederate (1 gal)', unit: 'each', retail_price: 12.00, category: 'Hedge Plants', sources: [[1, 3, 8.00, 0]] },
-  { name: 'Premium Mulch - Brown', unit: 'cu yd', retail_price: 52.50, category: 'Mulch', sources: [[1, 4, 35.00, 0]] },
-  { name: 'Pygmy Date Palm (7 gal)', unit: 'each', retail_price: 97.50, category: 'Palm Trees', sources: [[1, 5, 65.00, 0]] },
-  { name: 'Ixora Nora Grant (3 gal)', unit: 'each', retail_price: 21.00, category: 'Flowering Shrubs', sources: [[1, 6, 14.00, 0]] },
-  { name: 'Bird of Paradise (7 gal)', unit: 'each', retail_price: 63.00, category: 'Ornamental Trees', sources: [[1, 7, 42.00, 0]] },
-  // Sod — SunState Sod Farm
-  { name: 'Floratam St. Augustine Sod', unit: 'pallet', retail_price: 277.50, category: 'St. Augustine', sources: [[2, 8, 185.00, 0], [3, 12, 180.00, 1]] },
-  { name: 'Bermuda Celebration Sod', unit: 'pallet', retail_price: 315.00, category: 'Bermuda Grass', sources: [[2, 9, 210.00, 0]] },
-  { name: 'Zoysia Empire Sod', unit: 'pallet', retail_price: 337.50, category: 'Zoysia', sources: [[2, 10, 225.00, 0], [3, 14, 230.00, 1]] },
-  { name: 'Bahia Argentine Sod', unit: 'pallet', retail_price: 240.00, category: 'Bahia', sources: [[2, 11, 160.00, 0], [3, 15, 155.00, 1]] },
-  // Sod — Emerald Coast Turf Co. exclusive
-  { name: 'Bermuda TifTuf Sod', unit: 'pallet', retail_price: 330.00, category: 'Bermuda Grass', sources: [[3, 13, 220.00, 0]] },
+const insertInventory = db.prepare(
+  'INSERT INTO supplier_inventory (supplier_id, item_name, sku, unit, unit_cost, retail_cost, qty_available, reorder_point, category_id, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)'
+);
+//                             supplier  item_name                    sku       unit     wholesale  retail   qty  reorder  category
+const inventory = [
+  // SunState Sod Farm (id 1)
+  [1, 'Bahia Argentine Sod',        'SS-BAS', 'pallet', 160.00, 240.00, 20, 5, 'Bahia'],
+  [1, 'Bermuda Celebration Sod',    'SS-BCS', 'pallet', 210.00, 315.00, 15, 5, 'Bermuda Grass'],
+  [1, 'Floratam St. Augustine Sod', 'SS-FSA', 'pallet', 185.00, 277.50, 30, 5, 'St. Augustine'],
+  [1, 'Zoysia Empire Sod',          'SS-ZES', 'pallet', 225.00, 337.50,  8, 3, 'Zoysia'],
+  // Emerald Coast Turf Co. (id 2)
+  [2, 'Bahia Argentine Sod',        'EC-BAS', 'pallet', 155.00, 232.50, 25, 5, 'Bahia'],
+  [2, 'Bermuda Celebration Sod',    'EC-BCS', 'pallet', 215.00, 322.50, 18, 5, 'Bermuda Grass'],
+  [2, 'Floratam St. Augustine Sod', 'EC-FSA', 'pallet', 180.00, 270.00, 40, 8, 'St. Augustine'],
+  [2, 'Zoysia Empire Sod',          'EC-ZES', 'pallet', 230.00, 345.00, 12, 4, 'Zoysia'],
 ];
-
-for (const p of catalogProducts) {
-  const catId = findLeaf(p.category);
-  const result = insertProduct.run(p.name, p.description || null, p.image || null, p.unit, p.retail_price, catId);
-  const productId = result.lastInsertRowid;
-  for (const [supplierId, invId, unitCost, priority] of p.sources) {
-    insertSource.run(productId, supplierId, invId, unitCost, priority);
-  }
+for (const [suppId, name, sku, unit, wholesale, retail, qty, reorder, catName] of inventory) {
+  insertInventory.run(suppId, name, sku, unit, wholesale, retail, qty, reorder, findLeaf(catName));
 }
 
 // ─── Announcements ─────────────────────────────────────────────────────────
