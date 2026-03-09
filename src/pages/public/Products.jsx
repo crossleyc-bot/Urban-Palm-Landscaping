@@ -24,15 +24,25 @@ export default function Products() {
   const [taxonomyRoots, setTaxonomyRoots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All');
-  const [expandedLeaf, setExpandedLeaf] = useState(null);
   const [leafItems, setLeafItems] = useState({});
-  const [loadingItems, setLoadingItems] = useState(null);
   const { addItem, updateQuantity, removeItem, items: cartItems } = useCart();
   const { addToast } = useToast();
 
   useEffect(() => {
     Promise.all([apiGet('/products'), apiGet('/taxonomy/roots')])
-      .then(([lvs, roots]) => { setLeaves(lvs); setTaxonomyRoots(roots); })
+      .then(([lvs, roots]) => {
+        setLeaves(lvs);
+        setTaxonomyRoots(roots);
+        // Auto-load items for all leaf products
+        lvs.forEach(async (leaf) => {
+          try {
+            const items = await apiGet(`/products/${leaf.id}/items`);
+            setLeafItems(prev => ({ ...prev, [leaf.id]: items }));
+          } catch {
+            setLeafItems(prev => ({ ...prev, [leaf.id]: [] }));
+          }
+        });
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -68,24 +78,6 @@ export default function Products() {
     setActiveCategory(prev => prev === name ? 'All' : name);
   };
 
-  const toggleLeafExpand = async (leafId) => {
-    if (expandedLeaf === leafId) {
-      setExpandedLeaf(null);
-      return;
-    }
-    setExpandedLeaf(leafId);
-    if (!leafItems[leafId]) {
-      setLoadingItems(leafId);
-      try {
-        const items = await apiGet(`/products/${leafId}/items`);
-        setLeafItems(prev => ({ ...prev, [leafId]: items }));
-      } catch {
-        setLeafItems(prev => ({ ...prev, [leafId]: [] }));
-      } finally {
-        setLoadingItems(null);
-      }
-    }
-  };
 
   const handleAddToCart = (product) => {
     addItem(product);
@@ -166,12 +158,10 @@ export default function Products() {
                 <div className="products-grid">
                   {filtered.map(leaf => {
                     const rootName = leafToRoot[leaf.id];
-                    const isExpanded = expandedLeaf === leaf.id;
                     const items = leafItems[leaf.id] || [];
-                    const isLoadingItems = loadingItems === leaf.id;
                     return (
-                      <div key={leaf.id} className={`product-card${isExpanded ? ' product-card-expanded' : ''}`}>
-                        <div className="product-image" onClick={() => toggleLeafExpand(leaf.id)} style={{ cursor: 'pointer' }}>
+                      <div key={leaf.id} className="product-card">
+                        <div className="product-image">
                           {leaf.image ? (
                             <img src={leaf.image} alt={leaf.name} loading="lazy" />
                           ) : (
@@ -181,7 +171,7 @@ export default function Products() {
                           {leaf.has_sale ? <span className="product-sale-badge">Sale</span> : null}
                         </div>
                         <div className="product-body">
-                          <h3 onClick={() => toggleLeafExpand(leaf.id)} style={{ cursor: 'pointer' }}>{leaf.name}</h3>
+                          <h3>{leaf.name}</h3>
                           {leaf.description && (
                             <p className="product-description">{leaf.description}</p>
                           )}
@@ -202,46 +192,19 @@ export default function Products() {
                               )}
                             </div>
                           )}
-                          <button
-                            className="btn btn-primary btn-sm"
-                            style={{ marginTop: '0.75rem', width: '100%' }}
-                            onClick={() => toggleLeafExpand(leaf.id)}
-                          >
-                            {isExpanded ? 'Hide Items' : 'View Items'}
-                          </button>
-                        </div>
-
-                        {isExpanded && (
-                          <div className="product-items-panel">
-                            {isLoadingItems ? (
-                              <p style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>Loading items...</p>
-                            ) : items.length === 0 ? (
-                              <p style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-text-muted)' }}>No items available.</p>
+                          <div className="product-card-items" style={{ marginTop: '0.75rem' }}>
+                            {items.length === 0 ? (
+                              !leafItems[leaf.id] ? (
+                                <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Loading...</p>
+                              ) : null
                             ) : (
                               items.map(item => {
                                 const inCart = getCartQty(item.id);
-                                const price = item.on_sale && item.sale_price != null ? item.sale_price : item.retail_cost;
                                 return (
-                                  <div key={item.id} className="product-item-row">
-                                    {item.image && (
-                                      <img src={item.image} alt={item.item_name} className="product-item-thumb" />
-                                    )}
-                                    <div className="product-item-info">
-                                      <div className="product-item-name">{item.item_name}</div>
-                                      {item.unit && <span className="product-item-unit">per {item.unit}</span>}
-                                      {item.qty_available > 0 && (
-                                        <span className="product-item-stock">{item.qty_available} available</span>
-                                      )}
-                                    </div>
-                                    <div className="product-item-pricing">
-                                      {item.on_sale && item.sale_price != null ? (
-                                        <>
-                                          <span className="product-item-original">${Number(item.retail_cost).toFixed(2)}</span>
-                                          <span className="product-item-sale">${Number(item.sale_price).toFixed(2)}</span>
-                                        </>
-                                      ) : (
-                                        <span>${Number(price).toFixed(2)}</span>
-                                      )}
+                                  <div key={item.id} className="product-card-item-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontSize: '0.85rem', fontWeight: 500 }}>{item.item_name}</div>
+                                      {item.unit && <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>per {item.unit}</span>}
                                     </div>
                                     {inCart ? (
                                       <div className="product-item-cart-controls">
@@ -289,7 +252,7 @@ export default function Products() {
                               })
                             )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })}
