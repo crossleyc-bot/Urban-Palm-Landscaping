@@ -47,11 +47,7 @@ const services = [
   ['Landscape Delivery & Installation', 'We deliver and install sod, plants, trees, mulch, and landscape materials across Central Florida. Our crews handle everything from site prep to final placement so your property is transformed with zero hassle.', 'From $250', '🌿'],
   ['Landscape Design', 'Our certified landscape architects create custom plans that blend aesthetics with functionality. We consider your lifestyle, climate, soil conditions, and budget to craft a design you will love for years to come.', 'From $500', '🎨'],
   ['Tree & Shrub Care', 'Keep your trees and shrubs healthy and beautiful with professional pruning, trimming, disease diagnosis, fertilization, and preventive care programs tailored to Central Florida species.', 'From $150', '🌳'],
-  ['Irrigation Systems', 'From smart controller installations to full sprinkler system design and repair, we build water-efficient irrigation solutions that keep your landscape thriving while cutting your water bill.', 'From $300', '💧'],
-  ['Hardscaping', 'Transform your outdoor living space with custom patios, walkways, retaining walls, fire pits, outdoor kitchens, and decorative stonework. We use premium materials built to withstand Florida weather.', 'From $1,000', '🧱'],
   ['Seasonal Cleanup', 'Our spring and fall cleanup services include leaf removal, bed edging, mulch refresh, dead plant removal, and general property tidying to keep your landscape looking sharp year-round.', 'From $200', '🍂'],
-  ['Lawn Maintenance', 'Weekly and bi-weekly lawn care including mowing, edging, blowing, and weed control. We keep your turf green and healthy through every season with customized treatment programs.', 'From $120/mo', '🏡'],
-  ['Outdoor Lighting', 'Architectural and landscape lighting design and installation to highlight your property at night. LED path lights, uplights, deck lighting, and security lighting with smart controls.', 'From $400', '💡'],
 ];
 for (const s of services) insertService.run(...s);
 

@@ -691,4 +691,18 @@ db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link LIKE '/sig
 db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link IS NULL OR cta_link = ''").run();
 db.prepare("UPDATE hero_slides SET cta_label = 'Get Free Quote' WHERE cta_label = 'Get Free Consultation'").run();
 
+// Migration: keep only the four offered services
+const allowedServices = [
+  'Landscape Delivery & Installation',
+  'Landscape Design',
+  'Tree & Shrub Care',
+  'Seasonal Cleanup',
+];
+const existingServices = db.prepare('SELECT name FROM services').all().map(r => r.name);
+const toRemove = existingServices.filter(n => !allowedServices.includes(n));
+if (toRemove.length > 0) {
+  const del = db.prepare('DELETE FROM services WHERE name = ?');
+  for (const name of toRemove) del.run(name);
+}
+
 export default db;
