@@ -13,14 +13,26 @@ function getAuthHeaders() {
   return {};
 }
 
+function handleResponse(res) {
+  if (res.ok) return;
+  if (res.status === 401 && localStorage.getItem('user')) {
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+    throw new Error('Session expired. Please log in again.');
+  }
+}
+
+async function parseError(res) {
+  const err = await res.json().catch(() => ({ error: 'Request failed' }));
+  throw new Error(err.error || `API error: ${res.status}`);
+}
+
 export async function apiGet(path) {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { ...getAuthHeaders() },
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || `API error: ${res.status}`);
-  }
+  handleResponse(res);
+  if (!res.ok) await parseError(res);
   return res.json();
 }
 
@@ -30,10 +42,8 @@ export async function apiPost(path, data) {
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(data),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || `API error: ${res.status}`);
-  }
+  handleResponse(res);
+  if (!res.ok) await parseError(res);
   return res.json();
 }
 
@@ -43,10 +53,8 @@ export async function apiPut(path, data) {
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(data),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || `API error: ${res.status}`);
-  }
+  handleResponse(res);
+  if (!res.ok) await parseError(res);
   return res.json();
 }
 
@@ -56,10 +64,8 @@ export async function apiPostForm(path, formData) {
     headers: { ...getAuthHeaders() },
     body: formData,
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || `API error: ${res.status}`);
-  }
+  handleResponse(res);
+  if (!res.ok) await parseError(res);
   return res.json();
 }
 
@@ -69,10 +75,8 @@ export async function apiPutForm(path, formData) {
     headers: { ...getAuthHeaders() },
     body: formData,
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || `API error: ${res.status}`);
-  }
+  handleResponse(res);
+  if (!res.ok) await parseError(res);
   return res.json();
 }
 
@@ -82,22 +86,18 @@ export async function apiPatch(path, data) {
     headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(data),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || `API error: ${res.status}`);
-  }
+  handleResponse(res);
+  if (!res.ok) await parseError(res);
   return res.json();
 }
 
 export async function apiDelete(path) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'DELETE',
-    headers: { 'Accept': 'application/json', ...getAuthHeaders() },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Request failed' }));
-    throw new Error(err.error || `API error: ${res.status}`);
-  }
+  handleResponse(res);
+  if (!res.ok) await parseError(res);
   const text = await res.text();
   return text ? JSON.parse(text) : { success: true };
 }
