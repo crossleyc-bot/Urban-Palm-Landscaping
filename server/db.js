@@ -598,6 +598,44 @@ db.exec(`
   )
 `);
 
+// Migration: add products catalog table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    image TEXT,
+    unit TEXT,
+    retail_price REAL,
+    category_id INTEGER REFERENCES taxonomy(id) ON DELETE SET NULL,
+    on_sale INTEGER NOT NULL DEFAULT 0,
+    sale_price REAL,
+    available INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// Migration: add product_sources table linking products to suppliers
+db.exec(`
+  CREATE TABLE IF NOT EXISTS product_sources (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+    inventory_id INTEGER REFERENCES supplier_inventory(id) ON DELETE SET NULL,
+    unit_cost REAL,
+    priority INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(product_id, supplier_id)
+  )
+`);
+
+// Migration: add product_id column to order_items for catalog product reference
+const oiCols = db.prepare("PRAGMA table_info(order_items)").all().map(c => c.name);
+if (!oiCols.includes('product_id')) {
+  db.exec("ALTER TABLE order_items ADD COLUMN product_id INTEGER REFERENCES products(id) ON DELETE SET NULL");
+}
+
 // Seed default hero carousel slides if table is empty
 const slideCount = db.prepare('SELECT COUNT(*) as cnt FROM hero_slides').get();
 if (slideCount.cnt === 0) {

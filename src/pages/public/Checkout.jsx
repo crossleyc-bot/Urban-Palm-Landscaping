@@ -382,7 +382,7 @@ export default function Checkout() {
     setPlaceError('');
     try {
       const payload = {
-        items: items.map(i => ({ inventory_id: i.inventory_id, quantity: i.quantity })),
+        items: items.map(i => ({ product_id: i.product_id, quantity: i.quantity })),
         add_delivery: addDelivery,
         delivery_address: addDelivery ? deliveryAddress : null,
         add_installation: addInstallation,
@@ -480,7 +480,7 @@ export default function Checkout() {
               <div className="card" style={{ marginBottom: '1.5rem' }}>
                 <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>Order Items ({items.length})</h2>
                 {items.map(item => (
-                  <div key={item.inventory_id} style={{
+                  <div key={item.product_id} style={{
                     display: 'flex', gap: '0.75rem', padding: '0.5rem 0',
                     borderBottom: '1px solid var(--color-border)', alignItems: 'center',
                   }}>

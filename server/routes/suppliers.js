@@ -346,4 +346,161 @@ router.delete('/inventory/:id', requireAuth, requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
+// ─── Catalog Products ───────────────────────────────────────────────────────
+
+router.get('/catalog', requireAuth, requireAdmin, (req, res) => {
+  const products = db.prepare(`
+    SELECT p.*,
+           t.name AS category_name,
+           (SELECT GROUP_CONCAT(ps.supplier_id) FROM product_sources ps WHERE ps.product_id = p.id) AS source_supplier_ids
+    FROM products p
+    LEFT JOIN taxonomy t ON t.id = p.category_id
+    ORDER BY p.name
+  `).all();
+  res.json(products);
+});
+
+router.get('/catalog/:id', requireAuth, requireAdmin, (req, res) => {
+  const product = db.prepare(`
+    SELECT p.*, t.name AS category_name
+    FROM products p
+    LEFT JOIN taxonomy t ON t.id = p.category_id
+    WHERE p.id = ?
+  `).get(req.params.id);
+  if (!product) return res.status(404).json({ error: 'Product not found' });
+
+  const sources = db.prepare(`
+    SELECT ps.*, s.name AS supplier_name, si.item_name AS inventory_item_name, si.sku, si.qty_available
+    FROM product_sources ps
+    JOIN suppliers s ON s.id = ps.supplier_id
+    LEFT JOIN supplier_inventory si ON si.id = ps.inventory_id
+    WHERE ps.product_id = ?
+    ORDER BY ps.priority, s.name
+  `).all(req.params.id);
+
+  res.json({ ...product, sources });
+});
+
+router.post('/catalog', requireAuth, requireAdmin, (req, res) => {
+  const { name, description, unit, retail_price, category_id, on_sale, sale_price, available } = req.body;
+  if (!name) return res.status(400).json({ error: 'Product name is required' });
+
+  const catId = resolveCategoryId(category_id);
+  const avail = available === '1' || available === 1 ? 1 : 0;
+  const onSale = on_sale === '1' || on_sale === 1 ? 1 : 0;
+  const sp = sale_price != null && sale_price !== '' ? Number(sale_price) : null;
+  const rp = retail_price != null && retail_price !== '' ? Number(retail_price) : null;
+
+  const result = db.prepare(
+    'INSERT INTO products (name, description, unit, retail_price, category_id, on_sale, sale_price, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(name, description || null, unit || null, rp, catId, onSale, sp, avail);
+
+  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
+  res.status(201).json(product);
+});
+
+router.put('/catalog/:id', requireAuth, requireAdmin, (req, res) => {
+  const { name, description, unit, retail_price, category_id, on_sale, sale_price, available } = req.body;
+  if (!name) return res.status(400).json({ error: 'Product name is required' });
+
+  const existing = db.prepare('SELECT id FROM products WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Product not found' });
+
+  const catId = resolveCategoryId(category_id);
+  const avail = available === '1' || available === 1 ? 1 : 0;
+  const onSale = on_sale === '1' || on_sale === 1 ? 1 : 0;
+  const sp = sale_price != null && sale_price !== '' ? Number(sale_price) : null;
+  const rp = retail_price != null && retail_price !== '' ? Number(retail_price) : null;
+
+  db.prepare(
+    'UPDATE products SET name = ?, description = ?, unit = ?, retail_price = ?, category_id = ?, on_sale = ?, sale_price = ?, available = ?, updated_at = datetime(\'now\') WHERE id = ?'
+  ).run(name, description || null, unit || null, rp, catId, onSale, sp, avail, req.params.id);
+
+  if (onSale === 1 && sp && rp) {
+    const pctOff = Math.round((1 - sp / rp) * 100);
+    const prev = db.prepare('SELECT on_sale FROM products WHERE id = ?').get(req.params.id);
+    if (prev && !prev.on_sale) {
+      notifyOptedInUsers(
+        'sale',
+        `Sale: ${name}`,
+        `${name} is now ${pctOff}% off! Was $${rp.toFixed(2)}, now $${sp.toFixed(2)}.`,
+        '/products'
+      );
+    }
+  }
+
+  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  res.json(product);
+});
+
+router.delete('/catalog/:id', requireAuth, requireAdmin, (req, res) => {
+  const result = db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Product not found' });
+  res.json({ success: true });
+});
+
+// ─── Product Sources ────────────────────────────────────────────────────────
+
+router.get('/catalog/:productId/sources', requireAuth, requireAdmin, (req, res) => {
+  const sources = db.prepare(`
+    SELECT ps.*, s.name AS supplier_name, si.item_name AS inventory_item_name, si.sku, si.qty_available, si.unit_cost AS inv_unit_cost
+    FROM product_sources ps
+    JOIN suppliers s ON s.id = ps.supplier_id
+    LEFT JOIN supplier_inventory si ON si.id = ps.inventory_id
+    WHERE ps.product_id = ?
+    ORDER BY ps.priority, s.name
+  `).all(req.params.productId);
+  res.json(sources);
+});
+
+router.post('/catalog/:productId/sources', requireAuth, requireAdmin, (req, res) => {
+  const { supplier_id, inventory_id, unit_cost, priority } = req.body;
+  if (!supplier_id) return res.status(400).json({ error: 'Supplier is required' });
+
+  const productExists = db.prepare('SELECT 1 FROM products WHERE id = ?').get(req.params.productId);
+  if (!productExists) return res.status(404).json({ error: 'Product not found' });
+
+  const supplierExists = db.prepare('SELECT 1 FROM suppliers WHERE id = ?').get(supplier_id);
+  if (!supplierExists) return res.status(400).json({ error: 'Supplier not found' });
+
+  const duplicate = db.prepare('SELECT 1 FROM product_sources WHERE product_id = ? AND supplier_id = ?').get(req.params.productId, supplier_id);
+  if (duplicate) return res.status(409).json({ error: 'This supplier is already a source for this product' });
+
+  const cost = unit_cost != null && unit_cost !== '' ? Number(unit_cost) : null;
+  const invId = inventory_id != null && inventory_id !== '' ? Number(inventory_id) : null;
+
+  const result = db.prepare(
+    'INSERT INTO product_sources (product_id, supplier_id, inventory_id, unit_cost, priority) VALUES (?, ?, ?, ?, ?)'
+  ).run(req.params.productId, supplier_id, invId, cost, priority || 0);
+
+  const source = db.prepare(`
+    SELECT ps.*, s.name AS supplier_name
+    FROM product_sources ps
+    JOIN suppliers s ON s.id = ps.supplier_id
+    WHERE ps.id = ?
+  `).get(result.lastInsertRowid);
+  res.status(201).json(source);
+});
+
+router.put('/catalog/sources/:id', requireAuth, requireAdmin, (req, res) => {
+  const { supplier_id, inventory_id, unit_cost, priority } = req.body;
+  const existing = db.prepare('SELECT * FROM product_sources WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Source not found' });
+
+  const cost = unit_cost != null && unit_cost !== '' ? Number(unit_cost) : null;
+  const invId = inventory_id != null && inventory_id !== '' ? Number(inventory_id) : null;
+
+  db.prepare(
+    'UPDATE product_sources SET supplier_id = ?, inventory_id = ?, unit_cost = ?, priority = ? WHERE id = ?'
+  ).run(supplier_id || existing.supplier_id, invId, cost, priority ?? existing.priority, req.params.id);
+
+  res.json({ success: true });
+});
+
+router.delete('/catalog/sources/:id', requireAuth, requireAdmin, (req, res) => {
+  const result = db.prepare('DELETE FROM product_sources WHERE id = ?').run(req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Source not found' });
+  res.json({ success: true });
+});
+
 export default router;

@@ -92,8 +92,8 @@ export default function Products() {
     addToast(`${product.item_name} added to cart`, 'success');
   };
 
-  const getCartQty = (inventoryId) => {
-    const item = cartItems.find(i => i.inventory_id === inventoryId);
+  const getCartQty = (productId) => {
+    const item = cartItems.find(i => i.product_id === productId);
     return item ? item.quantity : 0;
   };
 
