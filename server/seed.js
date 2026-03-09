@@ -130,9 +130,7 @@ const insertSupplier = db.prepare('INSERT INTO suppliers (name, contact_name, em
 const suppliers = [
   ['Green World Nursery', 'Maria Lopez', 'maria@greenworldnursery.com', '(407) 555-0101', '1200 Plant Ave, Orlando, FL 32803', 'https://greenworldnursery.com', 'Mon-Sat 7am-5pm, Sun 9am-2pm', 'Local delivery within 30 miles. Next-day for orders placed before 2pm.', 'Free on orders over $500, otherwise $75 flat rate', 'Open to public and contractors', 'Net 30 terms. Bulk discount on orders over $2,000. Best selection of native Florida plants.', 'Active'],
   ['SunState Sod Farm', 'Jake Turner', 'jake@sunstatesod.com', '(407) 555-0202', '8400 Sod Rd, Sanford, FL 32771', 'https://sunstatesod.com', 'Mon-Fri 6am-4pm, Sat 7am-12pm', 'Same-day delivery available. Min order 1 pallet.', '$50 per delivery within 25 miles, $1.50/mile beyond', 'Open to public — call ahead for large orders', 'Quality guaranteed — will replace dead sod within 30 days.', 'Active'],
-  ['Rock Solid Supply', 'Diane Park', 'diane@rocksolidsupply.com', '(321) 555-0303', '560 Quarry Ln, Clermont, FL 34711', null, 'Mon-Fri 7am-5pm', 'Delivery Tue/Thu only. Schedule 48 hours in advance.', '$95 per load within service area', 'Contractors only — must have account on file', 'Pavers, stone, gravel. 5% contractor discount with account.', 'Active'],
-  ['BrightPath Lighting', 'Kevin Marsh', 'kevin@brightpathlighting.com', '(407) 555-0404', '920 Edison Blvd, Orlando, FL 32806', 'https://brightpathlighting.com', 'Mon-Fri 8am-6pm', 'Ships via UPS/FedEx. 3-5 business days standard.', 'Free shipping on orders over $500, otherwise $12.95', 'Online orders only — no walk-in showroom', 'LED landscape fixtures. 5-year warranty on all products.', 'Active'],
-  ['Central FL Irrigation Depot', 'Nancy Cole', 'nancy@cflirrigation.com', '(321) 555-0505', '3100 Water Works Way, Sanford, FL 32773', 'https://cflirrigation.com', 'Mon-Fri 7am-5:30pm, Sat 8am-1pm', 'Same-day pickup available. Local delivery next business day.', '$45 flat rate local delivery', 'Open to public and contractors. Contractor counter for quick pickup.', 'Full line of Rain Bird and Hunter products. Net 15 terms.', 'Active'],
+  ['Emerald Coast Turf Co.', 'Brian Holt', 'brian@emeraldcoastturf.com', '(352) 555-0606', '4750 Grass Valley Rd, Ocala, FL 34470', 'https://emeraldcoastturf.com', 'Mon-Fri 6am-5pm, Sat 7am-1pm', 'Next-day delivery available. Min order 1 pallet.', '$60 per delivery within 30 miles, $1.25/mile beyond', 'Open to public and contractors', 'Premium farm-grown sod. 45-day replacement guarantee. Net 15 terms for contractors.', 'Active'],
 ];
 for (const s of suppliers) insertSupplier.run(...s);
 
@@ -152,26 +150,12 @@ const inventory = [
   [2, 'Bermuda Celebration Sod', 'SS-BCS', 'pallet',    210.00, 315.00, 15, 5, 'Full sun recommended'],
   [2, 'Zoysia Empire Sod', 'SS-ZES', 'pallet',          225.00, 337.50, 8, 3, 'Shade tolerant'],
   [2, 'Bahia Argentine Sod', 'SS-BAS', 'pallet',        160.00, 240.00, 20, 5, 'Drought tolerant, low maintenance'],
-  // Rock Solid Supply
-  [3, 'Travertine Pavers 12x12', 'RS-TP12', 'sq ft',     4.50,   6.75, 2000, 200, null],
-  [3, 'River Rock (1-3 in)', 'RS-RR3', 'ton',           65.00,  97.50, 12, 3, null],
-  [3, 'Retaining Wall Block', 'RS-RWB', 'each',          3.25,   4.88, 500, 100, null],
-  [3, 'Flagstone - Natural', 'RS-FN', 'sq ft',           6.75,  10.13, 800, 100, 'Irregular shapes, great for pathways'],
-  [3, 'Decomposed Granite', 'RS-DG', 'ton',             45.00,  67.50, 25, 5, 'Gray. Good for paths and fill.'],
-  [3, 'Fire Pit Kit - Round 42in', 'RS-FPK', 'each',   320.00, 480.00, 6, 2, 'Includes blocks, ring, and cap stones'],
-  // BrightPath Lighting
-  [4, 'LED Path Light - Brass', 'BP-PLB', 'each',       38.00,  57.00, 80, 15, 'Warm white 3000K, 12V'],
-  [4, 'LED Uplight - Adjustable', 'BP-ULA', 'each',     52.00,  78.00, 40, 10, 'For tree and facade uplighting'],
-  [4, 'LED Deck Light - Recessed', 'BP-DLR', 'each',    28.00,  42.00, 60, 10, 'Flush mount, stainless steel'],
-  [4, 'Smart Transformer 300W', 'BP-ST300', 'each',    185.00, 277.50, 8, 2, 'WiFi enabled, dusk-to-dawn timer'],
-  [4, 'LED Flood Light - 20W', 'BP-FL20', 'each',       65.00,  97.50, 20, 5, 'Security/accent, adjustable angle'],
-  // Central FL Irrigation Depot
-  [5, 'Rain Bird ESP-TM2 Controller', 'CF-RBTM2', 'each', 135.00, 202.50, 10, 3, '6-zone, WiFi smart controller'],
-  [5, 'Hunter PGP Ultra Rotor', 'CF-HPGP', 'each',      18.50,  27.75, 200, 30, '40-50 ft radius, adjustable arc'],
-  [5, 'Rain Bird 1804 Pop-Up Spray', 'CF-RB1804', 'each', 4.25,   6.38, 500, 50, '4-inch pop-up, multiple nozzles available'],
-  [5, 'Drip Tubing 1/2in - 100ft', 'CF-DT100', 'roll',  22.00,  33.00, 35, 8, 'For garden beds and planters'],
-  [5, 'PVC Pipe 3/4in - 10ft', 'CF-PVC34', 'each',       3.80,   5.70, 150, 25, 'Schedule 40, for main lines'],
-  [5, 'Valve Box - Standard', 'CF-VBS', 'each',          12.00,  18.00, 40, 10, 'Green lid, fits 2-4 valves'],
+  // Emerald Coast Turf Co.
+  [3, 'Floratam St. Augustine Sod', 'EC-FSA', 'pallet', 180.00, 270.00, 40, 8, '500 sq ft per pallet, farm-fresh cut'],
+  [3, 'Bermuda TifTuf Sod', 'EC-BTT', 'pallet',         220.00, 330.00, 20, 5, 'Drought tolerant hybrid bermuda'],
+  [3, 'Zoysia Empire Sod', 'EC-ZES', 'pallet',           230.00, 345.00, 12, 4, 'Shade tolerant, fine blade'],
+  [3, 'Bahia Argentine Sod', 'EC-BAS', 'pallet',         155.00, 232.50, 25, 5, 'Low maintenance, great for large areas'],
+  [3, 'Bermuda Celebration Sod', 'EC-BCS', 'pallet',     215.00, 322.50, 18, 5, 'Dense turf, full sun'],
 ];
 for (const i of inventory) insertInventory.run(...i);
 
@@ -315,31 +299,13 @@ const catalogProducts = [
   { name: 'Pygmy Date Palm (7 gal)', unit: 'each', retail_price: 97.50, category: 'Palm Trees', sources: [[1, 5, 65.00, 0]] },
   { name: 'Ixora Nora Grant (3 gal)', unit: 'each', retail_price: 21.00, category: 'Flowering Shrubs', sources: [[1, 6, 14.00, 0]] },
   { name: 'Bird of Paradise (7 gal)', unit: 'each', retail_price: 63.00, category: 'Ornamental Trees', sources: [[1, 7, 42.00, 0]] },
-  // Sod
-  { name: 'Floratam St. Augustine Sod', unit: 'pallet', retail_price: 277.50, category: 'St. Augustine', sources: [[2, 8, 185.00, 0]] },
+  // Sod — SunState Sod Farm
+  { name: 'Floratam St. Augustine Sod', unit: 'pallet', retail_price: 277.50, category: 'St. Augustine', sources: [[2, 8, 185.00, 0], [3, 12, 180.00, 1]] },
   { name: 'Bermuda Celebration Sod', unit: 'pallet', retail_price: 315.00, category: 'Bermuda Grass', sources: [[2, 9, 210.00, 0]] },
-  { name: 'Zoysia Empire Sod', unit: 'pallet', retail_price: 337.50, category: 'Zoysia', sources: [[2, 10, 225.00, 0]] },
-  { name: 'Bahia Argentine Sod', unit: 'pallet', retail_price: 240.00, category: 'Bahia', sources: [[2, 11, 160.00, 0]] },
-  // Hardscape
-  { name: 'Travertine Pavers 12x12', unit: 'sq ft', retail_price: 6.75, category: 'Travertine Pavers', sources: [[3, 12, 4.50, 0]] },
-  { name: 'River Rock (1-3 in)', unit: 'ton', retail_price: 97.50, category: 'River Rock', sources: [[3, 13, 65.00, 0]] },
-  { name: 'Retaining Wall Block', unit: 'each', retail_price: 4.88, category: 'Retaining Wall Systems', sources: [[3, 14, 3.25, 0]] },
-  { name: 'Flagstone - Natural', unit: 'sq ft', retail_price: 10.13, category: 'Flagstone', sources: [[3, 15, 6.75, 0]] },
-  { name: 'Decomposed Granite', unit: 'ton', retail_price: 67.50, category: 'Gravel & Aggregates', sources: [[3, 16, 45.00, 0]] },
-  { name: 'Fire Pit Kit - Round 42in', unit: 'each', retail_price: 480.00, category: 'Fire Features', sources: [[3, 17, 320.00, 0]] },
-  // Lighting
-  { name: 'LED Path Light - Brass', unit: 'each', retail_price: 57.00, category: 'Path & Area Lights', sources: [[4, 18, 38.00, 0]] },
-  { name: 'LED Uplight - Adjustable', unit: 'each', retail_price: 78.00, category: 'Uplights & Spotlights', sources: [[4, 19, 52.00, 0]] },
-  { name: 'LED Deck Light - Recessed', unit: 'each', retail_price: 42.00, category: 'Deck & Step Lights', sources: [[4, 20, 28.00, 0]] },
-  { name: 'Smart Transformer 300W', unit: 'each', retail_price: 277.50, category: 'Transformers & Controllers', sources: [[4, 21, 185.00, 0]] },
-  { name: 'LED Flood Light - 20W', unit: 'each', retail_price: 97.50, category: 'Flood & Security Lights', sources: [[4, 22, 65.00, 0]] },
-  // Irrigation
-  { name: 'Rain Bird ESP-TM2 Controller', unit: 'each', retail_price: 202.50, category: 'Controllers & Timers', sources: [[5, 23, 135.00, 0]] },
-  { name: 'Hunter PGP Ultra Rotor', unit: 'each', retail_price: 27.75, category: 'Sprinkler Heads & Rotors', sources: [[5, 24, 18.50, 0]] },
-  { name: 'Rain Bird 1804 Pop-Up Spray', unit: 'each', retail_price: 6.38, category: 'Sprinkler Heads & Rotors', sources: [[5, 25, 4.25, 0]] },
-  { name: 'Drip Tubing 1/2in - 100ft', unit: 'roll', retail_price: 33.00, category: 'Drip Irrigation', sources: [[5, 26, 22.00, 0]] },
-  { name: 'PVC Pipe 3/4in - 10ft', unit: 'each', retail_price: 5.70, category: 'Pipes & Fittings', sources: [[5, 27, 3.80, 0]] },
-  { name: 'Valve Box - Standard', unit: 'each', retail_price: 18.00, category: 'Valves & Valve Boxes', sources: [[5, 28, 12.00, 0]] },
+  { name: 'Zoysia Empire Sod', unit: 'pallet', retail_price: 337.50, category: 'Zoysia', sources: [[2, 10, 225.00, 0], [3, 14, 230.00, 1]] },
+  { name: 'Bahia Argentine Sod', unit: 'pallet', retail_price: 240.00, category: 'Bahia', sources: [[2, 11, 160.00, 0], [3, 15, 155.00, 1]] },
+  // Sod — Emerald Coast Turf Co. exclusive
+  { name: 'Bermuda TifTuf Sod', unit: 'pallet', retail_price: 330.00, category: 'Bermuda Grass', sources: [[3, 13, 220.00, 0]] },
 ];
 
 for (const p of catalogProducts) {
