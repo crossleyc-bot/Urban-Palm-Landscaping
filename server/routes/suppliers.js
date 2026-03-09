@@ -4,7 +4,7 @@ import { readFileSync, unlinkSync } from 'fs';
 import db from '../db.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { upload, serverDir } from '../middleware/upload.js';
-import { resolveCategoryId, notifyOptedInUsers } from '../helpers.js';
+import { resolveCategoryId, autoAssignCategoryId, notifyOptedInUsers } from '../helpers.js';
 
 const router = Router();
 
@@ -186,7 +186,18 @@ router.post('/inventory', requireAuth, requireAdmin, (req, res) => {
 
   const wholesale = unit_cost != null && unit_cost !== '' ? Number(unit_cost) : null;
   const retail = retail_cost != null && retail_cost !== '' ? Number(retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
-  const catId = resolveCategoryId(category_id);
+  let catId = resolveCategoryId(category_id);
+  let catName = category || null;
+  let autoAssigned = false;
+  // Auto-assign taxonomy leaf if no category was explicitly set
+  if (!catId) {
+    const match = autoAssignCategoryId(item_name);
+    if (match) {
+      catId = match.id;
+      catName = match.name;
+      autoAssigned = true;
+    }
+  }
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
   const available = availableRaw === '1' || availableRaw === 1 ? 1 : 0;
   const onSale = onSaleRaw === '1' || onSaleRaw === 1 ? 1 : 0;
@@ -199,9 +210,9 @@ router.post('/inventory', requireAuth, requireAdmin, (req, res) => {
   try {
     const result = db.prepare(
       'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available, on_sale, sale_price, sale_percentage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available, onSale, salePrice, salePct);
+    ).run(suppId, item_name, sku || null, catName, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available, onSale, salePrice, salePct);
 
-    res.status(201).json({ id: result.lastInsertRowid, supplier_id: suppId, item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal, reorder_point: reorder_point ?? 0, notes, available, on_sale: onSale, sale_price: salePrice, sale_percentage: salePct });
+    res.status(201).json({ id: result.lastInsertRowid, supplier_id: suppId, item_name, sku, category: catName, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal, reorder_point: reorder_point ?? 0, notes, available, on_sale: onSale, sale_price: salePrice, sale_percentage: salePct, auto_assigned: autoAssigned });
   } catch (err) {
     console.error('POST /api/inventory error:', { supplier_id: suppId, category_id: catId, error: err.message });
     res.status(500).json({ error: err.message || 'Failed to save inventory item' });
@@ -240,6 +251,7 @@ router.post('/inventory/import', requireAuth, requireAdmin, inventoryImportUploa
         qty: 'qty_available', quantity: 'qty_available', stock: 'qty_available', in_stock: 'qty_available',
         reorder: 'reorder_point', min_stock: 'reorder_point', reorder_level: 'reorder_point',
         note: 'notes', comment: 'notes', comments: 'notes', description: 'notes',
+        taxonomy: 'category_id', taxonomy_id: 'category_id', cat_id: 'category_id',
       };
       return aliases[k] || k;
     };
@@ -251,11 +263,12 @@ router.post('/inventory/import', requireAuth, requireAdmin, inventoryImportUploa
     }
 
     const insert = db.prepare(
-      'INSERT INTO supplier_inventory (supplier_id, item_name, sku, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)'
+      'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)'
     );
 
     let imported = 0;
     let skipped = 0;
+    let autoAssignedCount = 0;
     const skippedReasons = [];
     const insertMany = db.transaction((data) => {
       for (const rawRow of data) {
@@ -273,10 +286,24 @@ router.post('/inventory/import', requireAuth, requireAdmin, inventoryImportUploa
         const retail = row.retail_cost ? Number(row.retail_cost) : (wholesale != null ? +(wholesale * 1.5).toFixed(2) : null);
         const qtyVal = row.qty_available ? Number(row.qty_available) : 0;
 
+        // Auto-assign taxonomy leaf category from item name
+        let catId = resolveCategoryId(row.category_id);
+        let catName = row.category || null;
+        if (!catId) {
+          const match = autoAssignCategoryId(row.item_name);
+          if (match) {
+            catId = match.id;
+            catName = match.name;
+            autoAssignedCount++;
+          }
+        }
+
         insert.run(
           supplierId,
           row.item_name,
           row.sku || null,
+          catName,
+          catId,
           row.unit || null,
           wholesale,
           retail,
@@ -291,7 +318,7 @@ router.post('/inventory/import', requireAuth, requireAdmin, inventoryImportUploa
     insertMany(rows);
     unlinkSync(req.file.path);
 
-    res.json({ success: true, imported, skipped, skippedReasons: skippedReasons.slice(0, 10) });
+    res.json({ success: true, imported, skipped, autoAssigned: autoAssignedCount, skippedReasons: skippedReasons.slice(0, 10) });
   } catch {
     if (req.file?.path) { try { unlinkSync(req.file.path); } catch { /* ignore */ } }
     res.status(400).json({ error: 'Failed to parse file. Ensure it is a valid CSV file.' });

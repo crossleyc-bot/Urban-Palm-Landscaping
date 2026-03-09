@@ -132,7 +132,11 @@ export default function SupplierInventory() {
       setItems(prev => [...prev, { ...created, supplier_name: supplierName(Number(form.supplier_id)) }]);
       setAdding(false);
       setForm(emptyForm);
-      addToast('Item added', 'success');
+      if (created.auto_assigned && created.category) {
+        addToast(`Item added — auto-assigned to "${created.category}"`, 'success');
+      } else {
+        addToast('Item added', 'success');
+      }
     } catch (err) { addToast(err.message || 'Failed to add item', 'error'); }
     finally { setSaving(false); }
   };
@@ -155,6 +159,7 @@ export default function SupplierInventory() {
       fd.append('file', file);
       const result = await apiPostForm('/inventory/import', fd);
       let msg = `Imported ${result.imported} item${result.imported !== 1 ? 's' : ''}`;
+      if (result.autoAssigned) msg += ` (${result.autoAssigned} auto-categorized)`;
       if (result.skipped) msg += ` (${result.skipped} skipped)`;
       addToast(msg, 'success');
       if (result.skippedReasons?.length) {
@@ -309,6 +314,7 @@ export default function SupplierInventory() {
         <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
           Upload a CSV file with columns: <strong>supplier_name</strong> (required — must match an existing supplier), <strong>item_name</strong> (required), sku, category, unit, unit_cost, retail_cost, qty_available, reorder_point, notes.
           Column headers are flexible (e.g., "Supplier", "Item", "Wholesale", "Qty", "Reorder" all work). Rows with unrecognized supplier names will be skipped.
+          Items without a category will be <strong>auto-assigned</strong> to the best matching taxonomy leaf based on the item name.
         </p>
       </div>
 
