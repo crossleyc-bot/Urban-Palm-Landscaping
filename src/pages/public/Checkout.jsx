@@ -329,19 +329,16 @@ export default function Checkout() {
     return maxFee != null ? maxFee : settings.delivery_fee;
   })();
 
-  // Per-category installation fee: sum model (each category adds its own)
+  // Per-item installation fee: multiply fee by each item's quantity
   const computedInstallationFee = (() => {
-    const seenCategories = new Set();
     let total = 0;
     for (const item of items) {
       const catId = item.category_id;
-      if (catId && !seenCategories.has(catId)) {
-        seenCategories.add(catId);
-        const cf = categoryFeeMap[catId];
-        total += (cf && cf.installation_fee != null) ? cf.installation_fee : settings.installation_fee;
-      }
+      const cf = categoryFeeMap[catId];
+      const fee = (cf && cf.installation_fee != null) ? cf.installation_fee : settings.installation_fee;
+      total += fee * (item.quantity || 1);
     }
-    return seenCategories.size > 0 ? total : settings.installation_fee;
+    return total;
   })();
 
   const discount = couponResult?.discount || 0;

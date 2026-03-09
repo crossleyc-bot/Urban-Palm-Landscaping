@@ -31,19 +31,16 @@ export default function Cart() {
     return maxFee != null ? maxFee : settings.delivery_fee;
   })();
 
-  // Per-category installation fee estimate (sum model)
+  // Per-item installation fee estimate
   const estimatedInstallationFee = (() => {
-    const seenCategories = new Set();
     let total = 0;
     for (const item of items) {
       const catId = item.category_id;
-      if (catId && !seenCategories.has(catId)) {
-        seenCategories.add(catId);
-        const cf = categoryFeeMap[catId];
-        total += (cf && cf.installation_fee != null) ? cf.installation_fee : settings.installation_fee;
-      }
+      const cf = categoryFeeMap[catId];
+      const fee = (cf && cf.installation_fee != null) ? cf.installation_fee : settings.installation_fee;
+      total += fee * (item.quantity || 1);
     }
-    return seenCategories.size > 0 ? total : settings.installation_fee;
+    return total;
   })();
 
   const tax = Math.round(subtotal * 0.07 * 100) / 100;

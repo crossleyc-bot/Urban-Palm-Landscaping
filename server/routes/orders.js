@@ -144,24 +144,18 @@ router.post('/orders', (req, res) => {
   let installationFee = 0;
   if (add_installation) {
     const defaultInstallationFee = getSetting('installation_fee');
-    // Sum model: add installation fee per category (use category override or default)
-    const seenCategories = new Set();
-    let hasAnyCategoryFee = false;
-    let categoryInstallTotal = 0;
+    // Per-item model: multiply installation fee by each item's quantity
     for (const r of resolved) {
       const catId = r.inv.category_id;
-      if (catId && !seenCategories.has(catId)) {
-        seenCategories.add(catId);
+      let fee = defaultInstallationFee;
+      if (catId) {
         const cat = db.prepare('SELECT installation_fee FROM taxonomy WHERE id = ?').get(catId);
         if (cat && cat.installation_fee != null) {
-          hasAnyCategoryFee = true;
-          categoryInstallTotal += cat.installation_fee;
-        } else {
-          categoryInstallTotal += defaultInstallationFee;
+          fee = cat.installation_fee;
         }
       }
+      installationFee += fee * r.quantity;
     }
-    installationFee = hasAnyCategoryFee || seenCategories.size > 0 ? categoryInstallTotal : defaultInstallationFee;
   }
 
   let discount = 0;
