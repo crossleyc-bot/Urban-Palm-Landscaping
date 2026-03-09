@@ -19,7 +19,7 @@ router.get('/products', (req, res) => {
   const leaves = db.prepare(`
     SELECT t.id, t.name, t.description, t.image, t.parent_id,
            p.name AS parent_name,
-           COUNT(si.id) AS product_count,
+           COUNT(DISTINCT si.item_name) AS product_count,
            MIN(si.retail_cost) AS min_price,
            MAX(si.retail_cost) AS max_price,
            MAX(si.on_sale) AS has_sale,
@@ -39,13 +39,17 @@ router.get('/products', (req, res) => {
 
 router.get('/products/:categoryId/items', (req, res) => {
   const items = db.prepare(`
-    SELECT si.id, si.item_name, si.unit, si.retail_cost,
-           si.image, si.on_sale, si.sale_price, t.name AS category_name,
-           si.qty_available, s.name AS supplier_name
+    SELECT MIN(si.id) AS id, si.item_name, si.unit,
+           MAX(si.retail_cost) AS retail_cost,
+           MAX(si.image) AS image,
+           MAX(si.on_sale) AS on_sale,
+           MIN(CASE WHEN si.on_sale = 1 THEN si.sale_price ELSE NULL END) AS sale_price,
+           t.name AS category_name,
+           SUM(si.qty_available) AS qty_available
     FROM supplier_inventory si
-    JOIN suppliers s ON s.id = si.supplier_id
     LEFT JOIN taxonomy t ON t.id = si.category_id
     WHERE si.category_id = ? AND si.available = 1
+    GROUP BY si.item_name, si.unit, si.category_id
     ORDER BY si.item_name
   `).all(req.params.categoryId);
   res.json(items);
@@ -90,10 +94,22 @@ router.post('/orders', (req, res) => {
     const invId = item.product_id || item.inventory_id;
     const inv = db.prepare('SELECT * FROM supplier_inventory WHERE id = ? AND available = 1').get(invId);
     if (!inv) return res.status(400).json({ error: `Product ${invId} not available` });
-    if (inv.qty_available > 0 && item.quantity > inv.qty_available) {
-      return res.status(400).json({ error: `Only ${inv.qty_available} of "${inv.item_name}" available` });
+
+    // Aggregate stock across all suppliers carrying this product in the same category
+    const totalStock = db.prepare(
+      'SELECT COALESCE(SUM(qty_available), 0) AS total FROM supplier_inventory WHERE item_name = ? AND category_id = ? AND available = 1'
+    ).get(inv.item_name, inv.category_id);
+    const totalAvailable = totalStock.total;
+    if (totalAvailable > 0 && item.quantity > totalAvailable) {
+      return res.status(400).json({ error: `Only ${totalAvailable} of "${inv.item_name}" available` });
     }
-    const price = inv.on_sale && inv.sale_price != null ? inv.sale_price : inv.retail_cost;
+
+    // Use max retail_cost as the catalog price (consistent with what customers see)
+    const catalogPrice = db.prepare(
+      'SELECT MAX(retail_cost) AS price FROM supplier_inventory WHERE item_name = ? AND category_id = ? AND available = 1'
+    ).get(inv.item_name, inv.category_id);
+    const retailPrice = catalogPrice.price || inv.retail_cost;
+    const price = inv.on_sale && inv.sale_price != null ? inv.sale_price : retailPrice;
     subtotal += price * item.quantity;
     resolved.push({ inv, quantity: item.quantity, price });
   }
@@ -157,8 +173,17 @@ router.post('/orders', (req, res) => {
 
   for (const r of resolved) {
     insertItem.run(orderId, r.inv.id, null, r.inv.item_name, r.inv.unit, r.price, r.quantity);
-    if (r.inv.qty_available > 0) {
-      updateQty.run(r.quantity, r.inv.id);
+
+    // Deduct stock across all suppliers carrying this product, cheapest unit_cost first
+    const sources = db.prepare(
+      'SELECT id, qty_available FROM supplier_inventory WHERE item_name = ? AND category_id = ? AND available = 1 AND qty_available > 0 ORDER BY unit_cost ASC'
+    ).all(r.inv.item_name, r.inv.category_id);
+    let remaining = r.quantity;
+    for (const src of sources) {
+      if (remaining <= 0) break;
+      const deduct = Math.min(remaining, src.qty_available);
+      updateQty.run(deduct, src.id);
+      remaining -= deduct;
     }
   }
 
@@ -324,11 +349,13 @@ router.post('/coupons/validate', (req, res) => {
 
 router.get('/deals', (_req, res) => {
   const saleProducts = db.prepare(`
-    SELECT si.id, si.item_name, si.retail_cost, si.sale_price, si.image, t.name AS category_name
+    SELECT MIN(si.id) AS id, si.item_name, MAX(si.retail_cost) AS retail_cost,
+           MIN(si.sale_price) AS sale_price, MAX(si.image) AS image, t.name AS category_name
     FROM supplier_inventory si
     LEFT JOIN taxonomy t ON si.category_id = t.id
     WHERE si.on_sale = 1 AND si.available = 1 AND si.sale_price IS NOT NULL AND si.category_id IS NOT NULL
-    ORDER BY si.updated_at DESC
+    GROUP BY si.item_name, si.category_id
+    ORDER BY MAX(si.updated_at) DESC
     LIMIT 8
   `).all();
 
