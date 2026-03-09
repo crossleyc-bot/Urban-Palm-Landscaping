@@ -128,7 +128,7 @@ export default function Products() {
                     <p style={{ color: 'var(--color-text-muted)', maxWidth: 520, margin: '0 auto' }}>Browse our selection of landscaping materials by category.</p>
                   </div>
                   <div className="product-categories-grid">
-                    {taxonomyRoots.map(cat => (
+                    {taxonomyRoots.filter(cat => filterCategories.includes(cat.name)).map(cat => (
                       <div
                         key={cat.id}
                         className={`product-category-card${activeCategory === cat.name ? ' product-category-card-active' : ''}`}
