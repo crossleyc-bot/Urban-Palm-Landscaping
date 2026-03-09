@@ -19,8 +19,9 @@ export default function Header() {
   // Fetch unread notification count for logged-in customers
   useEffect(() => {
     if (!user || user.role === 'admin') return;
+    const authHeaders = user?.token ? { Authorization: `Bearer ${user.token}` } : {};
     const fetchCount = () => {
-      fetch(`/api/notifications/unread-count?user_id=${user.id}`)
+      fetch('/api/notifications/unread-count', { headers: authHeaders })
         .then(r => r.ok ? r.json() : { count: 0 })
         .then(d => setUnreadCount(d.count))
         .catch(() => {});
@@ -33,7 +34,8 @@ export default function Header() {
   // Load notifications when bell is clicked
   const toggleNotifications = () => {
     if (!notifOpen && user) {
-      fetch(`/api/notifications?user_id=${user.id}`)
+      const authHeaders = user?.token ? { Authorization: `Bearer ${user.token}` } : {};
+      fetch('/api/notifications', { headers: authHeaders })
         .then(r => r.ok ? r.json() : [])
         .then(setNotifications)
         .catch(() => {});
@@ -53,10 +55,11 @@ export default function Header() {
 
   const markAllRead = () => {
     if (!user) return;
+    const authHeaders = user?.token ? { Authorization: `Bearer ${user.token}` } : {};
     fetch('/api/notifications/read-all', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: user.id }),
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({}),
     }).then(() => {
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, read: 1 })));

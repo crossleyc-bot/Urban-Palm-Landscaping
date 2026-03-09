@@ -30,7 +30,7 @@ export default function MyOrders() {
 
   useEffect(() => {
     if (user) {
-      apiGet(`/orders?user_id=${user.id}`)
+      apiGet('/orders')
         .then(setOrders)
         .finally(() => setLoading(false));
     }

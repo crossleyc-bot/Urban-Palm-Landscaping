@@ -23,7 +23,7 @@ export default function MyAccount() {
     }
     setProfileSaving(true);
     try {
-      const updated = await apiPut('/account/profile', { user_id: user.id, name: name.trim(), email: email.trim() });
+      const updated = await apiPut('/account/profile', { name: name.trim(), email: email.trim() });
       setUser(prev => ({ ...prev, name: updated.name, email: updated.email }));
       addToast('Profile updated', 'success');
     } catch (err) {
@@ -38,8 +38,12 @@ export default function MyAccount() {
       addToast('Please fill in all password fields', 'error');
       return;
     }
-    if (newPassword.length < 6) {
-      addToast('New password must be at least 6 characters', 'error');
+    if (newPassword.length < 8) {
+      addToast('New password must be at least 8 characters', 'error');
+      return;
+    }
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+      addToast('Password must include uppercase, lowercase, number, and special character', 'error');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -48,7 +52,7 @@ export default function MyAccount() {
     }
     setPasswordSaving(true);
     try {
-      await apiPut('/account/password', { user_id: user.id, current_password: currentPassword, new_password: newPassword });
+      await apiPut('/account/password', { current_password: currentPassword, new_password: newPassword });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -100,7 +104,7 @@ export default function MyAccount() {
           </div>
           <div style={fieldGap}>
             <label style={labelStyle}>New Password</label>
-            <input className="table-input" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min. 6 characters" />
+            <input className="table-input" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min. 8 chars, upper, lower, number, special" />
           </div>
           <div style={fieldGap}>
             <label style={labelStyle}>Confirm New Password</label>

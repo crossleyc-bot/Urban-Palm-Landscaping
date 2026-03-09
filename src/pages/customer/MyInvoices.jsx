@@ -233,7 +233,7 @@ export default function MyInvoices() {
 
   useEffect(() => {
     if (user) {
-      apiGet(`/invoices?user_id=${user.id}`)
+      apiGet('/invoices')
         .then(setInvoices)
         .finally(() => setLoading(false));
     }

@@ -45,10 +45,10 @@ export default function CustomerDashboard() {
   useEffect(() => {
     if (user) {
       Promise.all([
-        apiGet(`/jobs?user_id=${user.id}`),
-        apiGet(`/my-quotes?user_id=${user.id}`),
-        apiGet(`/invoices?user_id=${user.id}`),
-        apiGet(`/notifications?user_id=${user.id}`),
+        apiGet('/jobs'),
+        apiGet('/my-quotes'),
+        apiGet('/invoices'),
+        apiGet('/notifications'),
       ])
         .then(([j, q, i, n]) => { setJobs(j); setQuotes(q); setInvoices(i); setNotifications(n); })
         .finally(() => setLoading(false));
@@ -101,7 +101,7 @@ export default function CustomerDashboard() {
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={() => {
-                  apiPut('/notifications/read-all', { user_id: user.id }).then(() => {
+                  apiPut('/notifications/read-all', {}).then(() => {
                     setNotifications(prev => prev.map(n => ({ ...n, read: 1 })));
                   });
                 }}

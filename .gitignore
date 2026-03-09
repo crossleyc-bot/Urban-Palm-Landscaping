@@ -14,6 +14,9 @@ dist
 server/*.db
 server/*.db-wal
 server/*.db-shm
+
+# JWT secret
+server/.jwt-secret
 dist-ssr
 *.local
 
