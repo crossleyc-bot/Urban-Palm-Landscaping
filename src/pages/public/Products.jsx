@@ -37,7 +37,7 @@ export default function Products() {
         lvs.forEach(async (leaf) => {
           try {
             const items = await apiGet(`/products/${leaf.id}/items`);
-            setLeafItems(prev => ({ ...prev, [leaf.id]: items }));
+            setLeafItems(prev => ({ ...prev, [leaf.id]: items.map(i => ({ ...i, category_id: leaf.id })) }));
           } catch {
             setLeafItems(prev => ({ ...prev, [leaf.id]: [] }));
           }

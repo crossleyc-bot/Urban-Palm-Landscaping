@@ -296,7 +296,7 @@ export default function Checkout() {
   const [placeError, setPlaceError] = useState('');
 
   // Checkout settings
-  const [settings, setSettings] = useState({ delivery_fee: 0, installation_fee: 0, delivery_minimum: 0 });
+  const [settings, setSettings] = useState({ delivery_fee: 0, installation_fee: 0, delivery_minimum: 0, category_fees: [] });
   const [addDelivery, setAddDelivery] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [addInstallation, setAddInstallation] = useState(false);
@@ -307,14 +307,47 @@ export default function Checkout() {
   const [couponError, setCouponError] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
 
-  const deliveryAvailable = settings.delivery_fee > 0;
-  const installationAvailable = settings.installation_fee > 0;
+  const deliveryAvailable = settings.delivery_fee > 0 || settings.category_fees.some(c => c.delivery_fee > 0);
+  const installationAvailable = settings.installation_fee > 0 || settings.category_fees.some(c => c.installation_fee > 0);
   const meetsDeliveryMinimum = subtotal >= settings.delivery_minimum;
+
+  // Build category fee lookup from settings
+  const categoryFeeMap = {};
+  for (const cf of (settings.category_fees || [])) {
+    categoryFeeMap[cf.id] = cf;
+  }
+
+  // Per-category delivery fee: max-fee model (one trip, charge highest)
+  const computedDeliveryFee = (() => {
+    let maxFee = null;
+    for (const item of items) {
+      const cf = categoryFeeMap[item.category_id];
+      if (cf && cf.delivery_fee != null) {
+        maxFee = Math.max(maxFee ?? 0, cf.delivery_fee);
+      }
+    }
+    return maxFee != null ? maxFee : settings.delivery_fee;
+  })();
+
+  // Per-category installation fee: sum model (each category adds its own)
+  const computedInstallationFee = (() => {
+    const seenCategories = new Set();
+    let total = 0;
+    for (const item of items) {
+      const catId = item.category_id;
+      if (catId && !seenCategories.has(catId)) {
+        seenCategories.add(catId);
+        const cf = categoryFeeMap[catId];
+        total += (cf && cf.installation_fee != null) ? cf.installation_fee : settings.installation_fee;
+      }
+    }
+    return seenCategories.size > 0 ? total : settings.installation_fee;
+  })();
 
   const discount = couponResult?.discount || 0;
   const discountedSubtotal = subtotal - discount;
-  const deliveryFee = addDelivery ? settings.delivery_fee : 0;
-  const installationFee = addInstallation ? settings.installation_fee : 0;
+  const deliveryFee = addDelivery ? computedDeliveryFee : 0;
+  const installationFee = addInstallation ? computedInstallationFee : 0;
   const tax = Math.round(discountedSubtotal * 0.07 * 100) / 100;
   const total = Math.round((discountedSubtotal + deliveryFee + installationFee + tax) * 100) / 100;
 
@@ -531,7 +564,7 @@ export default function Checkout() {
                             We deliver to your door
                           </div>
                         </div>
-                        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>+ ${settings.delivery_fee.toFixed(2)}</span>
+                        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>+ ${computedDeliveryFee.toFixed(2)}</span>
                       </label>
                       {!meetsDeliveryMinimum && settings.delivery_minimum > 0 && (
                         <p style={{ fontSize: '0.8rem', color: '#d97706', margin: '0.4rem 0 0 0' }}>
@@ -573,7 +606,7 @@ export default function Checkout() {
                           Professional installation by our team
                         </div>
                       </div>
-                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>+ ${settings.installation_fee.toFixed(2)}</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>+ ${computedInstallationFee.toFixed(2)}</span>
                     </label>
                   )}
                 </div>

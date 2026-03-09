@@ -18,6 +18,8 @@ router.get('/stripe/public-key', (_req, res) => {
 router.get('/products', (req, res) => {
   const leaves = db.prepare(`
     SELECT t.id, t.name, t.description, t.image, t.parent_id,
+           t.delivery_fee AS category_delivery_fee,
+           t.installation_fee AS category_installation_fee,
            p.name AS parent_name,
            COUNT(DISTINCT si.item_name) AS product_count,
            MIN(si.retail_cost) AS min_price,
@@ -121,17 +123,45 @@ router.post('/orders', (req, res) => {
 
   let deliveryFee = 0;
   if (add_delivery) {
-    const configuredFee = getSetting('delivery_fee');
+    const defaultDeliveryFee = getSetting('delivery_fee');
     const deliveryMin = getSetting('delivery_minimum');
     if (deliveryMin > 0 && subtotal < deliveryMin) {
       return res.status(400).json({ error: `Minimum order of $${deliveryMin.toFixed(2)} required for delivery` });
     }
-    deliveryFee = configuredFee;
+    // Max-fee model: charge the highest delivery fee across all cart item categories
+    let maxCategoryDeliveryFee = null;
+    for (const r of resolved) {
+      if (r.inv.category_id) {
+        const cat = db.prepare('SELECT delivery_fee FROM taxonomy WHERE id = ?').get(r.inv.category_id);
+        if (cat && cat.delivery_fee != null) {
+          maxCategoryDeliveryFee = Math.max(maxCategoryDeliveryFee ?? 0, cat.delivery_fee);
+        }
+      }
+    }
+    deliveryFee = maxCategoryDeliveryFee != null ? maxCategoryDeliveryFee : defaultDeliveryFee;
   }
 
   let installationFee = 0;
   if (add_installation) {
-    installationFee = getSetting('installation_fee');
+    const defaultInstallationFee = getSetting('installation_fee');
+    // Sum model: add installation fee per category (use category override or default)
+    const seenCategories = new Set();
+    let hasAnyCategoryFee = false;
+    let categoryInstallTotal = 0;
+    for (const r of resolved) {
+      const catId = r.inv.category_id;
+      if (catId && !seenCategories.has(catId)) {
+        seenCategories.add(catId);
+        const cat = db.prepare('SELECT installation_fee FROM taxonomy WHERE id = ?').get(catId);
+        if (cat && cat.installation_fee != null) {
+          hasAnyCategoryFee = true;
+          categoryInstallTotal += cat.installation_fee;
+        } else {
+          categoryInstallTotal += defaultInstallationFee;
+        }
+      }
+    }
+    installationFee = hasAnyCategoryFee || seenCategories.size > 0 ? categoryInstallTotal : defaultInstallationFee;
   }
 
   let discount = 0;
@@ -253,10 +283,20 @@ router.get('/checkout-settings', (_req, res) => {
     const row = db.prepare("SELECT value FROM site_settings WHERE key = ?").get(key);
     return row ? parseFloat(row.value) || 0 : 0;
   };
+
+  // Per-category fee overrides (leaf categories only)
+  const categoryFees = db.prepare(`
+    SELECT t.id, t.name, t.delivery_fee, t.installation_fee
+    FROM taxonomy t
+    WHERE (t.delivery_fee IS NOT NULL OR t.installation_fee IS NOT NULL)
+      AND NOT EXISTS (SELECT 1 FROM taxonomy c WHERE c.parent_id = t.id)
+  `).all();
+
   res.json({
     delivery_fee: get('delivery_fee'),
     installation_fee: get('installation_fee'),
     delivery_minimum: get('delivery_minimum'),
+    category_fees: categoryFees,
   });
 });
 

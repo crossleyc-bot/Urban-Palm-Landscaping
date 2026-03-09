@@ -4,7 +4,7 @@ import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
 
-const emptyForm = { name: '', description: '', parent_id: null };
+const emptyForm = { name: '', description: '', parent_id: null, delivery_fee: '', installation_fee: '' };
 
 function buildTree(nodes) {
   const map = {};
@@ -180,7 +180,13 @@ export default function ManageTaxonomy() {
   const startEdit = (node) => {
     setAdding(false);
     setEditing(node.id);
-    setForm({ name: node.name, description: node.description || '', parent_id: node.parent_id });
+    setForm({
+      name: node.name,
+      description: node.description || '',
+      parent_id: node.parent_id,
+      delivery_fee: node.delivery_fee != null ? String(node.delivery_fee) : '',
+      installation_fee: node.installation_fee != null ? String(node.installation_fee) : '',
+    });
     setImageFile(null);
   };
 
@@ -189,6 +195,8 @@ export default function ManageTaxonomy() {
     fd.append('name', form.name);
     fd.append('description', form.description);
     if (form.parent_id != null) fd.append('parent_id', form.parent_id);
+    if (form.delivery_fee !== '') fd.append('delivery_fee', form.delivery_fee);
+    if (form.installation_fee !== '') fd.append('installation_fee', form.installation_fee);
     if (imageFile) fd.append('image', imageFile);
     return fd;
   };
@@ -374,6 +382,37 @@ export default function ManageTaxonomy() {
             {imageFile && (
               <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>{imageFile.name}</span>
             )}
+          </div>
+        </div>
+      )}
+      {/* Delivery & Installation fee overrides — shown for leaf nodes */}
+      {isFormLeaf && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem', maxWidth: 600 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Delivery Fee Override ($)</label>
+            <input
+              className="table-input"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.delivery_fee}
+              onChange={e => setForm(f => ({ ...f, delivery_fee: e.target.value }))}
+              placeholder="Use default"
+            />
+            <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Leave blank to use site default. Set to 0 for free delivery.</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Installation Fee Override ($)</label>
+            <input
+              className="table-input"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.installation_fee}
+              onChange={e => setForm(f => ({ ...f, installation_fee: e.target.value }))}
+              placeholder="Use default"
+            />
+            <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Leave blank to use site default. Set to 0 if not installable.</span>
           </div>
         </div>
       )}

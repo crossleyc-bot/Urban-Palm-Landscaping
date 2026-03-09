@@ -318,7 +318,7 @@ router.get('/taxonomy', (_req, res) => {
 });
 
 router.post('/taxonomy', requireAuth, requireAdmin, taxonomyUpload, upload.single('image'), (req, res) => {
-  const { name, description, parent_id } = req.body;
+  const { name, description, parent_id, delivery_fee, installation_fee } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
 
   const pid = parent_id != null && parent_id !== '' ? Number(parent_id) : null;
@@ -328,6 +328,8 @@ router.post('/taxonomy', requireAuth, requireAdmin, taxonomyUpload, upload.singl
   }
 
   const image = req.file ? `/uploads/taxonomy/${req.file.filename}` : null;
+  const delFee = delivery_fee != null && delivery_fee !== '' ? Number(delivery_fee) : null;
+  const instFee = installation_fee != null && installation_fee !== '' ? Number(installation_fee) : null;
 
   try {
     const maxOrder = db.prepare(
@@ -335,8 +337,8 @@ router.post('/taxonomy', requireAuth, requireAdmin, taxonomyUpload, upload.singl
     ).get(pid);
 
     const result = db.prepare(
-      "INSERT INTO taxonomy (name, description, parent_id, sort_order, image) VALUES (?, ?, ?, ?, ?)"
-    ).run(name.trim(), (description || '').trim() || null, pid, maxOrder.next, image);
+      "INSERT INTO taxonomy (name, description, parent_id, sort_order, image, delivery_fee, installation_fee) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).run(name.trim(), (description || '').trim() || null, pid, maxOrder.next, image, delFee, instFee);
 
     const created = db.prepare('SELECT * FROM taxonomy WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(created);
@@ -346,7 +348,7 @@ router.post('/taxonomy', requireAuth, requireAdmin, taxonomyUpload, upload.singl
 });
 
 router.put('/taxonomy/:id', requireAuth, requireAdmin, taxonomyUpload, upload.single('image'), (req, res) => {
-  const { name, description, parent_id } = req.body;
+  const { name, description, parent_id, delivery_fee, installation_fee } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
 
   const id = Number(req.params.id);
@@ -383,10 +385,13 @@ router.put('/taxonomy/:id', requireAuth, requireAdmin, taxonomyUpload, upload.si
     image = `/uploads/taxonomy/${req.file.filename}`;
   }
 
+  const delFee = delivery_fee != null && delivery_fee !== '' ? Number(delivery_fee) : null;
+  const instFee = installation_fee != null && installation_fee !== '' ? Number(installation_fee) : null;
+
   try {
     db.prepare(
-      "UPDATE taxonomy SET name = ?, description = ?, parent_id = ?, image = ?, updated_at = datetime('now') WHERE id = ?"
-    ).run(name.trim(), (description || '').trim() || null, pid, image, id);
+      "UPDATE taxonomy SET name = ?, description = ?, parent_id = ?, image = ?, delivery_fee = ?, installation_fee = ?, updated_at = datetime('now') WHERE id = ?"
+    ).run(name.trim(), (description || '').trim() || null, pid, image, delFee, instFee, id);
 
     const updated = db.prepare('SELECT * FROM taxonomy WHERE id = ?').get(id);
     res.json(updated);
