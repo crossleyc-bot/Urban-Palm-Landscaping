@@ -38,6 +38,7 @@ export function CartProvider({ children }) {
           on_sale: product.on_sale,
           image: product.image,
           category_name: product.category_name,
+          category_id: product.category_id,
           quantity: qty,
           max_qty: product.qty_available,
         }];

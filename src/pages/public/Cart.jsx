@@ -1,11 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { apiGet } from '../../api';
 import SEO from '../../components/SEO';
 import './Cart.css';
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, clearCart, subtotal } = useCart();
+  const [settings, setSettings] = useState({ delivery_fee: 0, installation_fee: 0, delivery_minimum: 0, category_fees: [] });
+
+  useEffect(() => {
+    apiGet('/checkout-settings').then(setSettings).catch(() => {});
+  }, []);
+
+  // Build category fee lookup
+  const categoryFeeMap = {};
+  for (const cf of (settings.category_fees || [])) {
+    categoryFeeMap[cf.id] = cf;
+  }
+
+  // Per-category delivery fee estimate (max-fee model)
+  const estimatedDeliveryFee = (() => {
+    let maxFee = null;
+    for (const item of items) {
+      const cf = categoryFeeMap[item.category_id];
+      if (cf && cf.delivery_fee != null) {
+        maxFee = Math.max(maxFee ?? 0, cf.delivery_fee);
+      }
+    }
+    return maxFee != null ? maxFee : settings.delivery_fee;
+  })();
+
+  // Per-category installation fee estimate (sum model)
+  const estimatedInstallationFee = (() => {
+    const seenCategories = new Set();
+    let total = 0;
+    for (const item of items) {
+      const catId = item.category_id;
+      if (catId && !seenCategories.has(catId)) {
+        seenCategories.add(catId);
+        const cf = categoryFeeMap[catId];
+        total += (cf && cf.installation_fee != null) ? cf.installation_fee : settings.installation_fee;
+      }
+    }
+    return seenCategories.size > 0 ? total : settings.installation_fee;
+  })();
+
   const tax = Math.round(subtotal * 0.07 * 100) / 100;
   const total = Math.round((subtotal + tax) * 100) / 100;
 
@@ -60,6 +100,13 @@ export default function Cart() {
                     <span>${total.toFixed(2)}</span>
                   </div>
                 </div>
+                {(estimatedDeliveryFee > 0 || estimatedInstallationFee > 0) && (
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '0.75rem', padding: '0.5rem 0', borderTop: '1px solid var(--color-border)' }}>
+                    {estimatedDeliveryFee > 0 && <div>Delivery available from ${estimatedDeliveryFee.toFixed(2)}</div>}
+                    {estimatedInstallationFee > 0 && <div>Installation available from ${estimatedInstallationFee.toFixed(2)}</div>}
+                    <div style={{ marginTop: '0.25rem', fontStyle: 'italic' }}>Add at checkout</div>
+                  </div>
+                )}
                 <Link to="/checkout" className="btn btn-primary" style={{ width: '100%', textAlign: 'center' }}>
                   Proceed to Checkout
                 </Link>

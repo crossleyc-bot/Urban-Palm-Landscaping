@@ -390,6 +390,14 @@ if (!taxColumns.includes('image')) {
   db.exec("ALTER TABLE taxonomy ADD COLUMN image TEXT");
 }
 
+// Migration: add per-category delivery and installation fee overrides
+if (!taxColumns.includes('delivery_fee')) {
+  db.exec("ALTER TABLE taxonomy ADD COLUMN delivery_fee REAL");
+}
+if (!taxColumns.includes('installation_fee')) {
+  db.exec("ALTER TABLE taxonomy ADD COLUMN installation_fee REAL");
+}
+
 // Migration: add workflow linking columns to jobs (quote_id, schedule_id, user_id, address, amount)
 const jobColumns = db.prepare("PRAGMA table_info(jobs)").all().map(c => c.name);
 if (!jobColumns.includes('quote_id')) {
