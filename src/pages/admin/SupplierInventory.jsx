@@ -7,7 +7,7 @@ import Pagination from '../../components/ui/Pagination';
 import SortableHeader from '../../components/ui/SortableHeader';
 
 const PAGE_SIZE = 15;
-const emptyForm = { supplier_id: '', item_name: '', sku: '', category: '', category_id: '', unit: '', unit_cost: '', retail_cost: '', qty_available: '', reorder_point: '', notes: '', available: '0', on_sale: '0', sale_price: '' };
+const emptyForm = { supplier_id: '', item_name: '', sku: '', category: '', category_id: '', unit: '', unit_cost: '', retail_cost: '', qty_available: '', reorder_point: '', notes: '', available: '0', on_sale: '0', sale_price: '', sale_percentage: '' };
 
 export default function SupplierInventory() {
   const { addToast } = useToast();
@@ -70,7 +70,7 @@ export default function SupplierInventory() {
       unit: item.unit || '', unit_cost: item.unit_cost ?? '',
       retail_cost: item.retail_cost ?? '', qty_available: item.qty_available ?? '', reorder_point: item.reorder_point ?? '', notes: item.notes || '',
       available: String(item.available ?? 0),
-      on_sale: String(item.on_sale ?? 0), sale_price: item.sale_price ?? '',
+      on_sale: String(item.on_sale ?? 0), sale_price: item.sale_price ?? '', sale_percentage: item.sale_percentage ?? '',
     });
   };
 
@@ -97,6 +97,7 @@ export default function SupplierInventory() {
     available: form.available,
     on_sale: form.on_sale,
     sale_price: form.sale_price,
+    sale_percentage: form.sale_percentage,
   });
 
   const saveEdit = async (id) => {
@@ -227,7 +228,20 @@ export default function SupplierInventory() {
             <option value="1">Yes</option>
           </select>
           {form.on_sale === '1' && (
-            <input className="table-input" type="number" min="0" step="0.01" value={form.sale_price} onChange={e => setForm(f => ({ ...f, sale_price: e.target.value }))} placeholder="$" style={{ width: 60 }} />
+            <>
+              <input className="table-input" type="number" min="0" max="100" step="1" value={form.sale_percentage} onChange={e => {
+                const pct = e.target.value;
+                const retail = form.retail_cost !== '' ? Number(form.retail_cost) : null;
+                const calcPrice = pct !== '' && retail != null ? (retail * (1 - Number(pct) / 100)).toFixed(2) : '';
+                setForm(f => ({ ...f, sale_percentage: pct, sale_price: calcPrice }));
+              }} placeholder="% off" style={{ width: 60 }} />
+              <input className="table-input" type="number" min="0" step="0.01" value={form.sale_price} onChange={e => {
+                const price = e.target.value;
+                const retail = form.retail_cost !== '' ? Number(form.retail_cost) : null;
+                const calcPct = price !== '' && retail ? Math.round((1 - Number(price) / retail) * 100) : '';
+                setForm(f => ({ ...f, sale_price: price, sale_percentage: String(calcPct) }));
+              }} placeholder="$" style={{ width: 60 }} />
+            </>
           )}
         </div>
       </td>
@@ -350,9 +364,16 @@ export default function SupplierInventory() {
                           </td>
                           <td>
                             {item.on_sale ? (
-                              <span className="badge badge-red" style={{ fontSize: '0.7rem' }}>
-                                {item.sale_price != null ? `$${Number(item.sale_price).toFixed(2)}` : 'SALE'}
-                              </span>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', alignItems: 'flex-start' }}>
+                                {item.sale_percentage != null && (
+                                  <span className="badge badge-red" style={{ fontSize: '0.7rem' }}>
+                                    {Math.round(item.sale_percentage)}% OFF
+                                  </span>
+                                )}
+                                <span style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 600 }}>
+                                  {item.sale_price != null ? `$${Number(item.sale_price).toFixed(2)}` : 'SALE'}
+                                </span>
+                              </div>
                             ) : '\u2014'}
                           </td>
                           <td>

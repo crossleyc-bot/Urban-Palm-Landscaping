@@ -176,7 +176,7 @@ router.get('/inventory', requireAuth, requireAdmin, (req, res) => {
 });
 
 router.post('/inventory', requireAuth, requireAdmin, (req, res) => {
-  const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw, on_sale: onSaleRaw, sale_price: salePriceRaw } = req.body;
+  const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw, on_sale: onSaleRaw, sale_price: salePriceRaw, sale_percentage: salePctRaw } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
   const suppId = Number(supplier_id);
@@ -190,13 +190,18 @@ router.post('/inventory', requireAuth, requireAdmin, (req, res) => {
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
   const available = availableRaw === '1' || availableRaw === 1 ? 1 : 0;
   const onSale = onSaleRaw === '1' || onSaleRaw === 1 ? 1 : 0;
-  const salePrice = salePriceRaw != null && salePriceRaw !== '' ? Number(salePriceRaw) : null;
+  const salePct = salePctRaw != null && salePctRaw !== '' ? Number(salePctRaw) : null;
+  // Auto-calculate sale_price from percentage if percentage is provided
+  let salePrice = salePriceRaw != null && salePriceRaw !== '' ? Number(salePriceRaw) : null;
+  if (salePct != null && retail != null) {
+    salePrice = +(retail * (1 - salePct / 100)).toFixed(2);
+  }
   try {
     const result = db.prepare(
-      'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available, on_sale, sale_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available, onSale, salePrice);
+      'INSERT INTO supplier_inventory (supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available, on_sale, sale_price, sale_percentage) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available, onSale, salePrice, salePct);
 
-    res.status(201).json({ id: result.lastInsertRowid, supplier_id: suppId, item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal, reorder_point: reorder_point ?? 0, notes, available, on_sale: onSale, sale_price: salePrice });
+    res.status(201).json({ id: result.lastInsertRowid, supplier_id: suppId, item_name, sku, category, category_id: catId, unit, unit_cost: wholesale, retail_cost: retail, qty_available: qtyVal, reorder_point: reorder_point ?? 0, notes, available, on_sale: onSale, sale_price: salePrice, sale_percentage: salePct });
   } catch (err) {
     console.error('POST /api/inventory error:', { supplier_id: suppId, category_id: catId, error: err.message });
     res.status(500).json({ error: err.message || 'Failed to save inventory item' });
@@ -295,7 +300,7 @@ router.post('/inventory/import', requireAuth, requireAdmin, inventoryImportUploa
 
 router.put('/inventory/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
-  const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw, on_sale: onSaleRaw, sale_price: salePriceRaw } = req.body;
+  const { supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, available: availableRaw, on_sale: onSaleRaw, sale_price: salePriceRaw, sale_percentage: salePctRaw } = req.body;
   if (!supplier_id || !item_name) return res.status(400).json({ error: 'Supplier and item name are required' });
 
   const existing = db.prepare('SELECT id FROM supplier_inventory WHERE id = ?').get(id);
@@ -307,7 +312,12 @@ router.put('/inventory/:id', requireAuth, requireAdmin, (req, res) => {
   const qtyVal = qty_available != null ? Number(qty_available) : 0;
   const available = availableRaw === '1' || availableRaw === 1 ? 1 : 0;
   const onSale = onSaleRaw === '1' || onSaleRaw === 1 ? 1 : 0;
-  const salePrice = salePriceRaw != null && salePriceRaw !== '' ? Number(salePriceRaw) : null;
+  const salePct = salePctRaw != null && salePctRaw !== '' ? Number(salePctRaw) : null;
+  // Auto-calculate sale_price from percentage if percentage is provided
+  let salePrice = salePriceRaw != null && salePriceRaw !== '' ? Number(salePriceRaw) : null;
+  if (salePct != null && retail != null) {
+    salePrice = +(retail * (1 - salePct / 100)).toFixed(2);
+  }
 
   const suppId = Number(supplier_id);
   if (!suppId || !Number.isFinite(suppId)) return res.status(400).json({ error: 'Invalid supplier' });
@@ -318,8 +328,8 @@ router.put('/inventory/:id', requireAuth, requireAdmin, (req, res) => {
 
   try {
     const result = db.prepare(
-      'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, category_id = ?, unit = ?, unit_cost = ?, retail_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, available = ?, on_sale = ?, sale_price = ?, updated_at = datetime(\'now\') WHERE id = ?'
-    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available, onSale, salePrice, id);
+      'UPDATE supplier_inventory SET supplier_id = ?, item_name = ?, sku = ?, category = ?, category_id = ?, unit = ?, unit_cost = ?, retail_cost = ?, qty_available = ?, reorder_point = ?, notes = ?, available = ?, on_sale = ?, sale_price = ?, sale_percentage = ?, updated_at = datetime(\'now\') WHERE id = ?'
+    ).run(suppId, item_name, sku || null, category || null, catId, unit || null, wholesale, retail, qtyVal, reorder_point != null ? Number(reorder_point) : 0, notes || null, available, onSale, salePrice, salePct, id);
     if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
 
     if (onSale === 1 && prevItem && !prevItem.on_sale && salePrice && retail) {
@@ -332,7 +342,7 @@ router.put('/inventory/:id', requireAuth, requireAdmin, (req, res) => {
       );
     }
 
-    res.json({ success: true, available, on_sale: onSale, sale_price: salePrice });
+    res.json({ success: true, available, on_sale: onSale, sale_price: salePrice, sale_percentage: salePct });
   } catch (err) {
     console.error('PUT /api/inventory/:id error:', { id, supplier_id: suppId, category_id: catId, error: err.message });
     res.status(500).json({ error: err.message || 'Failed to update inventory item' });
@@ -382,25 +392,29 @@ router.get('/catalog/:id', requireAuth, requireAdmin, (req, res) => {
 });
 
 router.post('/catalog', requireAuth, requireAdmin, (req, res) => {
-  const { name, description, unit, retail_price, category_id, on_sale, sale_price, available } = req.body;
+  const { name, description, unit, retail_price, category_id, on_sale, sale_price, sale_percentage, available } = req.body;
   if (!name) return res.status(400).json({ error: 'Product name is required' });
 
   const catId = resolveCategoryId(category_id);
   const avail = available === '1' || available === 1 ? 1 : 0;
   const onSale = on_sale === '1' || on_sale === 1 ? 1 : 0;
-  const sp = sale_price != null && sale_price !== '' ? Number(sale_price) : null;
   const rp = retail_price != null && retail_price !== '' ? Number(retail_price) : null;
+  const salePct = sale_percentage != null && sale_percentage !== '' ? Number(sale_percentage) : null;
+  let sp = sale_price != null && sale_price !== '' ? Number(sale_price) : null;
+  if (salePct != null && rp != null) {
+    sp = +(rp * (1 - salePct / 100)).toFixed(2);
+  }
 
   const result = db.prepare(
-    'INSERT INTO products (name, description, unit, retail_price, category_id, on_sale, sale_price, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(name, description || null, unit || null, rp, catId, onSale, sp, avail);
+    'INSERT INTO products (name, description, unit, retail_price, category_id, on_sale, sale_price, sale_percentage, available) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(name, description || null, unit || null, rp, catId, onSale, sp, salePct, avail);
 
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(result.lastInsertRowid);
   res.status(201).json(product);
 });
 
 router.put('/catalog/:id', requireAuth, requireAdmin, (req, res) => {
-  const { name, description, unit, retail_price, category_id, on_sale, sale_price, available } = req.body;
+  const { name, description, unit, retail_price, category_id, on_sale, sale_price, sale_percentage, available } = req.body;
   if (!name) return res.status(400).json({ error: 'Product name is required' });
 
   const existing = db.prepare('SELECT id FROM products WHERE id = ?').get(req.params.id);
@@ -409,12 +423,16 @@ router.put('/catalog/:id', requireAuth, requireAdmin, (req, res) => {
   const catId = resolveCategoryId(category_id);
   const avail = available === '1' || available === 1 ? 1 : 0;
   const onSale = on_sale === '1' || on_sale === 1 ? 1 : 0;
-  const sp = sale_price != null && sale_price !== '' ? Number(sale_price) : null;
   const rp = retail_price != null && retail_price !== '' ? Number(retail_price) : null;
+  const salePct = sale_percentage != null && sale_percentage !== '' ? Number(sale_percentage) : null;
+  let sp = sale_price != null && sale_price !== '' ? Number(sale_price) : null;
+  if (salePct != null && rp != null) {
+    sp = +(rp * (1 - salePct / 100)).toFixed(2);
+  }
 
   db.prepare(
-    'UPDATE products SET name = ?, description = ?, unit = ?, retail_price = ?, category_id = ?, on_sale = ?, sale_price = ?, available = ?, updated_at = datetime(\'now\') WHERE id = ?'
-  ).run(name, description || null, unit || null, rp, catId, onSale, sp, avail, req.params.id);
+    'UPDATE products SET name = ?, description = ?, unit = ?, retail_price = ?, category_id = ?, on_sale = ?, sale_price = ?, sale_percentage = ?, available = ?, updated_at = datetime(\'now\') WHERE id = ?'
+  ).run(name, description || null, unit || null, rp, catId, onSale, sp, salePct, avail, req.params.id);
 
   if (onSale === 1 && sp && rp) {
     const pctOff = Math.round((1 - sp / rp) * 100);

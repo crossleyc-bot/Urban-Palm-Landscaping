@@ -269,6 +269,11 @@ if (!invSaleColumns.includes('sale_price')) {
   db.exec("ALTER TABLE supplier_inventory ADD COLUMN sale_price REAL");
 }
 
+// Migration: add sale_percentage column to supplier_inventory
+if (!invSaleColumns.includes('sale_percentage')) {
+  db.exec("ALTER TABLE supplier_inventory ADD COLUMN sale_percentage REAL");
+}
+
 // Migration: add before/after image columns to services if missing
 if (!svcColumns.includes('image_before')) {
   db.exec("ALTER TABLE services ADD COLUMN image_before TEXT");
@@ -623,6 +628,12 @@ db.exec(`
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )
 `);
+
+// Migration: add sale_percentage column to products
+const prodColumns = db.prepare("PRAGMA table_info(products)").all().map(c => c.name);
+if (!prodColumns.includes('sale_percentage')) {
+  db.exec("ALTER TABLE products ADD COLUMN sale_percentage REAL");
+}
 
 // Migration: add product_sources table linking products to suppliers
 db.exec(`
