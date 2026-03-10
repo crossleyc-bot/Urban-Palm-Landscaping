@@ -1,8 +1,6 @@
 EnvironmentConfigurationMetadata:
   Description: Production configuration for Urban Palm Landscaping
-  DateModified: '1710000000000'
-Platform:
-  PlatformArn: ''
+  DateModified: '2026-03-10T00:00:00Z'
 OptionSettings:
   aws:elasticbeanstalk:application:environment:
     NODE_ENV: production
