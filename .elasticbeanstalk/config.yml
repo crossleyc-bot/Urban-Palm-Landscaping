@@ -1,0 +1,8 @@
+branch-defaults:
+  main:
+    environment: urban-palm-prod
+global:
+  application_name: urban-palm-landscaping
+  default_platform: Node.js 22 running on 64bit Amazon Linux 2023
+  default_region: us-east-1
+  workspace_type: Application
