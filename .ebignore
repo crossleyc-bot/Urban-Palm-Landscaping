@@ -1,0 +1,21 @@
+# Same as .gitignore but EB-specific — controls what gets zipped and deployed
+node_modules
+dist
+
+# Database files (will be created on the instance)
+server/*.db
+server/*.db-wal
+server/*.db-shm
+
+# JWT secret (generated on the instance)
+.jwt-secret
+
+# Dev/editor files
+.vscode
+.idea
+.DS_Store
+*.suo
+*.sw?
+
+# Git
+.git
