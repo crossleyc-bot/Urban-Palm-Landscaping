@@ -1,0 +1,11 @@
+EnvironmentConfigurationMetadata:
+  Description: Production configuration for Urban Palm Landscaping
+  DateModified: '1710000000000'
+Platform:
+  PlatformArn: ''
+OptionSettings:
+  aws:elasticbeanstalk:application:environment:
+    NODE_ENV: production
+    PORT: '8080'
+  aws:elasticbeanstalk:environment:proxy:
+    ProxyServer: nginx
