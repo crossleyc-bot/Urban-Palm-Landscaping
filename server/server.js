@@ -64,6 +64,15 @@ app.use('/api', ordersRoutes);
 app.use('/api', suppliersRoutes);
 app.use('/api', notificationsRoutes);
 
+// ─── Serve frontend in production ───────────────────────────────────────────
+const distPath = join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+app.get('{*path}', (_req, res, next) => {
+  // Let API 404s pass through as JSON
+  if (_req.path.startsWith('/api')) return next();
+  res.sendFile(join(distPath, 'index.html'));
+});
+
 // Global error handler — ensures middleware errors (e.g. multer) return JSON
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
@@ -72,6 +81,6 @@ app.use((err, _req, res, _next) => {
 });
 
 const PORT = process.env.PORT || 3001; // eslint-disable-line no-undef
-app.listen(PORT, () => {
-  console.log(`API server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
