@@ -67,7 +67,7 @@ app.use('/api', notificationsRoutes);
 // ─── Serve frontend in production ───────────────────────────────────────────
 const distPath = join(__dirname, '..', 'dist');
 app.use(express.static(distPath));
-app.get('*', (_req, res, next) => {
+app.get('{*path}', (_req, res, next) => {
   // Let API 404s pass through as JSON
   if (_req.path.startsWith('/api')) return next();
   res.sendFile(join(distPath, 'index.html'));
