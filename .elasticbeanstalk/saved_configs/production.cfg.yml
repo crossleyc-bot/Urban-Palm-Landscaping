@@ -1,6 +1,4 @@
 AWSConfigurationTemplateVersion: 1.1.0.0
-Platform:
-  PlatformArn: arn:aws:elasticbeanstalk:us-east-1::platform/Node.js 22 running on 64bit Amazon Linux 2023
 OptionSettings:
   aws:elasticbeanstalk:application:environment:
     NODE_ENV: production
