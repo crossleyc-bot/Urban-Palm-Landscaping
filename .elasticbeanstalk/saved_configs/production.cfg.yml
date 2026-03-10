@@ -1,5 +1,7 @@
 AWSConfigurationTemplateVersion: 1.1.0.0
 OptionSettings:
+  aws:autoscaling:launchconfiguration:
+    IamInstanceProfile: aws-elasticbeanstalk-ec2-role
   aws:elasticbeanstalk:application:environment:
     NODE_ENV: production
     PORT: '8080'
