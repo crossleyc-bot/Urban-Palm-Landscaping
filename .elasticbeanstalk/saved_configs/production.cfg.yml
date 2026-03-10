@@ -1,9 +1,6 @@
+AWSConfigurationTemplateVersion: 1.1.0.0
 Platform:
-  PlatformArn: arn:aws:elasticbeanstalk:us-east-1::platform/Node.js 22 running on 64bit Amazon Linux 2023
-EnvironmentConfigurationMetadata:
-  Description: Production configuration for Urban Palm Landscaping
-  DateModified: '1741564800000'
-  DateCreated: '1741564800000'
+  PlatformArn: arn:aws:elasticbeanstalk:us-east-1::platform/Node.js 22 running on 64bit Amazon Linux 2023/6.5.0
 OptionSettings:
   aws:elasticbeanstalk:application:environment:
     NODE_ENV: production
