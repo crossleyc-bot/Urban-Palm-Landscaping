@@ -54,6 +54,11 @@ app.use('/api/auth/', authLimiter);
 app.use(express.json());
 app.use('/uploads', express.static(join(__dirname, 'uploads')));
 
+// ─── Health check for ELB ────────────────────────────────────────────────────
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // ─── Mount route modules ────────────────────────────────────────────────────
 app.use('/api', authRoutes);
 app.use('/api', servicesRoutes);
