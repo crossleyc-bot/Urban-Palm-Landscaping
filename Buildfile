@@ -1,1 +1,1 @@
-build: npm install --include=dev && npm run build
+build: npm run build
