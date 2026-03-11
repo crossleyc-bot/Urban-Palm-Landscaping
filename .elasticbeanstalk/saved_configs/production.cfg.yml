@@ -4,6 +4,9 @@ OptionSettings:
     IamInstanceProfile: aws-elasticbeanstalk-ec2-role
   aws:elasticbeanstalk:application:environment:
     NODE_ENV: production
+    NPM_USE_PRODUCTION: 'false'
     PORT: '8080'
+  aws:elasticbeanstalk:environment:process:default:
+    HealthCheckPath: /api/health
   aws:elasticbeanstalk:environment:proxy:
     ProxyServer: nginx
