@@ -59,7 +59,13 @@ function createConnection() {
   }
 
   // ── Current SQLite Implementation ──────────────────────────────────────
-  const dbPath = DATABASE_URL || join(__dirname, 'urbanpalm.db');
+  // Use a persistent path outside the EB deployment directory so the database
+  // survives redeployments. Falls back to the local server/ directory for
+  // development. The predeploy hook creates /var/app/data and seeds it once.
+  const defaultPath = process.env.NODE_ENV === 'production'
+    ? '/var/app/data/urbanpalm.db'
+    : join(__dirname, 'urbanpalm.db');
+  const dbPath = DATABASE_URL || defaultPath;
   const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
