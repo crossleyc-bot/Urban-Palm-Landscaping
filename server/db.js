@@ -368,10 +368,14 @@ if (invSchema && invSchema.sql.includes('REFERENCES') && !invSchema.sql.includes
       notes TEXT,
       image TEXT,
       available INTEGER NOT NULL DEFAULT 0,
+      on_sale INTEGER NOT NULL DEFAULT 0,
+      sale_price REAL,
+      sale_percentage REAL,
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
-    INSERT INTO supplier_inventory_new
-      SELECT id, supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, image, available, updated_at
+    INSERT INTO supplier_inventory_new (id, supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, image, available, on_sale, sale_price, sale_percentage, updated_at)
+      SELECT id, supplier_id, item_name, sku, category, category_id, unit, unit_cost, retail_cost, qty_available, reorder_point, notes, image, available,
+        COALESCE(on_sale, 0), sale_price, sale_percentage, updated_at
       FROM supplier_inventory;
     DROP TABLE supplier_inventory;
     ALTER TABLE supplier_inventory_new RENAME TO supplier_inventory;
