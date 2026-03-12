@@ -19,6 +19,9 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
+// Trust proxy (required behind ELB/load balancer so rate-limiter uses real client IPs)
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet({
   contentSecurityPolicy: false,
@@ -36,10 +39,10 @@ app.use(cors({
 // Rate limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path.startsWith('/auth/'),
+  skip: (req) => req.path.startsWith('/auth/') || req.path === '/health',
   message: { error: 'Too many requests, please try again later.' },
 });
 app.use('/api/', apiLimiter);

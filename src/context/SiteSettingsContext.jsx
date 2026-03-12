@@ -20,8 +20,9 @@ export function SiteSettingsProvider({ children }) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    apiGet('/settings')
+    apiGet('/settings/public')
       .then(setSettings)
+      .catch(() => {}) // gracefully handle errors — page visibility defaults to visible
       .finally(() => setLoaded(true));
   }, []);
 
@@ -34,7 +35,7 @@ export function SiteSettingsProvider({ children }) {
   };
 
   const refresh = () => {
-    apiGet('/settings').then(setSettings);
+    apiGet('/settings/public').then(setSettings).catch(() => {});
   };
 
   return (

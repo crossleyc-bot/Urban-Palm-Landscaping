@@ -7,6 +7,22 @@ import { upload, videoUpload, serverDir } from '../middleware/upload.js';
 
 const router = Router();
 
+// ─── Public site settings (non-sensitive values for page visibility, contact info, video) ──
+
+const PUBLIC_SETTING_PREFIXES = ['page_', 'contact_', 'social_', 'welcome_video_', 'delivery_fee', 'installation_fee', 'delivery_minimum'];
+function isPublicSetting(key) {
+  return PUBLIC_SETTING_PREFIXES.some(prefix => key.startsWith(prefix));
+}
+
+router.get('/settings/public', (_req, res) => {
+  const rows = db.prepare('SELECT key, value FROM site_settings').all();
+  const settings = {};
+  for (const r of rows) {
+    if (isPublicSetting(r.key)) settings[r.key] = r.value;
+  }
+  res.json(settings);
+});
+
 // ─── Site Settings (admin only) ─────────────────────────────────────────────
 
 router.get('/settings', requireAuth, requireAdmin, (req, res) => {

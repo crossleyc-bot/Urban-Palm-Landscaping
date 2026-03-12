@@ -15,6 +15,9 @@ function getAuthHeaders() {
 
 function handleResponse(res) {
   if (res.ok) return;
+  if (res.status === 429) {
+    throw new Error('Too many requests. Please wait a moment and try again.');
+  }
   if (res.status === 401 && localStorage.getItem('user')) {
     localStorage.removeItem('user');
     window.location.href = '/login';
