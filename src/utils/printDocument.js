@@ -45,7 +45,6 @@ export default function printDocument({ title, subtitle, fields, note }) {
     <div class="brand">
       <img src="${logoUrl}" alt="Urban Palm Landscaping" class="brand-logo" />
       <div>
-        <div class="brand-text">Urban Palm Landscaping</div>
         <div class="brand-sub">Central Florida&rsquo;s Premier Landscape Partner</div>
       </div>
     </div>
