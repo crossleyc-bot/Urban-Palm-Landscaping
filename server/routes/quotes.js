@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import db from '../db.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { notifyContactSubmission, notifyQuoteSubmission } from '../email.js';
 
 const router = Router();
 
@@ -15,6 +16,9 @@ router.post('/contact', (req, res) => {
   db.prepare('INSERT INTO contact_messages (name, email, phone, service, message) VALUES (?, ?, ?, ?, ?)').run(
     name, email, phone || null, service || null, message
   );
+
+  // Send email notification (fire-and-forget — don't block the response)
+  notifyContactSubmission({ name, email, phone, service, message });
 
   res.status(201).json({ success: true });
 });
@@ -57,6 +61,18 @@ router.post('/quotes', (req, res) => {
   db.prepare(
     'INSERT INTO quote_requests (user_id, service, property_type, timeline, budget, details, address, guest_name, guest_email, guest_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).run(user_id || null, service, property_type || null, timeline || null, budget || null, details, address, guest_name || null, guest_email || null, guest_phone || null);
+
+  // Resolve name/email from logged-in user or guest fields for the notification
+  let contactName = guest_name;
+  let contactEmail = guest_email;
+  if (user_id) {
+    const user = db.prepare('SELECT name, email FROM users WHERE id = ?').get(user_id);
+    if (user) { contactName = user.name; contactEmail = user.email; }
+  }
+  notifyQuoteSubmission({
+    name: contactName, email: contactEmail, phone: guest_phone,
+    service, details, address, propertyType: property_type, timeline, budget,
+  });
 
   res.status(201).json({ success: true });
 });

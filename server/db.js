@@ -731,4 +731,15 @@ if (toRemove.length > 0) {
   for (const name of toRemove) del.run(name);
 }
 
+// Migration: seed default email notification settings if not present
+const emailSettings = [
+  ['contact_notify_email', 'admin@urbanpalmlandscaping.com'],
+  ['ses_from_email', 'no-reply@urbanpalmlandscaping.com'],
+];
+for (const [key, value] of emailSettings) {
+  db.prepare(
+    "INSERT OR IGNORE INTO site_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))"
+  ).run(key, value);
+}
+
 export default db;
