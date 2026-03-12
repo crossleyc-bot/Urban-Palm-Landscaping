@@ -32,7 +32,7 @@ export default function Home() {
     apiGet('/services').then(setServices);
     apiGet('/testimonials').then(setTestimonials);
     apiGet('/deals').then(setDeals).catch(() => {});
-    apiGet('/settings').then(s => {
+    apiGet('/settings/public').then(s => {
       if (s.welcome_video_url) {
         setWelcomeVideo({
           url: s.welcome_video_url,
