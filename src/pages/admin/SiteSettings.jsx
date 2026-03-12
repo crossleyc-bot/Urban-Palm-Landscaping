@@ -49,6 +49,12 @@ export default function SiteSettings() {
   const [socialYoutube, setSocialYoutube] = useState('');
   const [socialSaving, setSocialSaving] = useState(false);
 
+  // Email notification recipients
+  const [notifyEmails, setNotifyEmails] = useState([]);
+  const [notifyEmailInput, setNotifyEmailInput] = useState('');
+  const [notifyFromEmail, setNotifyFromEmail] = useState('');
+  const [notifyEmailSaving, setNotifyEmailSaving] = useState(false);
+
   // Stripe settings
   const [stripePublishableKey, setStripePublishableKey] = useState('');
   const [stripeSecretKey, setStripeSecretKey] = useState('');
@@ -102,6 +108,8 @@ export default function SiteSettings() {
       setSocialFacebook(s.social_facebook || '');
       setSocialInstagram(s.social_instagram || '');
       setSocialYoutube(s.social_youtube || '');
+      setNotifyFromEmail(s.ses_from_email || '');
+      setNotifyEmails(s.contact_notify_email ? s.contact_notify_email.split(',').map(e => e.trim()).filter(Boolean) : []);
       setStripePublishableKey(s.stripe_publishable_key || '');
       setStripeSecretKey(s.stripe_secret_key ? '••••••••' : '');
       setStripeKeysLoaded(!!s.stripe_secret_key);
@@ -572,6 +580,111 @@ export default function SiteSettings() {
           }}
         >
           {contactSaving ? 'Saving...' : 'Save Contact Info'}
+        </button>
+      </div>
+
+      {/* ── Email Notification Recipients ── */}
+      <div className="card" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>Email Notifications</h3>
+        <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem', lineHeight: 1.6 }}>
+          Manage the email addresses that receive notifications when a contact form or quote request is submitted.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: 600 }}>
+          <div style={fieldGap}>
+            <label style={labelStyle}>From Address</label>
+            <input
+              className="table-input"
+              type="email"
+              value={notifyFromEmail}
+              onChange={e => setNotifyFromEmail(e.target.value)}
+              placeholder="no-reply@yourdomain.com"
+            />
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+              The sender address for outgoing notification emails (must be verified in AWS SES).
+            </span>
+          </div>
+          <div style={fieldGap}>
+            <label style={labelStyle}>To Addresses</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: notifyEmails.length ? '0.5rem' : 0 }}>
+              {notifyEmails.map((email, i) => (
+                <span
+                  key={i}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                    background: 'var(--color-bg-secondary, #f3f4f6)', border: '1px solid var(--color-border, #d1d5db)',
+                    borderRadius: '9999px', padding: '0.25rem 0.5rem 0.25rem 0.75rem', fontSize: '0.85rem',
+                  }}
+                >
+                  {email}
+                  <button
+                    type="button"
+                    onClick={() => setNotifyEmails(prev => prev.filter((_, j) => j !== i))}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer', padding: '0 0.15rem',
+                      fontSize: '1.1rem', lineHeight: 1, color: 'var(--color-text-muted)', fontWeight: 700,
+                    }}
+                    title="Remove"
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                className="table-input"
+                type="email"
+                value={notifyEmailInput}
+                onChange={e => setNotifyEmailInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const val = notifyEmailInput.trim().toLowerCase();
+                    if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && !notifyEmails.includes(val)) {
+                      setNotifyEmails(prev => [...prev, val]);
+                      setNotifyEmailInput('');
+                    }
+                  }
+                }}
+                placeholder="Add email address and press Enter"
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => {
+                  const val = notifyEmailInput.trim().toLowerCase();
+                  if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && !notifyEmails.includes(val)) {
+                    setNotifyEmails(prev => [...prev, val]);
+                    setNotifyEmailInput('');
+                  }
+                }}
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+        <button
+          className="btn btn-primary"
+          style={{ marginTop: '1rem' }}
+          disabled={notifyEmailSaving}
+          onClick={async () => {
+            setNotifyEmailSaving(true);
+            try {
+              await apiPut('/settings', {
+                ses_from_email: notifyFromEmail.trim(),
+                contact_notify_email: notifyEmails.join(','),
+              });
+              addToast('Notification emails saved', 'success');
+            } catch (err) {
+              addToast(err.message || 'Failed to save notification emails', 'error');
+            } finally {
+              setNotifyEmailSaving(false);
+            }
+          }}
+        >
+          {notifyEmailSaving ? 'Saving...' : 'Save Email Settings'}
         </button>
       </div>
 

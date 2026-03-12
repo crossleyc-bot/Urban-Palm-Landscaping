@@ -14,12 +14,15 @@ function getFromAddress() {
 }
 
 /**
- * Returns the admin-configured contact notification recipient address.
- * Returns null if not configured (email notifications disabled).
+ * Returns the admin-configured contact notification recipient addresses.
+ * Supports multiple comma-separated emails stored in `contact_notify_email`.
+ * Returns an array of email addresses, or null if none configured.
  */
-function getContactEmail() {
+function getContactEmails() {
   const row = db.prepare("SELECT value FROM site_settings WHERE key = 'contact_notify_email'").get();
-  return row?.value || null;
+  if (!row?.value) return null;
+  const emails = row.value.split(',').map(e => e.trim()).filter(Boolean);
+  return emails.length ? emails : null;
 }
 
 /**
@@ -48,7 +51,7 @@ async function sendEmail({ to, subject, htmlBody, textBody }) {
  * Notify the business owner when a new contact form submission arrives.
  */
 export async function notifyContactSubmission({ name, email, phone, service, message }) {
-  const to = getContactEmail();
+  const to = getContactEmails();
   if (!to) return;
 
   const subject = `New Contact Message from ${name}`;
@@ -88,7 +91,7 @@ export async function notifyContactSubmission({ name, email, phone, service, mes
  * Notify the business owner when a new quote request arrives.
  */
 export async function notifyQuoteSubmission({ name, email, phone, service, details, address, propertyType, timeline, budget }) {
-  const to = getContactEmail();
+  const to = getContactEmails();
   if (!to) return;
 
   const subject = `New Quote Request from ${name}`;
