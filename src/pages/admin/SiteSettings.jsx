@@ -135,6 +135,7 @@ export default function SiteSettings() {
         welcome_video_title: videoTitle.trim(),
         welcome_video_subtitle: videoSubtitle.trim(),
       });
+      refreshSiteSettings();
       addToast('Settings saved', 'success');
     } catch (err) {
       addToast(err.message || 'Failed to save settings', 'error');
@@ -571,6 +572,7 @@ export default function SiteSettings() {
                 contact_phone: contactPhone.trim(),
                 contact_email: contactEmail.trim(),
               });
+              refreshSiteSettings();
               addToast('Contact info saved', 'success');
             } catch (err) {
               addToast(err.message || 'Failed to save contact info', 'error');
@@ -676,6 +678,7 @@ export default function SiteSettings() {
                 ses_from_email: notifyFromEmail.trim(),
                 contact_notify_email: notifyEmails.join(','),
               });
+              refreshSiteSettings();
               addToast('Notification emails saved', 'success');
             } catch (err) {
               addToast(err.message || 'Failed to save notification emails', 'error');
@@ -720,6 +723,7 @@ export default function SiteSettings() {
                 social_instagram: socialInstagram.trim(),
                 social_youtube: socialYoutube.trim(),
               });
+              refreshSiteSettings();
               addToast('Social links saved', 'success');
             } catch (err) {
               addToast(err.message || 'Failed to save social links', 'error');
@@ -783,6 +787,7 @@ export default function SiteSettings() {
                   payload.stripe_secret_key = stripeSecretKey.trim();
                 }
                 await apiPut('/settings', payload);
+                refreshSiteSettings();
                 setStripeKeysLoaded(!!stripePublishableKey.trim());
                 if (stripeSecretKey && stripeSecretKey !== '••••••••') setStripeSecretKey('••••••••');
                 addToast('Stripe keys saved', 'success');
@@ -841,6 +846,7 @@ export default function SiteSettings() {
                   payload.usps_user_id = uspsUserId.trim();
                 }
                 await apiPut('/settings', payload);
+                refreshSiteSettings();
                 setUspsLoaded(!!uspsUserId.trim());
                 if (uspsUserId && uspsUserId !== '••••••••') setUspsUserId('••••••••');
                 addToast('USPS settings saved', 'success');
@@ -919,10 +925,11 @@ export default function SiteSettings() {
             setDeliverySaving(true);
             try {
               await apiPut('/settings', {
-                delivery_fee: deliveryFee,
-                installation_fee: installationFee,
-                delivery_minimum: deliveryMinimum,
+                delivery_fee: deliveryFee || null,
+                installation_fee: installationFee || null,
+                delivery_minimum: deliveryMinimum || null,
               });
+              refreshSiteSettings();
               addToast('Delivery & installation settings saved', 'success');
             } catch (err) {
               addToast(err.message || 'Failed to save', 'error');
