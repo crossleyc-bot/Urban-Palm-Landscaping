@@ -7,7 +7,14 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const JWT_SECRET_PATH = join(__dirname, '..', '.jwt-secret');
+// On Elastic Beanstalk, /var/app/data persists across deployments.
+// Store the JWT secret there so tokens survive redeployments.
+// In development, fall back to the local server directory.
+const PERSISTENT_DATA_DIR = '/var/app/data';
+const JWT_SECRET_PATH = existsSync(PERSISTENT_DATA_DIR)
+  ? join(PERSISTENT_DATA_DIR, '.jwt-secret')
+  : join(__dirname, '..', '.jwt-secret');
+
 function getJwtSecret() {
   if (process.env.JWT_SECRET) {
     return process.env.JWT_SECRET;
