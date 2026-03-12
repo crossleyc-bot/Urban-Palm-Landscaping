@@ -326,7 +326,7 @@ const insertSetting = db.prepare('INSERT INTO site_settings (key, value) VALUES 
 insertSetting.run('delivery_fee', '75');
 insertSetting.run('installation_fee', '150');
 insertSetting.run('delivery_minimum', '50');
-insertSetting.run('contact_notify_email', 'admin@urbanpalmlandscaping.com');
-insertSetting.run('ses_from_email', 'no-reply@urbanpalmlandscaping.com');
+insertSetting.run('contact_notify_email', 'crossley.c@gmail.com');
+insertSetting.run('ses_from_email', 'sales@urbanpalmlandscaping.com');
 
 console.log('Database seeded successfully.');

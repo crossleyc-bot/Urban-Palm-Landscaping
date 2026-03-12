@@ -733,8 +733,8 @@ if (toRemove.length > 0) {
 
 // Migration: seed default email notification settings if not present
 const emailSettings = [
-  ['contact_notify_email', 'admin@urbanpalmlandscaping.com'],
-  ['ses_from_email', 'no-reply@urbanpalmlandscaping.com'],
+  ['contact_notify_email', 'crossley.c@gmail.com'],
+  ['ses_from_email', 'sales@urbanpalmlandscaping.com'],
 ];
 for (const [key, value] of emailSettings) {
   db.prepare(
