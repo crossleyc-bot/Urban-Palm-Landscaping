@@ -98,7 +98,7 @@ export default function SiteSettings() {
       setContactAddress1(s.contact_address_1 || '25546 High Hampton Circle');
       setContactAddress2(s.contact_address_2 || 'Sorrento, FL 32776');
       setContactPhone(s.contact_phone || '(321) 231-2094');
-      setContactEmail(s.contact_email || 'info@urbanpalmlandscaping.com');
+      setContactEmail(s.contact_email || s.ses_from_email || 'sales@urbanpalmlandscaping.com');
       setSocialFacebook(s.social_facebook || '');
       setSocialInstagram(s.social_instagram || '');
       setSocialYoutube(s.social_youtube || '');

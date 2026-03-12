@@ -130,7 +130,7 @@ export default function Contact() {
                 </div>
                 <div className="contact-detail">
                   <strong>Email</strong>
-                  <p>{settings.contact_email || 'info@urbanpalmlandscaping.com'}</p>
+                  <p>{settings.contact_email || settings.ses_from_email || 'sales@urbanpalmlandscaping.com'}</p>
                 </div>
                 <div className="contact-detail">
                   <strong>Hours</strong>
