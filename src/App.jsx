@@ -110,11 +110,11 @@ function AnimatedOutlet() {
   );
 }
 
-function PageGuard({ children }) {
+function PageGuard({ children, pagePath }) {
   const location = useLocation();
   const { isPageVisible, loaded } = useSiteSettings();
   if (!loaded) return null;
-  if (!isPageVisible(location.pathname)) return <Navigate to="/" replace />;
+  if (!isPageVisible(pagePath || location.pathname)) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -177,8 +177,8 @@ export default function App() {
                 <Route path="/products" element={<PageGuard><Products /></PageGuard>} />
                 <Route path="/resources" element={<PageGuard><Resources /></PageGuard>} />
                 <Route path="/quote" element={<PublicRequestQuote />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/cart" element={<PageGuard pagePath="/products"><Cart /></PageGuard>} />
+                <Route path="/checkout" element={<PageGuard pagePath="/products"><Checkout /></PageGuard>} />
                 <Route path="/login" element={<Login />} />
               </Route>
 
