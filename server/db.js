@@ -768,6 +768,49 @@ if (toRemove.length > 0) {
   for (const name of toRemove) del.run(name);
 }
 
+// Migration: seed enriched service content (long_description, features, cta_text) if missing
+const svcNeedsSeed = db.prepare('SELECT id, slug FROM services WHERE long_description IS NULL OR long_description = ?').all('');
+if (svcNeedsSeed.length > 0) {
+  const updateSvc = db.prepare('UPDATE services SET description = ?, long_description = ?, features = ?, cta_text = ?, icon = ? WHERE slug = ?');
+  const serviceContent = [
+    {
+      slug: 'landscape-delivery-installation',
+      description: 'We deliver and install sod, plants, trees, mulch, and landscape materials across Central Florida. Our crews handle everything from site prep to final placement so your property is transformed with zero hassle.',
+      icon: '🌿',
+      long_description: 'Urban Palm Landscaping provides full-service landscape delivery and installation throughout Central Florida. Whether you need fresh sod for a new lawn, mature trees for instant curb appeal, or a complete landscape overhaul, our experienced crews manage every detail. We coordinate material sourcing, schedule deliveries to minimize disruption, and handle site preparation including grading, irrigation adjustments, and soil amendments. From residential yards to commercial properties, we ensure every plant, tree, and material is placed with care for long-lasting results.',
+      features: 'Sod delivery and installation\nTree and palm planting\nMulch and rock spreading\nSite grading and soil prep\nIrrigation adjustments\nCommercial and residential projects',
+      cta_text: 'Get a Free Estimate',
+    },
+    {
+      slug: 'landscape-design',
+      description: 'Our certified landscape architects create custom plans that blend aesthetics with functionality. We consider your lifestyle, climate, soil conditions, and budget to craft a design you will love for years to come.',
+      icon: '🎨',
+      long_description: "Our landscape design service brings your outdoor vision to life with professional plans crafted by certified landscape architects. We start with an on-site consultation to understand your goals, assess your property's unique conditions—sun exposure, drainage, existing vegetation—and discuss your budget. From there, we create detailed design renderings that include plant selections suited to Central Florida's climate, hardscape layouts, lighting plans, and irrigation recommendations. Whether you want a tropical oasis, a low-maintenance xeriscape, or a family-friendly backyard, we deliver a design that adds lasting value to your property.",
+      features: 'On-site property consultation\nCustom design renderings\nClimate-appropriate plant selection\nHardscape and patio planning\nLighting and irrigation design\nBudget-conscious options',
+      cta_text: 'Book a Consultation',
+    },
+    {
+      slug: 'tree-shrub-care',
+      description: 'Keep your trees and shrubs healthy and beautiful with professional pruning, trimming, disease diagnosis, fertilization, and preventive care programs tailored to Central Florida species.',
+      icon: '🌳',
+      long_description: "Healthy trees and shrubs are the backbone of any beautiful landscape. Our certified arborists and horticulturists provide comprehensive care programs designed specifically for Central Florida's unique climate and species. We offer professional pruning to promote healthy growth and maintain shape, disease and pest diagnosis with targeted treatment plans, deep-root fertilization, and storm preparation trimming. Regular care not only keeps your property looking its best but also protects your investment by extending the life of your plantings.",
+      features: 'Professional pruning and trimming\nDisease and pest diagnosis\nDeep-root fertilization\nStorm preparation trimming\nPreventive care programs\nPalm tree maintenance',
+      cta_text: 'Schedule Care',
+    },
+    {
+      slug: 'seasonal-cleanup',
+      description: 'Our spring and fall cleanup services include leaf removal, bed edging, mulch refresh, dead plant removal, and general property tidying to keep your landscape looking sharp year-round.',
+      icon: '🍂',
+      long_description: 'Keep your property looking its best through every season with our comprehensive cleanup services. Our spring cleanup prepares your landscape for the growing season with bed edging, mulch refresh, dead plant removal, and fertilizer application. Our fall cleanup tackles leaf removal, cuts back perennials, and protects tender plants before cooler weather arrives. We also offer one-time cleanups for properties that need a fresh start or post-storm debris removal. Every cleanup includes a walkthrough with notes on any issues we spot so you can stay ahead of potential problems.',
+      features: 'Leaf and debris removal\nBed edging and reshaping\nMulch refresh and top-dressing\nDead plant removal\nPost-storm debris cleanup\nSeasonal fertilizer application',
+      cta_text: 'Book a Cleanup',
+    },
+  ];
+  for (const s of serviceContent) {
+    updateSvc.run(s.description, s.long_description, s.features, s.cta_text, s.icon, s.slug);
+  }
+}
+
 // Migration: seed default email notification settings if not present
 const emailSettings = [
   ['contact_notify_email', 'crossley.c@gmail.com'],
