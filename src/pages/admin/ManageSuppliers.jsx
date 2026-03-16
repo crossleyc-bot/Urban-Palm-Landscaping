@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { apiGet, apiPost, apiPut, apiDelete, apiPostForm } from '../../api';
 import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
@@ -17,7 +17,22 @@ export default function ManageSuppliers() {
   const [expanded, setExpanded] = useState(null);
   const [importing, setImporting] = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [selected, setSelected] = useState(new Set());
+  const [confirmDeleteSelected, setConfirmDeleteSelected] = useState(false);
   const fileRef = useRef();
+
+  const allSelected = useMemo(() => suppliers.length > 0 && selected.size === suppliers.length, [suppliers, selected]);
+
+  const toggleSelect = (id) => setSelected(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const toggleSelectAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(suppliers.map(s => s.id)));
+  };
 
   useEffect(() => {
     apiGet('/suppliers').then(setSuppliers).finally(() => setLoading(false));
@@ -73,6 +88,7 @@ export default function ManageSuppliers() {
     try {
       await apiDelete(`/suppliers/${id}`);
       setSuppliers(prev => prev.filter(s => s.id !== id));
+      setSelected(prev => { const next = new Set(prev); next.delete(id); return next; });
       addToast('Supplier deleted', 'success');
     } catch (err) { addToast(err.message || 'Failed to delete supplier', 'error'); }
   };
@@ -100,9 +116,22 @@ export default function ManageSuppliers() {
     try {
       await apiDelete('/suppliers');
       setSuppliers([]);
+      setSelected(new Set());
       setConfirmDeleteAll(false);
       addToast('All suppliers removed', 'success');
     } catch { addToast('Failed to remove suppliers', 'error'); }
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      const ids = [...selected];
+      await apiPost('/suppliers/batch-delete', { ids });
+      setSuppliers(prev => prev.filter(s => !selected.has(s.id)));
+      const count = selected.size;
+      setSelected(new Set());
+      setConfirmDeleteSelected(false);
+      addToast(`${count} supplier${count !== 1 ? 's' : ''} deleted`, 'success');
+    } catch { addToast('Failed to delete selected suppliers', 'error'); }
   };
 
   if (loading) {
@@ -179,6 +208,15 @@ export default function ManageSuppliers() {
               onChange={handleImport}
               style={{ display: 'none' }}
             />
+            {selected.size > 0 && (
+              <button
+                className="btn btn-outline"
+                style={{ color: '#dc2626', borderColor: '#fca5a5' }}
+                onClick={() => setConfirmDeleteSelected(true)}
+              >
+                Delete Selected ({selected.size})
+              </button>
+            )}
             {suppliers.length > 0 && (
               <button
                 className="btn btn-outline"
@@ -208,6 +246,22 @@ export default function ManageSuppliers() {
         </div>
       )}
 
+      {/* Delete Selected Confirmation */}
+      {confirmDeleteSelected && (
+        <div className="card" style={{ marginBottom: '1rem', padding: '1.25rem', border: '1px solid #fca5a5', background: 'rgba(220, 38, 38, 0.04)' }}>
+          <div style={{ fontWeight: 600, color: '#dc2626', marginBottom: '0.5rem' }}>Delete Selected Suppliers?</div>
+          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+            This will permanently delete {selected.size} supplier{selected.size !== 1 ? 's' : ''} and their associated inventory items. This action cannot be undone.
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} onClick={handleDeleteSelected}>
+              Yes, Delete {selected.size}
+            </button>
+            <button className="btn btn-outline" onClick={() => setConfirmDeleteSelected(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
       {/* Import Instructions */}
       <div className="card" style={{ marginBottom: '1rem', padding: '1rem' }}>
         <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>CSV Import</div>
@@ -226,10 +280,17 @@ export default function ManageSuppliers() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {suppliers.length > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.25rem 0' }}>
+              <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+              <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Select all</span>
+            </div>
+          )}
           {suppliers.map(s => (
             <div key={s.id} className="card" style={{ padding: '1rem 1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                  <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggleSelect(s.id)} style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
                   <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--color-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1rem', flexShrink: 0 }}>
                     {s.name.charAt(0).toUpperCase()}
                   </div>

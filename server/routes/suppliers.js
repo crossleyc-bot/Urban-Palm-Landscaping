@@ -56,6 +56,19 @@ router.delete('/suppliers', requireAuth, requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
+router.post('/suppliers/batch-delete', requireAuth, requireAdmin, (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ids array is required' });
+  const placeholders = ids.map(() => '?').join(',');
+  const images = db.prepare(`SELECT image FROM supplier_inventory WHERE supplier_id IN (${placeholders}) AND image IS NOT NULL`).all(...ids);
+  for (const row of images) {
+    if (row.image) { try { unlinkSync(join(serverDir, row.image.replace(/^\//, ''))); } catch { /* ignore */ } }
+  }
+  db.prepare(`DELETE FROM supplier_inventory WHERE supplier_id IN (${placeholders})`).run(...ids);
+  const result = db.prepare(`DELETE FROM suppliers WHERE id IN (${placeholders})`).run(...ids);
+  res.json({ success: true, deleted: result.changes });
+});
+
 const supplierImportUpload = (req, _res, next) => { req.uploadDir = 'imports'; next(); };
 
 // Simple CSV parser that handles quoted fields
@@ -381,6 +394,18 @@ router.delete('/inventory/:id', requireAuth, requireAdmin, (req, res) => {
   const result = db.prepare('DELETE FROM supplier_inventory WHERE id = ?').run(id);
   if (result.changes === 0) return res.status(404).json({ error: 'Inventory item not found' });
   res.json({ success: true });
+});
+
+router.post('/inventory/batch-delete', requireAuth, requireAdmin, (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'ids array is required' });
+  const placeholders = ids.map(() => '?').join(',');
+  const images = db.prepare(`SELECT image FROM supplier_inventory WHERE id IN (${placeholders}) AND image IS NOT NULL`).all(...ids);
+  for (const row of images) {
+    if (row.image) { try { unlinkSync(join(serverDir, row.image.replace(/^\//, ''))); } catch { /* ignore */ } }
+  }
+  const result = db.prepare(`DELETE FROM supplier_inventory WHERE id IN (${placeholders})`).run(...ids);
+  res.json({ success: true, deleted: result.changes });
 });
 
 // ─── Catalog Products ───────────────────────────────────────────────────────

@@ -25,6 +25,8 @@ export default function SupplierInventory() {
   const [filterSupplier, setFilterSupplier] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [importing, setImporting] = useState(false);
+  const [selected, setSelected] = useState(new Set());
+  const [confirmDeleteSelected, setConfirmDeleteSelected] = useState(false);
   const csvRef = useRef();
 
   useEffect(() => {
@@ -146,6 +148,7 @@ export default function SupplierInventory() {
     try {
       await apiDelete(`/inventory/${id}`);
       setItems(prev => prev.filter(i => i.id !== id));
+      setSelected(prev => { const next = new Set(prev); next.delete(id); return next; });
       addToast('Item deleted', 'success');
     } catch (err) { addToast(err.message || 'Failed to delete item', 'error'); }
   };
@@ -176,6 +179,43 @@ export default function SupplierInventory() {
   };
 
   const lowStock = items.filter(i => i.qty_available <= i.reorder_point && i.reorder_point > 0);
+
+  const pageIds = paginated.map(i => i.id);
+  const allPageSelected = pageIds.length > 0 && pageIds.every(id => selected.has(id));
+
+  const toggleSelect = (id) => setSelected(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const toggleSelectPage = () => {
+    if (allPageSelected) {
+      setSelected(prev => {
+        const next = new Set(prev);
+        pageIds.forEach(id => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelected(prev => {
+        const next = new Set(prev);
+        pageIds.forEach(id => next.add(id));
+        return next;
+      });
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      const ids = [...selected];
+      await apiPost('/inventory/batch-delete', { ids });
+      setItems(prev => prev.filter(i => !selected.has(i.id)));
+      const count = selected.size;
+      setSelected(new Set());
+      setConfirmDeleteSelected(false);
+      addToast(`${count} item${count !== 1 ? 's' : ''} deleted`, 'success');
+    } catch { addToast('Failed to delete selected items', 'error'); }
+  };
 
   if (loading) {
     return (
@@ -273,6 +313,15 @@ export default function SupplierInventory() {
               {importing ? 'Importing...' : 'Import CSV'}
             </button>
             <input ref={csvRef} type="file" accept=".csv" onChange={handleImportCSV} style={{ display: 'none' }} />
+            {selected.size > 0 && (
+              <button
+                className="btn btn-outline"
+                style={{ color: '#dc2626', borderColor: '#fca5a5' }}
+                onClick={() => setConfirmDeleteSelected(true)}
+              >
+                Delete Selected ({selected.size})
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -318,11 +367,30 @@ export default function SupplierInventory() {
         </p>
       </div>
 
+      {/* Delete Selected Confirmation */}
+      {confirmDeleteSelected && (
+        <div className="card" style={{ marginBottom: '1rem', padding: '1.25rem', border: '1px solid #fca5a5', background: 'rgba(220, 38, 38, 0.04)' }}>
+          <div style={{ fontWeight: 600, color: '#dc2626', marginBottom: '0.5rem' }}>Delete Selected Items?</div>
+          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>
+            This will permanently delete {selected.size} inventory item{selected.size !== 1 ? 's' : ''}. This action cannot be undone.
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button className="btn btn-primary" style={{ background: '#dc2626', borderColor: '#dc2626' }} onClick={handleDeleteSelected}>
+              Yes, Delete {selected.size}
+            </button>
+            <button className="btn btn-outline" onClick={() => setConfirmDeleteSelected(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
       <div className="card">
         <div className="table-container">
           <table>
             <thead>
               <tr>
+                <th style={{ width: 36 }}>
+                  <input type="checkbox" checked={allPageSelected} onChange={toggleSelectPage} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                </th>
                 <SortableHeader label="Supplier" field="supplier_name" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <SortableHeader label="Item" field="item_name" sortField={sortField} sortDir={sortDir} onSort={handleSort} />
                 <th>SKU</th>
@@ -340,7 +408,7 @@ export default function SupplierInventory() {
             <tbody>
               {paginated.length === 0 && !adding ? (
                 <tr>
-                  <td colSpan="12">
+                  <td colSpan="13">
                     <EmptyState icon="&#128230;" title="No inventory items" message={suppliers.length === 0 ? 'Add a supplier first, then add inventory items.' : 'Add your first inventory item to get started.'} />
                   </td>
                 </tr>
@@ -349,9 +417,10 @@ export default function SupplierInventory() {
                   {paginated.map(item => (
                     <tr key={item.id} style={item.qty_available <= item.reorder_point && item.reorder_point > 0 ? { background: 'rgba(220, 38, 38, 0.05)' } : {}}>
                       {editing === item.id ? (
-                        formRow(() => saveEdit(item.id), 'Save').props.children
+                        <><td></td>{formRow(() => saveEdit(item.id), 'Save').props.children}</>
                       ) : (
                         <>
+                          <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => toggleSelect(item.id)} style={{ width: 16, height: 16, cursor: 'pointer' }} /></td>
                           <td style={{ fontWeight: 500 }}>{item.supplier_name || supplierName(item.supplier_id)}</td>
                           <td style={{ fontWeight: 600 }}>{item.item_name}</td>
                           <td style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>{item.sku || '\u2014'}</td>
@@ -392,7 +461,8 @@ export default function SupplierInventory() {
                       )}
                     </tr>
                   ))}
-                  {adding && formRow(saveNew, 'Add')}
+                  {adding && <tr><td></td>{formRow(saveNew, 'Add').props.children}</tr>}
+
                 </>
               )}
             </tbody>
