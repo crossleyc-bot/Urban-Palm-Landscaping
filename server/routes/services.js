@@ -23,29 +23,61 @@ router.get('/services', (req, res) => {
   res.json(services.map(s => ({ ...s, images: imageMap.get(s.id) || [] })));
 });
 
+// Get a single service by slug
+router.get('/services/:slug', (req, res) => {
+  const { slug } = req.params;
+  // Try slug first, then numeric id
+  const service = slug.match(/^\d+$/)
+    ? db.prepare('SELECT * FROM services WHERE id = ?').get(slug)
+    : db.prepare('SELECT * FROM services WHERE slug = ?').get(slug);
+  if (!service) return res.status(404).json({ error: 'Service not found' });
+  const images = db.prepare('SELECT * FROM service_images WHERE service_id = ? ORDER BY sort_order, id').all(service.id);
+  res.json({ ...service, images });
+});
+
+function generateSlug(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function ensureUniqueSlug(slug, excludeId) {
+  let candidate = slug;
+  let suffix = 1;
+  while (true) {
+    const existing = excludeId
+      ? db.prepare('SELECT id FROM services WHERE slug = ? AND id != ?').get(candidate, excludeId)
+      : db.prepare('SELECT id FROM services WHERE slug = ?').get(candidate);
+    if (!existing) return candidate;
+    candidate = `${slug}-${++suffix}`;
+  }
+}
+
 router.post('/services', requireAuth, requireAdmin, serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
-  const { name, description, price, icon, on_sale, sale_label } = req.body;
+  const { name, description, price, icon, on_sale, sale_label, long_description, features, cta_text, meta_title, meta_description } = req.body;
   if (!name) return res.status(400).json({ error: 'Service name is required' });
 
+  const slug = ensureUniqueSlug(generateSlug(name));
   const imageBefore = req.files?.image_before?.[0] ? `/uploads/services/${req.files.image_before[0].filename}` : null;
   const imageAfter = req.files?.image_after?.[0] ? `/uploads/services/${req.files.image_after[0].filename}` : null;
   const saleFlag = on_sale === '1' || on_sale === 1 ? 1 : 0;
 
   const result = db.prepare(
-    'INSERT INTO services (name, description, price, icon, image_before, image_after, on_sale, sale_label) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(name, description || null, price || null, icon || null, imageBefore, imageAfter, saleFlag, sale_label || null);
+    'INSERT INTO services (name, slug, description, price, icon, image_before, image_after, on_sale, sale_label, long_description, features, cta_text, meta_title, meta_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(name, slug, description || null, price || null, icon || null, imageBefore, imageAfter, saleFlag, sale_label || null, long_description || null, features || null, cta_text || null, meta_title || null, meta_description || null);
 
-  res.status(201).json({ id: result.lastInsertRowid, name, description, price, icon, image_before: imageBefore, image_after: imageAfter });
+  res.status(201).json({ id: result.lastInsertRowid, slug, name, description, price, icon, image_before: imageBefore, image_after: imageAfter });
 });
 
 router.put('/services/:id', requireAuth, requireAdmin, serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
   const { id } = req.params;
-  const { name, description, price, icon, on_sale, sale_label } = req.body;
+  const { name, description, price, icon, on_sale, sale_label, long_description, features, cta_text, meta_title, meta_description } = req.body;
   if (!name) return res.status(400).json({ error: 'Service name is required' });
   const saleFlag = on_sale === '1' || on_sale === 1 ? 1 : 0;
 
-  const existing = db.prepare('SELECT image_before, image_after FROM services WHERE id = ?').get(id);
+  const existing = db.prepare('SELECT image_before, image_after, slug FROM services WHERE id = ?').get(id);
   if (!existing) return res.status(404).json({ error: 'Service not found' });
+
+  // Regenerate slug if name changed
+  const slug = existing.slug || ensureUniqueSlug(generateSlug(name), id);
 
   let imageBefore = existing.image_before;
   let imageAfter = existing.image_after;
@@ -64,10 +96,10 @@ router.put('/services/:id', requireAuth, requireAdmin, serviceUpload, upload.fie
   }
 
   db.prepare(
-    'UPDATE services SET name = ?, description = ?, price = ?, icon = ?, image_before = ?, image_after = ?, on_sale = ?, sale_label = ? WHERE id = ?'
-  ).run(name, description || null, price || null, icon || null, imageBefore, imageAfter, saleFlag, sale_label || null, id);
+    'UPDATE services SET name = ?, slug = ?, description = ?, price = ?, icon = ?, image_before = ?, image_after = ?, on_sale = ?, sale_label = ?, long_description = ?, features = ?, cta_text = ?, meta_title = ?, meta_description = ? WHERE id = ?'
+  ).run(name, slug, description || null, price || null, icon || null, imageBefore, imageAfter, saleFlag, sale_label || null, long_description || null, features || null, cta_text || null, meta_title || null, meta_description || null, id);
 
-  res.json({ success: true, image_before: imageBefore, image_after: imageAfter });
+  res.json({ success: true, slug, image_before: imageBefore, image_after: imageAfter });
 });
 
 router.delete('/services/:id', requireAuth, requireAdmin, (req, res) => {

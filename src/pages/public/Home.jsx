@@ -222,15 +222,15 @@ export default function Home() {
           </div>
           <div className="services-grid">
             {services.slice(0, 3).map((service) => (
-              <div key={service.id} className="service-preview-card">
+              <Link key={service.id} to={`/services/${service.slug}`} className="service-preview-card" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="service-icon">{service.icon}</div>
                 <h3>{service.name}</h3>
                 <p>{service.description}</p>
                 <div className="service-card-footer">
                   <span className="service-price">{service.price}</span>
-                  <Link to="/quote" className="btn btn-secondary btn-sm">Get Quote</Link>
+                  <span className="btn btn-secondary btn-sm">Learn More</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
           <div className="section-cta">

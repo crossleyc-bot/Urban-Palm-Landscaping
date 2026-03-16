@@ -1,9 +1,16 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
+import { apiGet } from '../../api';
 import './Footer.css';
 
 export default function Footer() {
   const { settings } = useSiteSettings();
+  const [services, setServices] = useState([]);
+
+  useEffect(() => {
+    apiGet('/services').then(setServices).catch(() => {});
+  }, []);
 
   const address1 = settings.contact_address_1 || '25546 High Hampton Circle';
   const address2 = settings.contact_address_2 || 'Sorrento, FL 32776';
@@ -39,10 +46,14 @@ export default function Footer() {
 
           <div className="footer-links">
             <h4>Services</h4>
-            <Link to="/services">Delivery & Installation</Link>
-            <Link to="/services">Landscape Design</Link>
-            <Link to="/services">Hardscaping</Link>
-            <Link to="/services">Irrigation</Link>
+            {services.length > 0 ? services.map(s => (
+              <Link key={s.id} to={`/services/${s.slug}`}>{s.name}</Link>
+            )) : (
+              <>
+                <Link to="/services">Delivery & Installation</Link>
+                <Link to="/services">Landscape Design</Link>
+              </>
+            )}
           </div>
 
           <div className="footer-links">

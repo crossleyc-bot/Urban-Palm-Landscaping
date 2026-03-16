@@ -26,7 +26,7 @@ export default function Services() {
         <div className="container">
           <div className="services-full-grid">
             {services.map((service) => (
-              <div key={service.id} className="service-full-card" style={{ position: 'relative' }}>
+              <Link key={service.id} to={`/services/${service.slug}`} className="service-full-card" style={{ position: 'relative', textDecoration: 'none', color: 'inherit' }}>
                 {service.on_sale ? (
                   <span className="sale-badge">{service.sale_label || 'SALE'}</span>
                 ) : null}
@@ -36,10 +36,10 @@ export default function Services() {
                   <p>{service.description}</p>
                   <div className="service-full-footer">
                     <span className="service-price">{service.price}</span>
-                    <Link to="/quote" className="btn btn-secondary btn-sm">Get Quote</Link>
+                    <span className="btn btn-secondary btn-sm">Learn More</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

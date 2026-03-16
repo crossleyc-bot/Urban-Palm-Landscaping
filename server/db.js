@@ -717,6 +717,34 @@ db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link LIKE '/sig
 db.prepare("UPDATE hero_slides SET cta_link = '/quote' WHERE cta_link IS NULL OR cta_link = ''").run();
 db.prepare("UPDATE hero_slides SET cta_label = 'Get Free Quote' WHERE cta_label = 'Get Free Consultation'").run();
 
+// Migration: add slug and landing page content fields to services
+const svcLandingCols = db.prepare("PRAGMA table_info(services)").all().map(c => c.name);
+if (!svcLandingCols.includes('slug')) {
+  db.exec("ALTER TABLE services ADD COLUMN slug TEXT");
+  // Generate slugs for existing services
+  const allSvcs = db.prepare('SELECT id, name FROM services').all();
+  const updateSlug = db.prepare('UPDATE services SET slug = ? WHERE id = ?');
+  for (const svc of allSvcs) {
+    const slug = svc.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    updateSlug.run(slug, svc.id);
+  }
+}
+if (!svcLandingCols.includes('long_description')) {
+  db.exec("ALTER TABLE services ADD COLUMN long_description TEXT");
+}
+if (!svcLandingCols.includes('features')) {
+  db.exec("ALTER TABLE services ADD COLUMN features TEXT");
+}
+if (!svcLandingCols.includes('cta_text')) {
+  db.exec("ALTER TABLE services ADD COLUMN cta_text TEXT");
+}
+if (!svcLandingCols.includes('meta_title')) {
+  db.exec("ALTER TABLE services ADD COLUMN meta_title TEXT");
+}
+if (!svcLandingCols.includes('meta_description')) {
+  db.exec("ALTER TABLE services ADD COLUMN meta_description TEXT");
+}
+
 // Migration: keep only the four offered services
 const allowedServices = [
   'Landscape Delivery & Installation',

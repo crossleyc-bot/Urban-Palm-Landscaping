@@ -4,7 +4,7 @@ import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
 
-const emptyForm = { name: '', description: '', price: '', icon: '', on_sale: '0', sale_label: '' };
+const emptyForm = { name: '', description: '', price: '', icon: '', on_sale: '0', sale_label: '', long_description: '', features: '', cta_text: '', meta_title: '', meta_description: '' };
 
 const thumbStyle = {
   width: 120, height: 80, objectFit: 'cover', borderRadius: 8,
@@ -113,7 +113,7 @@ export default function ManageServices() {
   const startEdit = (svc) => {
     setAdding(false);
     setEditing(svc.id);
-    setForm({ name: svc.name, description: svc.description || '', price: svc.price || '', icon: svc.icon || '', on_sale: String(svc.on_sale ?? 0), sale_label: svc.sale_label || '' });
+    setForm({ name: svc.name, description: svc.description || '', price: svc.price || '', icon: svc.icon || '', on_sale: String(svc.on_sale ?? 0), sale_label: svc.sale_label || '', long_description: svc.long_description || '', features: svc.features || '', cta_text: svc.cta_text || '', meta_title: svc.meta_title || '', meta_description: svc.meta_description || '' });
     setBeforeFile(null); setAfterFile(null);
     setBeforePreview(svc.image_before || null);
     setAfterPreview(svc.image_after || null);
@@ -137,6 +137,11 @@ export default function ManageServices() {
     fd.append('icon', form.icon);
     fd.append('on_sale', form.on_sale);
     fd.append('sale_label', form.sale_label);
+    fd.append('long_description', form.long_description);
+    fd.append('features', form.features);
+    fd.append('cta_text', form.cta_text);
+    fd.append('meta_title', form.meta_title);
+    fd.append('meta_description', form.meta_description);
     if (beforeFile) fd.append('image_before', beforeFile);
     if (afterFile) fd.append('image_after', afterFile);
     return fd;
@@ -149,6 +154,7 @@ export default function ManageServices() {
       const result = await apiPutForm(`/services/${id}`, buildFormData());
       setServices(prev => prev.map(s => s.id === id ? {
         ...s, ...form,
+        slug: result.slug ?? s.slug,
         image_before: result.image_before ?? s.image_before,
         image_after: result.image_after ?? s.image_after,
       } : s));
@@ -163,7 +169,7 @@ export default function ManageServices() {
     setSaving(true);
     try {
       const created = await apiPostForm('/services', buildFormData());
-      setServices(prev => [...prev, { id: created.id, ...form, image_before: created.image_before, image_after: created.image_after, images: [] }]);
+      setServices(prev => [...prev, { id: created.id, slug: created.slug, ...form, image_before: created.image_before, image_after: created.image_after, images: [] }]);
       setAdding(false); setForm(emptyForm); clearFiles();
       addToast('Service added successfully', 'success');
     } catch { addToast('Failed to add service', 'error'); }
@@ -241,6 +247,31 @@ export default function ManageServices() {
           </div>
         )}
       </div>
+      <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
+        <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--color-text)' }}>Landing Page Content</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '0.75rem' }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Long Description</label>
+          <textarea className="table-input" value={form.long_description} onChange={e => setForm(f => ({ ...f, long_description: e.target.value }))} placeholder="Detailed description for the service landing page..." rows={4} style={{ resize: 'vertical' }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '0.75rem' }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Features / Highlights (one per line)</label>
+          <textarea className="table-input" value={form.features} onChange={e => setForm(f => ({ ...f, features: e.target.value }))} placeholder={"Custom design plans\nProfessional installation\nPremium materials\nSatisfaction guarantee"} rows={4} style={{ resize: 'vertical' }} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>CTA Button Text</label>
+            <input className="table-input" value={form.cta_text} onChange={e => setForm(f => ({ ...f, cta_text: e.target.value }))} placeholder="Get a Free Quote" />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Meta Title (SEO)</label>
+            <input className="table-input" value={form.meta_title} onChange={e => setForm(f => ({ ...f, meta_title: e.target.value }))} placeholder="Custom page title for search engines" />
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Meta Description (SEO)</label>
+          <textarea className="table-input" value={form.meta_description} onChange={e => setForm(f => ({ ...f, meta_description: e.target.value }))} placeholder="Brief description for search engine results..." rows={2} style={{ resize: 'vertical' }} />
+        </div>
+      </div>
       <div style={{ marginTop: '1rem' }}>
         <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', display: 'block', marginBottom: '0.5rem' }}>Primary Before &amp; After</label>
         <div style={{ display: 'flex', gap: '2rem' }}>
@@ -297,6 +328,11 @@ export default function ManageServices() {
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>{svc.name}</div>
                       <div style={{ color: 'var(--color-text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', lineHeight: 1.5 }}>{svc.description || 'No description'}</div>
+                      {svc.slug && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.25rem' }}>
+                          <a href={`/services/${svc.slug}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-primary)' }}>/services/{svc.slug}</a>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
                         <span style={{ fontWeight: 500, color: 'var(--color-primary)', fontSize: '0.9rem' }}>{svc.price || '\u2014'}</span>
                         {svc.on_sale ? (
@@ -368,9 +404,11 @@ export default function ManageServices() {
       <div className="card" style={{ marginTop: '1.5rem' }}>
         <h3 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '0.75rem' }}>Where services appear</h3>
         <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.7 }}>
-          Changes are reflected automatically across the website: the Services page,
-          Portfolio page (all before/after images), Home page preview, Contact form dropdown,
-          customer Quote Request form, and Schedule Service form.
+          Changes are reflected automatically across the website: each service gets its own
+          landing page at <code>/services/[slug]</code>, the Services page, the main navigation
+          menu, Portfolio page, Home page preview, Footer links, Contact form dropdown,
+          customer Quote Request form, and Schedule Service form. New services automatically
+          get a landing page created.
         </p>
       </div>
     </div>

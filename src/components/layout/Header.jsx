@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
+import { apiGet } from '../../api';
 import './Header.css';
 
 export default function Header() {
@@ -14,7 +15,25 @@ export default function Header() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [services, setServices] = useState([]);
+  const [servicesDropdownOpen, setServicesDropdownOpen] = useState(false);
+  const servicesDropdownRef = useRef(null);
   const notifRef = useRef(null);
+
+  // Fetch services for nav dropdown
+  useEffect(() => {
+    apiGet('/services').then(setServices).catch(() => {});
+  }, []);
+
+  // Close services dropdown on outside click
+  useEffect(() => {
+    if (!servicesDropdownOpen) return;
+    const handleClick = (e) => {
+      if (servicesDropdownRef.current && !servicesDropdownRef.current.contains(e.target)) setServicesDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [servicesDropdownOpen]);
 
   // Fetch unread notification count for logged-in customers
   useEffect(() => {
@@ -93,8 +112,41 @@ export default function Header() {
 
         <nav className={`main-nav ${menuOpen ? 'main-nav-open' : ''}`}>
           <Link to="/" className={isActive('/')} onClick={() => setMenuOpen(false)}>Home</Link>
+          {isPageVisible('/services') && (
+            <div className="nav-dropdown-wrapper" ref={servicesDropdownRef}
+              onMouseEnter={() => setServicesDropdownOpen(true)}
+              onMouseLeave={() => setServicesDropdownOpen(false)}
+            >
+              <Link to="/services" className={location.pathname.startsWith('/services') ? 'nav-link active' : 'nav-link'} onClick={() => setMenuOpen(false)}>
+                Services <span className="nav-dropdown-arrow">&#9662;</span>
+              </Link>
+              {servicesDropdownOpen && services.length > 0 && (
+                <div className="nav-dropdown">
+                  {services.map(s => (
+                    <Link key={s.id} to={`/services/${s.slug}`} className="nav-dropdown-item" onClick={() => { setServicesDropdownOpen(false); setMenuOpen(false); }}>
+                      <span className="nav-dropdown-icon">{s.icon || '🌿'}</span>
+                      {s.name}
+                    </Link>
+                  ))}
+                  <div className="nav-dropdown-divider" />
+                  <Link to="/services" className="nav-dropdown-item nav-dropdown-all" onClick={() => { setServicesDropdownOpen(false); setMenuOpen(false); }}>
+                    View All Services
+                  </Link>
+                </div>
+              )}
+              {/* Mobile: show service links inline */}
+              {menuOpen && services.length > 0 && (
+                <div className="nav-mobile-sub">
+                  {services.map(s => (
+                    <Link key={s.id} to={`/services/${s.slug}`} className="nav-mobile-sub-link" onClick={() => setMenuOpen(false)}>
+                      {s.icon || '🌿'} {s.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {[
-            { path: '/services', label: 'Services' },
             { path: '/products', label: 'Products' },
             { path: '/portfolio', label: 'Portfolio' },
             { path: '/resources', label: 'Resources' },

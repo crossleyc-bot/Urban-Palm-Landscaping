@@ -72,6 +72,37 @@ app.use('/api', ordersRoutes);
 app.use('/api', suppliersRoutes);
 app.use('/api', notificationsRoutes);
 
+// ─── Dynamic Sitemap ─────────────────────────────────────────────────────────
+import db from './db.js';
+
+app.get('/sitemap.xml', (_req, res) => {
+  const services = db.prepare('SELECT slug FROM services').all();
+  const staticPages = [
+    { loc: '/', changefreq: 'weekly', priority: '1.0' },
+    { loc: '/services', changefreq: 'monthly', priority: '0.9' },
+    { loc: '/portfolio', changefreq: 'monthly', priority: '0.8' },
+    { loc: '/products', changefreq: 'weekly', priority: '0.8' },
+    { loc: '/about', changefreq: 'monthly', priority: '0.7' },
+    { loc: '/contact', changefreq: 'monthly', priority: '0.8' },
+    { loc: '/careers', changefreq: 'weekly', priority: '0.6' },
+    { loc: '/resources', changefreq: 'weekly', priority: '0.7' },
+  ];
+
+  const urls = staticPages.map(p =>
+    `  <url>\n    <loc>https://urbanpalmlandscaping.com${p.loc}</loc>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`
+  );
+
+  for (const svc of services) {
+    if (svc.slug) {
+      urls.push(`  <url>\n    <loc>https://urbanpalmlandscaping.com/services/${svc.slug}</loc>\n    <changefreq>monthly</changefreq>\n    <priority>0.8</priority>\n  </url>`);
+    }
+  }
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>`;
+  res.set('Content-Type', 'application/xml');
+  res.send(xml);
+});
+
 // ─── Serve frontend in production ───────────────────────────────────────────
 const distPath = join(__dirname, '..', 'dist');
 app.use(express.static(distPath));

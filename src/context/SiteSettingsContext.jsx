@@ -27,7 +27,9 @@ export function SiteSettingsProvider({ children }) {
   }, []);
 
   const isPageVisible = (path) => {
-    const page = PAGE_KEYS.find(p => p.path === path);
+    // Service detail pages inherit visibility from /services
+    const checkPath = path.startsWith('/services/') ? '/services' : path;
+    const page = PAGE_KEYS.find(p => p.path === checkPath);
     if (!page) return true;
     const val = settings[page.key];
     // Default to visible if no setting exists

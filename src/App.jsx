@@ -19,6 +19,7 @@ import Spinner from './components/ui/Spinner';
 // Lazy-loaded public pages
 const Home = lazy(() => import('./pages/public/Home'));
 const Services = lazy(() => import('./pages/public/Services'));
+const ServiceDetail = lazy(() => import('./pages/public/ServiceDetail'));
 const About = lazy(() => import('./pages/public/About'));
 const Contact = lazy(() => import('./pages/public/Contact'));
 const Portfolio = lazy(() => import('./pages/public/Portfolio'));
@@ -170,6 +171,7 @@ export default function App() {
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<Home />} />
                 <Route path="/services" element={<PageGuard><Services /></PageGuard>} />
+                <Route path="/services/:slug" element={<PageGuard><ServiceDetail /></PageGuard>} />
                 <Route path="/portfolio" element={<PageGuard><Portfolio /></PageGuard>} />
                 <Route path="/about" element={<PageGuard><About /></PageGuard>} />
                 <Route path="/contact" element={<PageGuard><Contact /></PageGuard>} />
