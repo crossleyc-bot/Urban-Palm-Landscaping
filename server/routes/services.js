@@ -52,7 +52,7 @@ function ensureUniqueSlug(slug, excludeId) {
 }
 
 router.post('/services', requireAuth, requireAdmin, serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
-  const { name, description, price, icon, on_sale, sale_label, long_description, features, cta_text, meta_title, meta_description } = req.body;
+  const { name, description, price, icon, on_sale, sale_label, long_description, features, cta_text, meta_title, meta_description, why_choose_us, faqs } = req.body;
   if (!name) return res.status(400).json({ error: 'Service name is required' });
 
   const slug = ensureUniqueSlug(generateSlug(name));
@@ -61,15 +61,15 @@ router.post('/services', requireAuth, requireAdmin, serviceUpload, upload.fields
   const saleFlag = on_sale === '1' || on_sale === 1 ? 1 : 0;
 
   const result = db.prepare(
-    'INSERT INTO services (name, slug, description, price, icon, image_before, image_after, on_sale, sale_label, long_description, features, cta_text, meta_title, meta_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(name, slug, description || null, price || null, icon || null, imageBefore, imageAfter, saleFlag, sale_label || null, long_description || null, features || null, cta_text || null, meta_title || null, meta_description || null);
+    'INSERT INTO services (name, slug, description, price, icon, image_before, image_after, on_sale, sale_label, long_description, features, cta_text, meta_title, meta_description, why_choose_us, faqs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(name, slug, description || null, price || null, icon || null, imageBefore, imageAfter, saleFlag, sale_label || null, long_description || null, features || null, cta_text || null, meta_title || null, meta_description || null, why_choose_us || null, faqs || null);
 
   res.status(201).json({ id: result.lastInsertRowid, slug, name, description, price, icon, image_before: imageBefore, image_after: imageAfter });
 });
 
 router.put('/services/:id', requireAuth, requireAdmin, serviceUpload, upload.fields([{ name: 'image_before', maxCount: 1 }, { name: 'image_after', maxCount: 1 }]), (req, res) => {
   const { id } = req.params;
-  const { name, description, price, icon, on_sale, sale_label, long_description, features, cta_text, meta_title, meta_description } = req.body;
+  const { name, description, price, icon, on_sale, sale_label, long_description, features, cta_text, meta_title, meta_description, why_choose_us, faqs } = req.body;
   if (!name) return res.status(400).json({ error: 'Service name is required' });
   const saleFlag = on_sale === '1' || on_sale === 1 ? 1 : 0;
 
@@ -96,8 +96,8 @@ router.put('/services/:id', requireAuth, requireAdmin, serviceUpload, upload.fie
   }
 
   db.prepare(
-    'UPDATE services SET name = ?, slug = ?, description = ?, price = ?, icon = ?, image_before = ?, image_after = ?, on_sale = ?, sale_label = ?, long_description = ?, features = ?, cta_text = ?, meta_title = ?, meta_description = ? WHERE id = ?'
-  ).run(name, slug, description || null, price || null, icon || null, imageBefore, imageAfter, saleFlag, sale_label || null, long_description || null, features || null, cta_text || null, meta_title || null, meta_description || null, id);
+    'UPDATE services SET name = ?, slug = ?, description = ?, price = ?, icon = ?, image_before = ?, image_after = ?, on_sale = ?, sale_label = ?, long_description = ?, features = ?, cta_text = ?, meta_title = ?, meta_description = ?, why_choose_us = ?, faqs = ? WHERE id = ?'
+  ).run(name, slug, description || null, price || null, icon || null, imageBefore, imageAfter, saleFlag, sale_label || null, long_description || null, features || null, cta_text || null, meta_title || null, meta_description || null, why_choose_us || null, faqs || null, id);
 
   res.json({ success: true, slug, image_before: imageBefore, image_after: imageAfter });
 });

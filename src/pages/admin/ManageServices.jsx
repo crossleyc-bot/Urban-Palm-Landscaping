@@ -4,7 +4,7 @@ import { useToast } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
 
-const emptyForm = { name: '', description: '', price: '', icon: '', on_sale: '0', sale_label: '', long_description: '', features: '', cta_text: '', meta_title: '', meta_description: '' };
+const emptyForm = { name: '', description: '', price: '', icon: '', on_sale: '0', sale_label: '', long_description: '', features: '', cta_text: '', meta_title: '', meta_description: '', why_choose_us: '', faqs: '' };
 
 const thumbStyle = {
   width: 120, height: 80, objectFit: 'cover', borderRadius: 8,
@@ -113,7 +113,7 @@ export default function ManageServices() {
   const startEdit = (svc) => {
     setAdding(false);
     setEditing(svc.id);
-    setForm({ name: svc.name, description: svc.description || '', price: svc.price || '', icon: svc.icon || '', on_sale: String(svc.on_sale ?? 0), sale_label: svc.sale_label || '', long_description: svc.long_description || '', features: svc.features || '', cta_text: svc.cta_text || '', meta_title: svc.meta_title || '', meta_description: svc.meta_description || '' });
+    setForm({ name: svc.name, description: svc.description || '', price: svc.price || '', icon: svc.icon || '', on_sale: String(svc.on_sale ?? 0), sale_label: svc.sale_label || '', long_description: svc.long_description || '', features: svc.features || '', cta_text: svc.cta_text || '', meta_title: svc.meta_title || '', meta_description: svc.meta_description || '', why_choose_us: svc.why_choose_us || '', faqs: svc.faqs || '' });
     setBeforeFile(null); setAfterFile(null);
     setBeforePreview(svc.image_before || null);
     setAfterPreview(svc.image_after || null);
@@ -142,6 +142,8 @@ export default function ManageServices() {
     fd.append('cta_text', form.cta_text);
     fd.append('meta_title', form.meta_title);
     fd.append('meta_description', form.meta_description);
+    fd.append('why_choose_us', form.why_choose_us);
+    fd.append('faqs', form.faqs);
     if (beforeFile) fd.append('image_before', beforeFile);
     if (afterFile) fd.append('image_after', afterFile);
     return fd;
@@ -270,6 +272,19 @@ export default function ManageServices() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Meta Description (SEO)</label>
           <textarea className="table-input" value={form.meta_description} onChange={e => setForm(f => ({ ...f, meta_description: e.target.value }))} placeholder="Brief description for search engine results..." rows={2} style={{ resize: 'vertical' }} />
+        </div>
+      </div>
+      <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--color-border)' }}>
+        <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--color-text)' }}>Additional Page Content</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '0.75rem' }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Why Choose Us (one benefit per line)</label>
+          <textarea className="table-input" value={form.why_choose_us} onChange={e => setForm(f => ({ ...f, why_choose_us: e.target.value }))} placeholder={"Licensed & insured professionals\n10+ years of experience\nFree consultations & estimates\n100% satisfaction guarantee"} rows={4} style={{ resize: 'vertical' }} />
+          <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Displayed as a benefits list on the service landing page.</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>FAQs (question and answer pairs, separated by blank lines)</label>
+          <textarea className="table-input" value={form.faqs} onChange={e => setForm(f => ({ ...f, faqs: e.target.value }))} placeholder={"How long does the project take?\nMost projects are completed within 1-3 business days depending on scope.\n\nDo you offer free estimates?\nYes! We provide free on-site consultations and detailed written estimates."} rows={6} style={{ resize: 'vertical' }} />
+          <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>Each pair: first line is the question, second line is the answer. Separate pairs with a blank line.</span>
         </div>
       </div>
       <div style={{ marginTop: '1rem' }}>

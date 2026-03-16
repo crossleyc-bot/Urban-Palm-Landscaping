@@ -4,7 +4,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  overflow: hidden;
+  overflow: visible;
   transition: background-color 0.3s, border-color 0.3s;
 }
 
@@ -121,8 +121,11 @@
 .nav-dropdown {
   position: absolute;
   top: 100%;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   min-width: 260px;
+  max-height: 70vh;
+  overflow-y: auto;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 10px;

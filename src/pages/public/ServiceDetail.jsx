@@ -54,6 +54,21 @@ export default function ServiceDetail() {
     ? service.features.split('\n').filter(f => f.trim())
     : [];
 
+  const whyChooseUs = service.why_choose_us
+    ? service.why_choose_us.split('\n').filter(b => b.trim())
+    : [];
+
+  const faqs = [];
+  if (service.faqs) {
+    const blocks = service.faqs.split('\n\n');
+    for (const block of blocks) {
+      const lines = block.split('\n').filter(l => l.trim());
+      if (lines.length >= 2) {
+        faqs.push({ question: lines[0].trim(), answer: lines.slice(1).join(' ').trim() });
+      }
+    }
+  }
+
   const allImages = [];
   if (service.image_before || service.image_after) {
     allImages.push({ image_before: service.image_before, image_after: service.image_after });
@@ -135,6 +150,36 @@ export default function ServiceDetail() {
                           </div>
                         )}
                       </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Why Choose Us */}
+              {whyChooseUs.length > 0 && (
+                <div className="sd-why-choose">
+                  <h2>Why Choose Urban Palm</h2>
+                  <div className="sd-why-grid">
+                    {whyChooseUs.map((benefit, i) => (
+                      <div key={i} className="sd-why-item">
+                        <span className="sd-check">&#10003;</span>
+                        <span>{benefit.trim()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* FAQs */}
+              {faqs.length > 0 && (
+                <div className="sd-faqs">
+                  <h2>Frequently Asked Questions</h2>
+                  <div className="sd-faq-list">
+                    {faqs.map((faq, i) => (
+                      <details key={i} className="sd-faq-item">
+                        <summary className="sd-faq-question">{faq.question}</summary>
+                        <p className="sd-faq-answer">{faq.answer}</p>
+                      </details>
                     ))}
                   </div>
                 </div>

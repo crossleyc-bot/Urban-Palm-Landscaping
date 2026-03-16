@@ -745,6 +745,15 @@ if (!svcLandingCols.includes('meta_description')) {
   db.exec("ALTER TABLE services ADD COLUMN meta_description TEXT");
 }
 
+// Migration: add why_choose_us and faqs fields to services
+const svcContentCols = db.prepare("PRAGMA table_info(services)").all().map(c => c.name);
+if (!svcContentCols.includes('why_choose_us')) {
+  db.exec("ALTER TABLE services ADD COLUMN why_choose_us TEXT");
+}
+if (!svcContentCols.includes('faqs')) {
+  db.exec("ALTER TABLE services ADD COLUMN faqs TEXT");
+}
+
 // Migration: keep only the four offered services
 const allowedServices = [
   'Landscape Delivery & Installation',
